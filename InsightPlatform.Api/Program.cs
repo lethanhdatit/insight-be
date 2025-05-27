@@ -6,6 +6,8 @@ using Microsoft.Extensions.DependencyInjection;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.Configure<AppOptions>(builder.Configuration.GetSection(AppOptions.Path));
+builder.Services.Configure<TokenSettings>(builder.Configuration.GetSection(TokenSettings.Path));
+builder.Services.Configure<ExternalLoginSettings>(builder.Configuration.GetSection(ExternalLoginSettings.Path));
 builder.Services.Configure<QueueMessagingSettings>(builder.Configuration.GetSection(QueueMessagingSettings.Path));
 builder.Services.Configure<LocalizationOptions>(builder.Configuration.GetSection(LocalizationOptions.Path));
 builder.Services.Configure<OpenAISettings>(builder.Configuration.GetSection(OpenAISettings.Path));
@@ -35,6 +37,7 @@ builder.Services.AddSingleton<PainConsumer>();
 builder.Services.AddHostedService<ConsumerInitializer>();
 
 builder.Services.AddScoped<IPainBusiness, PainBusiness>();
+builder.Services.AddScoped<IAccountBusiness, AccountBusiness>();
 
 var app = builder.Build();
 

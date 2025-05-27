@@ -33,9 +33,10 @@ public static class ClaimsPrincipalExtensions
         return user.FindFirst(JwtRegisteredClaimNames.Jti)?.Value ?? string.Empty;
     }
 
-    public static string GetUserId(this ClaimsPrincipal user)
+    public static Guid? GetUserId(this ClaimsPrincipal user)
     {
-        return user.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
+        var str = user.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
+        return str.IsPresent() ? Guid.TryParse(str, out var val) ? val : null : null;
     }
 
     public static string GetEmail(this ClaimsPrincipal user)

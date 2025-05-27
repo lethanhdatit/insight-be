@@ -166,4 +166,4 @@ public class PainBusiness(ILogger<PainBusiness> logger
 
 }
 
-public record PainDto(string Pain, string? Desire);
+public record PainDto(string Pain, string Desire);

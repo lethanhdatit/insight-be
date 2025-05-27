@@ -25,16 +25,15 @@ public class BaseAppRequest
     public string ClientOrigin { get; protected set; }
 
     
-    public string UserId { get; protected set; }
+    public Guid? UserId { get; protected set; }
 
-    
     public string UserName { get; protected set; }
 
     
     public string Email { get; protected set; }
 
     
-    public bool IsAuthenticated => UserId.IsPresent() && Guid.TryParse(UserId, out _);
+    public bool IsAuthenticated => UserId != null && UserId != Guid.Empty;
 
     
     public string SecurityStamp { get; protected set; }
@@ -47,7 +46,6 @@ public class BaseAppRequest
 
     
     public DateTime? AccessTokenExpiration { get; protected set; }
-
     
     public bool IsMobileRequest { get; protected set; }
 

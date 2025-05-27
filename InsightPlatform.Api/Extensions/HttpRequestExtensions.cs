@@ -1,12 +1,14 @@
 ﻿using Microsoft.AspNetCore.Http;
 using System;
 using System.Linq;
+using System.Security.Claims;
 using UAParser;
 
 public static class HttpRequestExtensions
 {
     public const string XCountrySiteHeaderKey = "X-Country-site";
     public const string XTimeZoneOffsetHeaderKey = "X-TimeZone-Offset";
+    public const string XGuestUserIdHeaderKey = "X-GuestUserId";
     public const string XLocaleCodeHeaderKey = "X-Locale-Code";
 
     public readonly static Parser UaParser = Parser.GetDefault();
@@ -78,6 +80,12 @@ public static class HttpRequestExtensions
         _ = int.TryParse(str, out var offset);
 
         return offset;
+    }
+
+    public static Guid? GetGuestUserId(this HttpRequest request)
+    {
+        var str = request.Headers[XGuestUserIdHeaderKey].FirstOrDefault() ?? string.Empty;
+        return str.IsPresent() ? Guid.TryParse(str, out var val) ? val : null : null;
     }
 
     public static string GetBaseUrl(this HttpRequest request)
