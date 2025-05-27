@@ -8,14 +8,13 @@ public static class HttpRequestExtensions
     public const string XCountrySiteHeaderKey = "X-Country-site";
     public const string XTimeZoneOffsetHeaderKey = "X-TimeZone-Offset";
     public const string XLocaleCodeHeaderKey = "X-Locale-Code";
-    public const string OriginHeaderKey = "Origin";
 
     public readonly static Parser UaParser = Parser.GetDefault();
 
 
     public static string GetClientOrigin(this HttpRequest request)
     {
-        var origin = request.Headers[OriginHeaderKey].FirstOrDefault();
+        var origin = request.Headers.Origin.FirstOrDefault();
 
         if (origin.IsMissing())
         {
@@ -31,14 +30,14 @@ public static class HttpRequestExtensions
 
     public static bool IsMobileRequest(this HttpRequest request)
     {
-        var userAgent = request.Headers["User-Agent"].ToString().ToLower();
+        var userAgent = request.Headers.UserAgent.ToString().ToLower();
 
         if (userAgent.Contains("iphone") || userAgent.Contains("android"))
         {
             return true;
         }
 
-        var origin = request.Headers[OriginHeaderKey].ToString();
+        var origin = request.Headers.Origin.ToString();
 
         if (origin.IsMissing() 
             || (!origin.StartsWith("http://", StringComparison.OrdinalIgnoreCase) 
@@ -52,8 +51,8 @@ public static class HttpRequestExtensions
 
     public static UserAgentInfo GetUserAgentInfo(this HttpRequest request)
     {
-        var userAgent = request.Headers["User-Agent"].ToString();
-        var referer = request.Headers["Referer"].ToString();
+        var userAgent = request.Headers.UserAgent.ToString();
+        var referer = request.Headers.Referer.ToString();
         var src = request.Headers["Src"].ToString();
         var xFrom = request.Headers["X-From"].ToString();
 

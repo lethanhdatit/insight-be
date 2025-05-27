@@ -1,20 +1,23 @@
-﻿using Microsoft.Extensions.Logging;
-using System.Threading.Tasks;
+﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using System;
 
 public class PainConsumer
 {
-    public const string QueueName = "pain.submit";
+    public const string QueuePainLabeling = "pain.labeling";
 
-    public PainConsumer(IQueueMessaging mq, ILogger<PainConsumer> logger)
+    public PainConsumer(IQueueMessaging mq
+        , ILogger<PainConsumer> logger
+        , IServiceScopeFactory scopeFactory)
     {
         logger.LogInformation("PainConsumer initialized");
 
-        mq.Subscribe<PainRequest>(QueueName, async (data) =>
+        mq.Subscribe<Guid>(QueuePainLabeling, async (data) =>
         {
-            logger.LogInformation("Pain request: {Id}", data.PainId);
+            using var scope = scopeFactory.CreateScope();
+            var painBusiness = scope.ServiceProvider.GetRequiredService<IPainBusiness>();
 
-            
-            await Task.CompletedTask;
+            await painBusiness.PainLabelingAsync(data);
         });
     }
 }

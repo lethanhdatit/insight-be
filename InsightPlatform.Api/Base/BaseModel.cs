@@ -11,7 +11,7 @@ using System.Text.Json.Serialization;
 using UAParser;
 
 
-public class BaseAuthorizedRequest
+public class BaseAppRequest
 {
     public string BaseRequest { get; protected set; }
 
@@ -55,7 +55,7 @@ public class BaseAuthorizedRequest
 
     public UserAgentInfo UA { get; protected set; }
 
-    public BaseAuthorizedRequest(HttpRequest request)
+    public BaseAppRequest(HttpRequest request)
     {
         GetMetadata(request);
     }

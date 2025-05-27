@@ -10,16 +10,8 @@ public class PainPublisher
         _mq = mq;
     }
 
-    public async Task SubmitPainAsync(Guid id, string pain, string desire, string userAgent)
+    public async Task PainLabelingAsync(Guid painId)
     {
-        var message = new PainRequest
-        {
-            Pain = pain,
-            Desire = desire,
-            UserAgent = userAgent,
-            PainId = id           
-        };
-
-        await _mq.PublishAsync(message, PainConsumer.QueueName);
+        await _mq.PublishAsync(painId, PainConsumer.QueuePainLabeling);
     }
 }

@@ -10,6 +10,8 @@ public class Pain
     public string Emotion { get; set; }
     public int? UrgencyLevel { get; set; }
     public string DeviceId { get; set; }
+    public string UserAgent { get; set; }
+    public string ClientLocale { get; set; }
     public Guid? UserId { get; set; }
     public DateTime CreatedAt { get; set; }
 }

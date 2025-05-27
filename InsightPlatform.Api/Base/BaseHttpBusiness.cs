@@ -11,7 +11,7 @@ public class BaseHttpBusiness<TBusiness, TContext>(ILogger<TBusiness> logger
     protected readonly IDbContextFactory<TContext> _contextFactory = contextFactory;
     protected readonly IHttpContextAccessor _contextAccessor = contextAccessor;
 
-    protected readonly BaseAuthorizedRequest Current = new(contextAccessor?.HttpContext?.Request);
+    protected readonly BaseAppRequest Current = new(contextAccessor?.HttpContext?.Request);
 
     protected HttpContext CurrentContext()
     {
