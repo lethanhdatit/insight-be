@@ -3,6 +3,10 @@
 public class LocalizationOptions
 {
     public const string Path = "Localization";
+
     public string DefaultCulture { get; set; } = "en-US";
+
     public List<string> SupportedCultures { get; set; } = [];
+
+    public bool AcceptAllLocales { get; set; }
 }

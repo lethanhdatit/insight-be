@@ -8,8 +8,11 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.Configure<AppOptions>(builder.Configuration.GetSection(AppOptions.Path));
 builder.Services.Configure<QueueMessagingSettings>(builder.Configuration.GetSection(QueueMessagingSettings.Path));
 builder.Services.Configure<LocalizationOptions>(builder.Configuration.GetSection(LocalizationOptions.Path));
+builder.Services.Configure<OpenAISettings>(builder.Configuration.GetSection(OpenAISettings.Path));
 
 builder.Services.AddHttpContextAccessor();
+
+builder.Services.AddHttpClient<IHttpClientService, HttpClientService>();
 
 builder.Services.AddSingleton<AppRequestLocalization>();
 
@@ -25,6 +28,7 @@ builder.Services.AddDbContextFactory<ApplicationDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddSingleton<RetryPolicy>();
+builder.Services.AddSingleton<IOpenAiService, OpenAiService>();
 builder.Services.AddSingleton<IQueueMessaging, RabbitMqService>();
 builder.Services.AddSingleton<PainPublisher>();
 builder.Services.AddSingleton<PainConsumer>();

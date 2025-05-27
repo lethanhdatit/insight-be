@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.Extensions.Options;
-using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 
@@ -16,9 +15,9 @@ public class AppRequestLocalization
 
     public RequestLocalizationOptions GetRequestLocalizationOptions()
     {
-        var supportedCultures = _localizationOptions.SupportedCultures
-            .Select(c => new CultureInfo(c))
-            .ToList();
+        var supportedCultures = _localizationOptions.AcceptAllLocales ? 
+                                CultureInfo.GetCultures(CultureTypes.AllCultures).Where(c => c.Name.IsPresent()).ToList() : 
+                                _localizationOptions.SupportedCultures.Select(c => new CultureInfo(c)).ToList();
 
         return new RequestLocalizationOptions
         {
