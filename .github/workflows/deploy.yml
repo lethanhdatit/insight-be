@@ -1,40 +1,45 @@
-name: Deploy to Azure VM via SSH Password
+name: Deploy Insight API
 
 on:
   push:
-    branches: [ production ]
+    branches:
+      - production
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout source
+        uses: actions/checkout@v3
 
-    - name: Setup SSH client
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y sshpass
+      - name: Generate deploy directory name
+        id: vars
+        run: echo "DEPLOY_DIR=deploy-insight-api-$(date +%s)" >> $GITHUB_ENV
 
-    - name: Create appsettings.Production.json from secret
-      run: |
-        echo "${{ secrets.APPSETTINGS_PRODUCTION_B64 }}" | base64 -d > InsightPlatform.Api/appsettings.Production.json
-        
-    - name: Remove old deployment folder on VM
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y sshpass
-        sshpass -p "${{ secrets.AZURE_VM_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ secrets.AZURE_VM_USER }}@${{ secrets.AZURE_VM_IP }} "rm -rf ~/deploy-insight-api"
+      - name: Copy files to Azure VM
+        uses: appleboy/scp-action@v0.1.6
+        with:
+          host: ${{ secrets.AZURE_VM_IP }}
+          username: ${{ secrets.AZURE_VM_USER }}
+          password: ${{ secrets.AZURE_VM_PASSWORD }}
+          source: "."
+          target: "~/\${{ env.DEPLOY_DIR }}"
 
-    - name: Copy files to Azure VM
-      run: |
-        sshpass -p "${{ secrets.AZURE_VM_PASSWORD }}" scp -o StrictHostKeyChecking=no -r . ${{ secrets.AZURE_VM_USER }}@${{ secrets.AZURE_VM_IP }}:/home/${{ secrets.AZURE_VM_USER }}/deploy-insight-api
+      - name: Deploy on Azure VM via SSH
+        uses: appleboy/ssh-action@v0.1.6
+        with:
+          host: ${{ secrets.AZURE_VM_IP }}
+          username: ${{ secrets.AZURE_VM_USER }}
+          password: ${{ secrets.AZURE_VM_PASSWORD }}
+          script: |
+            cd ~/${{ env.DEPLOY_DIR }}
+            docker-compose up -d --build
 
-    - name: Run Docker Compose on Azure VM
-      run: |
-        sshpass -p "${{ secrets.AZURE_VM_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ secrets.AZURE_VM_USER }}@${{ secrets.AZURE_VM_IP }} "
-        cd /home/${{ secrets.AZURE_VM_USER }}/deploy-insight-api &&
-        docker-compose down &&
-        docker-compose up -d --build
-        "
+            ln -sfn ~/${{ env.DEPLOY_DIR }} ~/deploy-insight-api
+
+            for dir in ~/deploy-insight-api-*; do
+              if [ "$dir" != "~/${{ env.DEPLOY_DIR }}" ]; then
+                rm -rf "$dir"
+              fi
+            done
