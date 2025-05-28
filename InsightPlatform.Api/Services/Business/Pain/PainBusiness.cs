@@ -13,11 +13,11 @@ public class PainBusiness(ILogger<PainBusiness> logger
     , IHttpContextAccessor contextAccessor
     , IAccountBusiness accountBusiness
     , IOpenAiService openAiService
-    , IOptions<AppOptions> appOptions
+    , IOptions<AppSettings> appOptions
     , PainPublisher publisher) : BaseHttpBusiness<PainBusiness, ApplicationDbContext>(logger, contextFactory, contextAccessor), IPainBusiness
 {
     private readonly PainPublisher _publisher = publisher;
-    private readonly AppOptions _appSettings = appOptions.Value;
+    private readonly AppSettings _appSettings = appOptions.Value;
     private readonly IAccountBusiness _accountBusiness = accountBusiness;
     private readonly IOpenAiService _openAiService = openAiService;
 

@@ -1,6 +1,6 @@
 ﻿public class TokenSettings
 {
-    public const string Path = "TokenSettings";
+    public const string Path = "Token";
 
     public string SecretKey { get; set; }
     public string Issuer { get; set; }

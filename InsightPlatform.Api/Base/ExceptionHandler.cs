@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Net;
 
-public static class ExceptionExtensions
+public static class ExceptionHandler
 {
     public static ObjectResult ProcessResult(this Exception exception, ILogger logger, IWebHostEnvironment env, out bool isHandled)
     {

@@ -15,7 +15,7 @@
     <PackageReference Include="UAParser" Version="3.1.47" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="Migrations\" />
+    <Folder Include="Data\Migrations\" />
     <Folder Include="Services\Business\Account\Models\" />
   </ItemGroup>
 </Project>

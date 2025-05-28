@@ -1,6 +1,6 @@
 ﻿public class OpenAISettings
 {
-    public const string Path = "OpenAISettings";
+    public const string Path = "OpenAI";
 
     public string ApiKey { get; set; }
 

@@ -6,9 +6,9 @@ using System.Linq;
 
 public class AppRequestLocalization
 {
-    private readonly LocalizationOptions _localizationOptions;
+    private readonly LocalizationSettings _localizationOptions;
 
-    public AppRequestLocalization(IOptions<LocalizationOptions> options)
+    public AppRequestLocalization(IOptions<LocalizationSettings> options)
     {
         _localizationOptions = options.Value;
     }

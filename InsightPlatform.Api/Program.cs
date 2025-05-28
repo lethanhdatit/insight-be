@@ -11,12 +11,12 @@ var services = builder.Services;
 var configuration = builder.Configuration;
 
 // === Configuration bindings ===
-services.Configure<AppOptions>(configuration.GetSection(AppOptions.Path));
+services.Configure<AppSettings>(configuration.GetSection(AppSettings.Path));
 services.Configure<TokenSettings>(configuration.GetSection(TokenSettings.Path));
-services.Configure<CorsWhiteListOptions>(configuration.GetSection(CorsWhiteListOptions.Path));
+services.Configure<CorsWhiteListSettings>(configuration.GetSection(CorsWhiteListSettings.Path));
 services.Configure<ExternalLoginSettings>(configuration.GetSection(ExternalLoginSettings.Path));
 services.Configure<QueueMessagingSettings>(configuration.GetSection(QueueMessagingSettings.Path));
-services.Configure<LocalizationOptions>(configuration.GetSection(LocalizationOptions.Path));
+services.Configure<LocalizationSettings>(configuration.GetSection(LocalizationSettings.Path));
 services.Configure<OpenAISettings>(configuration.GetSection(OpenAISettings.Path));
 
 // === Infrastructure ===
@@ -33,10 +33,10 @@ services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 // === Localization && CORS ===
 services.AddSingleton<AppRequestLocalization>();
-var cors = builder.Configuration.GetSection(CorsWhiteListOptions.Path).Get<string[]>();
+var cors = builder.Configuration.GetSection(CorsWhiteListSettings.Path).Get<string[]>();
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy(CorsWhiteListOptions.Policy,
+    options.AddPolicy(CorsWhiteListSettings.Policy,
         policy =>
         {
             policy.WithOrigins(cors)
@@ -107,7 +107,7 @@ app.UseRequestLocalization(localization.GetRequestLocalizationOptions());
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.UseCors(CorsWhiteListOptions.Policy);
+app.UseCors(CorsWhiteListSettings.Policy);
 
 app.MapControllers();
 

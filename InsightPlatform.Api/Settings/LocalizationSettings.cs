@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-public class LocalizationOptions
+public class LocalizationSettings
 {
     public const string Path = "Localization";
 

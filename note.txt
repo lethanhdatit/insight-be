@@ -1,4 +1,4 @@
-dotnet ef migrations add InitialCreate --project InsightPlatform.Api --startup-project InsightPlatform.Api
+dotnet ef migrations add InitialCreate --project InsightPlatform.Api --startup-project InsightPlatform.Api -o Data/Migrations
 
 
 dotnet ef database update --project InsightPlatform.Api --startup-project InsightPlatform.Api

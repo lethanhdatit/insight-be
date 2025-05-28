@@ -1,6 +1,6 @@
 ﻿public class ExternalLoginSettings
 {
-    public const string Path = "ExternalLoginSettings";
+    public const string Path = "ExternalLogin";
 
     public ExternalProviderCredential Google { get; set; }
 

@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-public class CorsWhiteListOptions
+public class CorsWhiteListSettings
 {
     public const string Path = "CorsWhitelistDomains";
     public const string Policy = "CorsSpecificOrigins";

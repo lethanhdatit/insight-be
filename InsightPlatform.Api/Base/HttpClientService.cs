@@ -13,7 +13,7 @@ internal class HttpClientService : IHttpClientService
 {
     private readonly HttpClient _httpClient;
 
-    public HttpClientService(HttpClient httpClient, IOptions<AppOptions> configuration)
+    public HttpClientService(HttpClient httpClient, IOptions<AppSettings> configuration)
     {
         _httpClient = httpClient;
         var requestTimeout = configuration.Value.SystemHttpRequestTimeout;
