@@ -1,3 +1,6 @@
 InsightPlatform.Api/bin/
 InsightPlatform.Api/obj/
 .vs/
+bin/
+obj/
+InsightPlatform.Api/appsettings.Production.json
