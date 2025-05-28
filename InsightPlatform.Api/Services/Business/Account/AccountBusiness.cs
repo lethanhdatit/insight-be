@@ -4,7 +4,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System;
-using System.IdentityModel.Tokens.Jwt;
 using System.Net.Http;
 using System.Security.Claims;
 using System.Threading.Tasks;
@@ -13,20 +12,14 @@ public class AccountBusiness(ILogger<AccountBusiness> logger
     , IDbContextFactory<ApplicationDbContext> contextFactory
     , IHttpContextAccessor contextAccessor
     , IHttpClientService httpClientService
-    , IOpenAiService openAiService
-    , IOptions<AppOptions> appOptions
     , IOptions<TokenSettings> tokenSettings
-    , IOptions<ExternalLoginSettings> externalLoginSettings
-    , PainPublisher publisher) : BaseHttpBusiness<AccountBusiness, ApplicationDbContext>(logger, contextFactory, contextAccessor), IAccountBusiness
+    , IOptions<ExternalLoginSettings> externalLoginSettings) : BaseHttpBusiness<AccountBusiness, ApplicationDbContext>(logger, contextFactory, contextAccessor), IAccountBusiness
 {
-    private readonly PainPublisher _publisher = publisher;
-    private readonly AppOptions _appSettings = appOptions.Value;
     private readonly TokenSettings _tokenSettings = tokenSettings.Value;
     private readonly ExternalLoginSettings _externalLoginSettings = externalLoginSettings.Value;
     private readonly IHttpClientService _httpClientService = httpClientService;
-    private readonly IOpenAiService _openAiService = openAiService;
 
-    public async Task<BaseResponse<dynamic>> InitGuest()
+    public async Task<BaseResponse<Guid?>> InitGuest()
     {
         await using var context = await _contextFactory.CreateDbContextAsync();
         await using var transaction = await context.Database.BeginTransactionAsync();
@@ -103,11 +96,7 @@ public class AccountBusiness(ILogger<AccountBusiness> logger
                 await context.Users.AddAsync(ggUser);
                 await context.SaveChangesAsync();
 
-                (accessToken, expiration) = TokenHelper.GetToken(_tokenSettings,
-                [
-                    new Claim(JwtRegisteredClaimNames.Sub, ggUser.Id.ToString()),
-                    new Claim(JwtRegisteredClaimNames.Name, ggUser.DisplayName),
-                ]);
+                (accessToken, expiration) = GenerateAccessTokenFromUser(ggUser);
             }
             else if (guestUser != null && ggUser == null)
             {
@@ -121,20 +110,12 @@ public class AccountBusiness(ILogger<AccountBusiness> logger
                     context.Users.Update(guestUser);
                     await context.SaveChangesAsync();
 
-                    (accessToken, expiration) = TokenHelper.GetToken(_tokenSettings,
-                    [
-                        new Claim(JwtRegisteredClaimNames.Sub, guestUser.Id.ToString()),
-                        new Claim(JwtRegisteredClaimNames.Name, guestUser.DisplayName),
-                    ]);
+                    (accessToken, expiration) = GenerateAccessTokenFromUser(guestUser);
                 }
             }
             else
             {
-                (accessToken, expiration) = TokenHelper.GetToken(_tokenSettings,
-                [
-                   new Claim(JwtRegisteredClaimNames.Sub, ggUser.Id.ToString()),
-                   new Claim(JwtRegisteredClaimNames.Name, ggUser.DisplayName),
-                ]);
+                (accessToken, expiration) = GenerateAccessTokenFromUser(ggUser);
             }
 
             await transaction.CommitAsync();
@@ -191,11 +172,7 @@ public class AccountBusiness(ILogger<AccountBusiness> logger
                 await context.Users.AddAsync(fbUser);
                 await context.SaveChangesAsync();
 
-                (accessToken, expiration) = TokenHelper.GetToken(_tokenSettings,
-                [
-                    new Claim(JwtRegisteredClaimNames.Sub, fbUser.Id.ToString()),
-                    new Claim(JwtRegisteredClaimNames.Name, fbUser.DisplayName),
-                ]);
+                (accessToken, expiration) = GenerateAccessTokenFromUser(fbUser);
             }
             else if (guestUser != null && fbUser == null)
             {
@@ -209,20 +186,12 @@ public class AccountBusiness(ILogger<AccountBusiness> logger
                     context.Users.Update(guestUser);
                     await context.SaveChangesAsync();
 
-                    (accessToken, expiration) = TokenHelper.GetToken(_tokenSettings,
-                    [
-                        new Claim(JwtRegisteredClaimNames.Sub, guestUser.Id.ToString()),
-                        new Claim(JwtRegisteredClaimNames.Name, guestUser.DisplayName),
-                    ]);
+                    (accessToken, expiration) = GenerateAccessTokenFromUser(guestUser);
                 }
             }
             else
             {
-                (accessToken, expiration) = TokenHelper.GetToken(_tokenSettings,
-                [
-                   new Claim(JwtRegisteredClaimNames.Sub, fbUser.Id.ToString()),
-                   new Claim(JwtRegisteredClaimNames.Name, fbUser.DisplayName),
-                ]);
+                (accessToken, expiration) = GenerateAccessTokenFromUser(fbUser);
             }
 
             await transaction.CommitAsync();
@@ -244,7 +213,7 @@ public class AccountBusiness(ILogger<AccountBusiness> logger
             await context.DisposeAsync();
         }
     }
-    
+   
     public async Task<BaseResponse<dynamic>> RegisterAsync(RegisterRequest payload)
     {
         await using var context = await _contextFactory.CreateDbContextAsync();
@@ -302,11 +271,7 @@ public class AccountBusiness(ILogger<AccountBusiness> logger
            
             await transaction.CommitAsync();
 
-            var (accessToken, expiration) = TokenHelper.GetToken(_tokenSettings,
-            [
-                 new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
-                 new Claim(JwtRegisteredClaimNames.Name, user.DisplayName),
-            ]);
+            var (accessToken, expiration) = GenerateAccessTokenFromUser(user);
 
             return new(new
             {
@@ -340,11 +305,7 @@ public class AccountBusiness(ILogger<AccountBusiness> logger
         if (user == null || !PasswordHelper.VerifyPassword(payload.Password, user.PasswordHash, user.PasswordSalt))
             throw new BusinessException("InvalidCredentials", "Username or password incorrect");
 
-        var (accessToken, expiration) = TokenHelper.GetToken(_tokenSettings,
-        [
-            new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
-            new Claim(JwtRegisteredClaimNames.Name, user.DisplayName),
-        ]);
+        var (accessToken, expiration) = GenerateAccessTokenFromUser(user);
 
         return new(new
         {
@@ -363,6 +324,16 @@ public class AccountBusiness(ILogger<AccountBusiness> logger
         return userInfoResponse;
     }
 
+    private (string token, DateTime expiration) GenerateAccessTokenFromUser(User user)
+    {
+        return TokenHelper.GetToken(_tokenSettings,
+        [
+            new Claim(Microsoft.IdentityModel.JsonWebTokens.JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            new Claim(Microsoft.IdentityModel.JsonWebTokens.JwtRegisteredClaimNames.Sub, user.Id.ToString()),
+            new Claim(ClaimTypes.Name, user.Username),
+            new Claim(SystemClaim.FullName, user.DisplayName),
+        ]);
+    }
 }
 
 public class FacebookUserInfo

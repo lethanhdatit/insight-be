@@ -11,14 +11,14 @@ using System.Threading.Tasks;
 public class PainBusiness(ILogger<PainBusiness> logger
     , IDbContextFactory<ApplicationDbContext> contextFactory
     , IHttpContextAccessor contextAccessor
-    , IHttpClientService httpClientService
+    , IAccountBusiness accountBusiness
     , IOpenAiService openAiService
     , IOptions<AppOptions> appOptions
     , PainPublisher publisher) : BaseHttpBusiness<PainBusiness, ApplicationDbContext>(logger, contextFactory, contextAccessor), IPainBusiness
 {
     private readonly PainPublisher _publisher = publisher;
     private readonly AppOptions _appSettings = appOptions.Value;
-    private readonly IHttpClientService _httpClientService = httpClientService;
+    private readonly IAccountBusiness _accountBusiness = accountBusiness;
     private readonly IOpenAiService _openAiService = openAiService;
 
     public async Task<BaseResponse<dynamic>> InsertPain(PainDto dto)
@@ -28,14 +28,21 @@ public class PainBusiness(ILogger<PainBusiness> logger
 
         try
         {
+            var userId = Current.UserId;
+
+            if (userId == null)
+                userId = (await _accountBusiness.InitGuest()).Data;
+
+            if (userId == null)
+                throw new BusinessException("UnableInitGuest", "Unable to init guest user");
+
             var ua = Current.UA?.RawUserAgent;
 
             var entity = new Pain
             {
-                Id = Guid.NewGuid(),
                 PainDetail = dto.Pain,
                 Desire = dto.Desire,
-                //DeviceId = ua, //todo
+                UserId = userId,
                 UserAgent = ua,
                 ClientLocale = Current.CurrentCulture?.Name,
                 CreatedAt = DateTime.UtcNow
@@ -76,7 +83,7 @@ public class PainBusiness(ILogger<PainBusiness> logger
 
             if (entity != null)
             {
-                var res = await ClassifyAsync(entity);
+                var res = await ClassifyPainAsync(entity);
 
                 if (res != null)
                 {
@@ -106,13 +113,13 @@ public class PainBusiness(ILogger<PainBusiness> logger
         }
     }
 
-    private async Task<PainClassificationResult> ClassifyAsync(Pain pain)
+    private async Task<PainClassificationResult> ClassifyPainAsync(Pain pain)
     {
         var detectedLanguage = await DetectLanguageAsync(pain);
-        var prompt = BuildPrompt(pain, detectedLanguage);
 
-        var systemPrompt = "You are a classification expert analyzing emotional and behavioral inputs.";
-        var result = await _openAiService.SendChatAsync(systemPrompt, prompt);
+        var (systemPrompt, userPrompt) = BuildPainClassifyPrompt(pain, detectedLanguage);
+        
+        var result = await _openAiService.SendChatAsync(systemPrompt, userPrompt);
 
         if (result.IsPresent())
         {
@@ -130,8 +137,10 @@ public class PainBusiness(ILogger<PainBusiness> logger
         return Regex.IsMatch(detectedLang.Trim(), "^[a-z]{2}$") ? detectedLang.Trim().ToLower() : "en";
     }
 
-    private static string BuildPrompt(Pain pain, string detectedLanguage)
+    private static (string systemPrompt, string userPrompt) BuildPainClassifyPrompt(Pain pain, string detectedLanguage)
     {
+        var systemPrompt = "You are a classification expert analyzing emotional and behavioral inputs.";
+
         var sb = new StringBuilder();
 
         sb.AppendLine("You are an assistant that analyzes user pain points and desires. Your task is to classify the pain by category, topic, emotion, and urgency level.");
@@ -161,7 +170,7 @@ public class PainBusiness(ILogger<PainBusiness> logger
         sb.AppendLine();
         sb.AppendLine("Use the context information to better understand regional, cultural, or linguistic nuances, but again, return the final result in English.");
 
-        return sb.ToString();
+        return (systemPrompt, sb.ToString());
     }
 
 }

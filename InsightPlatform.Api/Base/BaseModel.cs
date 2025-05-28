@@ -14,37 +14,27 @@ using UAParser;
 public class BaseAppRequest
 {
     public string BaseRequest { get; protected set; }
-
-    
+        
     public string ClientIP { get; protected set; }
-
-    
+        
     public int TimeZoneOffset { get; protected set; }
-
-    
+        
     public string ClientOrigin { get; protected set; }
-
-    
+        
     public Guid? UserId { get; protected set; }
 
     public string UserName { get; protected set; }
-
-    
+        
     public string Email { get; protected set; }
-
-    
+        
     public bool IsAuthenticated => UserId != null && UserId != Guid.Empty;
-
-    
+        
     public string SecurityStamp { get; protected set; }
-
-    
+        
     public string AccessToken { get; protected set; }
-
-    
+        
     public string AccessTokenId { get; protected set; }
-
-    
+        
     public DateTime? AccessTokenExpiration { get; protected set; }
     
     public bool IsMobileRequest { get; protected set; }

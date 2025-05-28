@@ -13,10 +13,11 @@ public static class TokenHelper
         var signInCredentials = new SigningCredentials(secretKey, SecurityAlgorithms.HmacSha256);
 
         TimeSpan exp = TimeSpan.FromSeconds(appSettings.AccessTokenExpSeconds);
-
         var expiration = DateTime.UtcNow.Add(exp);
 
         var tokenOptions = new JwtSecurityToken(
+            issuer: appSettings.Issuer,
+            audience: appSettings.Audience,
             claims: userClaims,
             expires: expiration,
             signingCredentials: signInCredentials
