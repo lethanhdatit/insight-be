@@ -2,3 +2,9 @@ dotnet ef migrations add InitialCreate --project InsightPlatform.Api --startup-p
 
 
 dotnet ef database update --project InsightPlatform.Api --startup-project InsightPlatform.Api
+
+
+
+
+$path = "D:\insight\insight-be\InsightPlatform.Api\appsettings.Production.json" 
+[Convert]::ToBase64String([IO.File]::ReadAllBytes($path)) | Set-Clipboard

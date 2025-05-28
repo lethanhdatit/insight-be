@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  insightplatform.api:
+    image: ${DOCKER_REGISTRY-}insightplatformapi
+    build:
+      context: .
+      dockerfile: InsightPlatform.Api/Dockerfile
+    ports:
+      - "5000:8080"
+    volumes:
+      - ./appsettings.Production.json:/app/appsettings.Production.json:ro
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+    depends_on:
+      - rabbitmq
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      - RABBITMQ_DEFAULT_USER=bekem
+      - RABBITMQ_DEFAULT_PASS=ltd@kem@bgh#0302

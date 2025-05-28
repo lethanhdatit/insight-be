@@ -1,0 +1,34 @@
+name: Deploy to Azure VM via SSH Password
+
+on:
+  push:
+    branches: [ production ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup SSH client
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y sshpass
+
+    - name: Create appsettings.Production.json from secret
+      run: |
+        echo "${{ secrets.APPSETTINGS_PRODUCTION_B64 }}" | base64 -d > InsightPlatform.Api/appsettings.Production.json
+
+    - name: Copy files to Azure VM
+      run: |
+        sshpass -p "${{ secrets.AZURE_VM_PASSWORD }}" scp -o StrictHostKeyChecking=no -r . ${{ secrets.AZURE_VM_USER }}@${{ secrets.AZURE_VM_HOST }}:/home/${{ secrets.AZURE_VM_USER }}/deploy-insight-api
+
+    - name: Run Docker Compose on Azure VM
+      run: |
+        sshpass -p "${{ secrets.AZURE_VM_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ secrets.AZURE_VM_USER }}@${{ secrets.AZURE_VM_HOST }} "
+        cd /home/${{ secrets.AZURE_VM_USER }}/deploy-insight-api &&
+        docker-compose down &&
+        docker-compose up -d --build
+        "
