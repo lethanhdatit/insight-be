@@ -20,6 +20,12 @@ jobs:
     - name: Create appsettings.Production.json from secret
       run: |
         echo "${{ secrets.APPSETTINGS_PRODUCTION_B64 }}" | base64 -d > InsightPlatform.Api/appsettings.Production.json
+        
+    - name: Remove old deployment folder on VM
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y sshpass
+        sshpass -p "${{ secrets.AZURE_VM_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ secrets.AZURE_VM_USER }}@${{ secrets.AZURE_VM_IP }} "rm -rf ~/deploy-insight-api"
 
     - name: Copy files to Azure VM
       run: |

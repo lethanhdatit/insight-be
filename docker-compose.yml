@@ -9,7 +9,7 @@ services:
     ports:
       - "5000:8080"
     volumes:
-      - ./appsettings.Production.json:/app/appsettings.Production.json:ro
+      - ./InsightPlatform.Api/appsettings.Production.json:/app/appsettings.Production.json:ro
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
     depends_on:
