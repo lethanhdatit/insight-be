@@ -38,8 +38,12 @@ jobs:
 
             ln -sfn ${{ env.DEPLOY_DIR }} ~/deploy-insight-api
 
+            current_dir_name=$(basename "${{ env.DEPLOY_DIR }}")
+
             for dir in ~/deploy-insight-api-*; do
-              if [ $(realpath "$dir") != $(realpath "${{ env.DEPLOY_DIR }}") ]; then
-                rm -rf "$full_dir"
+              dir_name=$(basename "$dir")
+              if [ "$dir_name" != "$current_dir_name" ]; then
+                echo "Removing old deploy folder: $dir"
+                rm -rf "$dir"
               fi
             done
