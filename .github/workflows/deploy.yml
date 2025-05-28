@@ -39,7 +39,8 @@ jobs:
             ln -sfn ${{ env.DEPLOY_DIR }} ~/deploy-insight-api
 
             for dir in ~/deploy-insight-api-*; do
-              if [ "$dir" != "${{ env.DEPLOY_DIR }}" ]; then
-                rm -rf "$dir"
+              full_dir=$(realpath "$dir")
+              if [ "$full_dir" != "${{ env.DEPLOY_DIR }}" ]; then
+                rm -rf "$full_dir"
               fi
             done
