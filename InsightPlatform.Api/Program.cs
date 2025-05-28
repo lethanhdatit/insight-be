@@ -1,10 +1,12 @@
 ﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using System;
+using System.Threading.Tasks;
 
 var builder = WebApplication.CreateBuilder(args);
 var services = builder.Services;
@@ -92,13 +94,28 @@ services.AddSwaggerGen(options =>
         }
     });
 });
+services.AddHealthChecks();
 
 // === Build & Pipeline ===
+//if (!builder.Environment.IsDevelopment())
+//{
+//    builder.WebHost.ConfigureKestrel(options =>
+//    {
+//        options.ListenUnixSocket("/app/socket/socket.sock");
+//    });
+//}
+
 var app = builder.Build();
 
 app.UseSwagger();
 app.UseSwaggerUI();
 
+app.MapHealthChecks("/health");
+app.MapGet("/", (HttpContext context) =>
+{
+    context.Response.Redirect("/health");
+    return Task.CompletedTask;
+});
 app.UseHttpsRedirection();
 
 var localization = app.Services.GetRequiredService<AppRequestLocalization>();
@@ -110,5 +127,12 @@ app.UseAuthorization();
 app.UseCors(CorsWhiteListSettings.Policy);
 
 app.MapControllers();
+
+using (var scope = app.Services.CreateScope())
+{
+    var dbContextFactory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<ApplicationDbContext>>();
+    using var dbContext = dbContextFactory.CreateDbContext();
+    dbContext.Database.Migrate();
+}
 
 app.Run();

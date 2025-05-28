@@ -1,34 +1,117 @@
-name: Deploy to Azure VM via SSH Password
+name: Deploy Insight API
 
 on:
   push:
-    branches: [ production ]
+    branches:
+      - production
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout source
+        uses: actions/checkout@v3
 
-    - name: Setup SSH client
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y sshpass
+      - name: Create appsettings.Production.json from secret
+        run: |
+          echo "${{ secrets.APPSETTINGS_PRODUCTION_BASE64 }}" | base64 -d > InsightPlatform.Api/appsettings.Production.json
 
-    - name: Create appsettings.Production.json from secret
-      run: |
-        echo "${{ secrets.APPSETTINGS_PRODUCTION_B64 }}" | base64 -d > InsightPlatform.Api/appsettings.Production.json
+      - name: Generate deploy directory name
+        id: vars
+        run: echo "DEPLOY_DIR=~/deploy-insight-api-$(date +%s)" >> $GITHUB_ENV
 
-    - name: Copy files to Azure VM
-      run: |
-        sshpass -p "${{ secrets.AZURE_VM_PASSWORD }}" scp -o StrictHostKeyChecking=no -r . ${{ secrets.AZURE_VM_USER }}@${{ secrets.AZURE_VM_IP }}:/home/${{ secrets.AZURE_VM_USER }}/deploy-insight-api
+      - name: Copy files to Azure VM
+        uses: appleboy/scp-action@v0.1.6
+        with:
+          host: ${{ secrets.AZURE_VM_IP }}
+          username: ${{ secrets.AZURE_VM_USER }}
+          password: ${{ secrets.AZURE_VM_PASSWORD }}
+          source: "."
+          target: ${{ env.DEPLOY_DIR }}
 
-    - name: Run Docker Compose on Azure VM
-      run: |
-        sshpass -p "${{ secrets.AZURE_VM_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ secrets.AZURE_VM_USER }}@${{ secrets.AZURE_VM_IP }} "
-        cd /home/${{ secrets.AZURE_VM_USER }}/deploy-insight-api &&
-        docker-compose down &&
-        docker-compose up -d --build
-        "
+      - name: Deploy on Azure VM via SSH
+        uses: appleboy/ssh-action@v0.1.6
+        with:
+          host: ${{ secrets.AZURE_VM_IP }}
+          username: ${{ secrets.AZURE_VM_USER }}
+          password: ${{ secrets.AZURE_VM_PASSWORD }}
+          script: |
+              cd ${{ env.DEPLOY_DIR }}
+              export TIMESTAMP=$(date +%s)
+
+              # 🔍 Find current port (6500/6501/6502...) from upstream file
+              CURRENT_PORT=$(grep -oP 'http://127.0.0.1:\K[0-9]+' /etc/nginx/upstreams/insight-api-upstream.conf || echo "6500")
+              echo "Current port in use: $CURRENT_PORT"
+
+              # 🔄 Choosing new port
+              if [ "$CURRENT_PORT" -eq "6500" ]; then
+                NEW_PORT=6501
+              else
+                NEW_PORT=6500
+              fi
+              echo "Using new port: $NEW_PORT"
+
+              echo "Checking for containers using port $NEW_PORT..."
+              containers_using_port=$(sudo docker ps -a --filter "publish=$NEW_PORT" --format "{{.ID}}")
+
+              if [ -n "$containers_using_port" ]; then
+                  echo "Stopping and removing containers using port $NEW_PORT..."
+                  echo "$containers_using_port" | xargs -r sudo docker stop
+                  echo "$containers_using_port" | xargs -r sudo docker rm
+              else
+                  echo "No containers are using port $NEW_PORT."
+              fi
+
+              # 🛠 Build and deploy new container on port $NEW_PORT
+              export INSIGHT_API_PORT=$NEW_PORT
+              sudo INSIGHT_API_PORT=$NEW_PORT docker-compose up -d --build
+
+              # 🩺 Health check
+              timeout=30
+              until curl -s http://localhost:$NEW_PORT/health > /dev/null || [ $timeout -le 0 ]; do
+                echo "Waiting for app to respond on port $NEW_PORT..."
+                sleep 1
+                timeout=$((timeout - 1))
+              done
+
+              if ! curl -s http://localhost:$NEW_PORT/health > /dev/null; then
+                echo "Deployment failed: app not responding on port $NEW_PORT"
+                sudo docker-compose logs
+                sudo docker-compose down
+                exit 1
+              fi
+
+              echo "✅ App is healthy on port $NEW_PORT"
+
+              # 🔁 Update NGINX upstream config
+              echo "proxy_pass http://127.0.0.1:$NEW_PORT;" | sudo tee /etc/nginx/upstreams/insight-api-upstream.conf
+              sudo nginx -s reload
+              echo "🔁 NGINX reloaded and now using port $NEW_PORT"
+
+              # ⏳ Wait 2s to ensure new version served
+              sleep 2
+
+              # 🔥 Clean up old containers
+              new_container=$(sudo docker ps --filter "ancestor=insightplatformapi" --filter "status=running" --format "{{.ID}}")
+
+              echo "New container ID: $new_container"
+
+              echo "Stopping the following containers:"
+              sudo docker ps --filter "name=deploy-insight-api" --format "{{.ID}} {{.Ports}}" | grep ":$CURRENT_PORT->" | awk '{print $1}' | grep -v "$new_container" | xargs -r sudo docker stop
+
+              echo "Removing the following containers:"
+              sudo docker ps -a --filter "name=deploy-insight-api" --format "{{.ID}} {{.Ports}}" | grep ":$CURRENT_PORT->" | awk '{print $1}' | grep -v "$new_container" | xargs -r sudo docker rm
+
+              # 🧹 Clean up old deploy folders
+              sudo ln -sfn ${{ env.DEPLOY_DIR }} ~/deploy-insight-api
+              current_dir_name=$(basename "${{ env.DEPLOY_DIR }}")
+              for dir in ~/deploy-insight-api-*; do
+                dir_name=$(basename "$dir")
+                if [ "$dir_name" != "$current_dir_name" ]; then
+                  echo "Removing old deploy folder: $dir"
+                  sudo rm -rf "$dir"
+                fi
+              done
+
+              sudo docker container prune -f
