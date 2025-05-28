@@ -24,7 +24,7 @@ jobs:
           username: ${{ secrets.AZURE_VM_USER }}
           password: ${{ secrets.AZURE_VM_PASSWORD }}
           source: "."
-          target: "~/\${{ env.DEPLOY_DIR }}"
+          target: "~/{{ env.DEPLOY_DIR }}"
 
       - name: Deploy on Azure VM via SSH
         uses: appleboy/ssh-action@v0.1.6
