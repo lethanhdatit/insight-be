@@ -37,39 +37,44 @@ jobs:
           username: ${{ secrets.AZURE_VM_USER }}
           password: ${{ secrets.AZURE_VM_PASSWORD }}
           script: |
-            cd ${{ env.DEPLOY_DIR }}
-            export TIMESTAMP=$(date +%s)
+              cd ${{ env.DEPLOY_DIR }}
+              export TIMESTAMP=$(date +%s)
 
-            sudo docker-compose up -d --build
+              # ⚠️ Stop và remove container cũ đang chiếm port 6500
+              echo "Stopping old containers if any..."
+              sudo docker ps -q --filter "publish=6500" | xargs -r sudo docker stop
+              sudo docker ps -a -q --filter "publish=6500" | xargs -r sudo docker rm
 
-            timeout=30
-            while ! curl -s http://localhost:6500/health > /dev/null && [ $timeout -gt 0 ]; do
-              echo "Waiting for app to respond on port 6500..."
-              sleep 1
-              timeout=$((timeout - 1))
-            done
+              # Deploy mới
+              sudo docker-compose up -d --build
 
-            if ! curl -s http://localhost:6500/health > /dev/null; then
-              echo "Deployment failed: app not responding on port 6500"
-              sudo docker-compose logs
-              sudo docker-compose down
-              exit 1
-            fi
+              timeout=30
+              while ! curl -s http://localhost:6500/health > /dev/null && [ $timeout -gt 0 ]; do
+                echo "Waiting for app to respond on port 6500..."
+                sleep 1
+                timeout=$((timeout - 1))
+              done
 
-            sudo ln -sfn ${{ env.DEPLOY_DIR }} ~/deploy-insight-api
-
-            sudo nginx -s reload
-
-            sleep 2
-
-            current_dir_name=$(basename "${{ env.DEPLOY_DIR }}")
-            for dir in ~/deploy-insight-api-*; do
-              dir_name=$(basename "$dir")
-              echo "Removing: $dir_name"
-              if [ "$dir_name" != "$current_dir_name" ]; then
-                echo "Removing old deploy folder: $dir"
-                sudo rm -rf "$dir"
+              if ! curl -s http://localhost:6500/health > /dev/null; then
+                echo "Deployment failed: app not responding on port 6500"
+                sudo docker-compose logs
+                sudo docker-compose down
+                exit 1
               fi
-            done
 
-            sudo docker container prune -f
+              sudo ln -sfn ${{ env.DEPLOY_DIR }} ~/deploy-insight-api
+              sudo nginx -s reload
+
+              sleep 2
+
+              current_dir_name=$(basename "${{ env.DEPLOY_DIR }}")
+              for dir in ~/deploy-insight-api-*; do
+                dir_name=$(basename "$dir")
+                echo "Removing: $dir_name"
+                if [ "$dir_name" != "$current_dir_name" ]; then
+                  echo "Removing old deploy folder: $dir"
+                  sudo rm -rf "$dir"
+                fi
+              done
+
+              sudo docker container prune -f
