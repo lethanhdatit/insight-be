@@ -42,7 +42,7 @@ jobs:
 
             mkdir -p ./socket
 
-            docker-compose up -d --build
+            sudo docker-compose up -d --build
 
             timeout=30
             while [ ! -S ./socket/socket.sock ] && [ $timeout -gt 0 ]; do
@@ -53,8 +53,8 @@ jobs:
 
             if [ ! -S ./socket/socket.sock ]; then
               echo "Deployment failed: socket.sock not created"
-              docker-compose logs
-              docker-compose down
+              sudo docker-compose logs
+              sudo docker-compose down
               exit 1
             fi
 
@@ -73,4 +73,4 @@ jobs:
               fi
             done
 
-            docker container prune -f
+            sudo docker container prune -f
