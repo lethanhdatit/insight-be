@@ -2,6 +2,7 @@ version: '3.8'
 
 services:
   insightplatform.api:
+    user: root
     image: ${DOCKER_REGISTRY-}insightplatformapi
     build:
       context: .
