@@ -40,37 +40,57 @@ jobs:
               cd ${{ env.DEPLOY_DIR }}
               export TIMESTAMP=$(date +%s)
 
-              # ⚠️ Stop và remove container cũ đang chiếm port 6500
-              echo "Stopping old containers if any..."
-              sudo docker ps -q --filter "publish=6500" | xargs -r sudo docker stop
-              sudo docker ps -a -q --filter "publish=6500" | xargs -r sudo docker rm
+              # 🔍 Tìm port đang dùng (6500/6501/6502...) từ file upstream
+              CURRENT_PORT=$(grep -oP 'http://127.0.0.1:\K[0-9]+' /etc/nginx/upstreams/insight-api-upstream.conf || echo "6500")
+              echo "Current port in use: $CURRENT_PORT"
 
-              # Deploy mới
+              # 🔄 Chọn port mới để tránh trùng
+              if [ "$CURRENT_PORT" -eq "6500" ]; then
+                NEW_PORT=6501
+              else
+                NEW_PORT=6500
+              fi
+              echo "Using new port: $NEW_PORT"
+
+              # 🛠 Build và deploy container mới trên port $NEW_PORT
+              export INSIGHT_API_PORT=$NEW_PORT
               sudo docker-compose up -d --build
 
+              # 🩺 Health check
               timeout=30
-              while ! curl -s http://localhost:6500/health > /dev/null && [ $timeout -gt 0 ]; do
-                echo "Waiting for app to respond on port 6500..."
+              until curl -s http://localhost:$NEW_PORT/health > /dev/null || [ $timeout -le 0 ]; do
+                echo "Waiting for app to respond on port $NEW_PORT..."
                 sleep 1
                 timeout=$((timeout - 1))
               done
 
-              if ! curl -s http://localhost:6500/health > /dev/null; then
-                echo "Deployment failed: app not responding on port 6500"
+              if ! curl -s http://localhost:$NEW_PORT/health > /dev/null; then
+                echo "Deployment failed: app not responding on port $NEW_PORT"
                 sudo docker-compose logs
                 sudo docker-compose down
                 exit 1
               fi
 
-              sudo ln -sfn ${{ env.DEPLOY_DIR }} ~/deploy-insight-api
-              sudo nginx -s reload
+              echo "✅ App is healthy on port $NEW_PORT"
 
+              # 🔁 Update NGINX upstream config
+              echo "proxy_pass http://127.0.0.1:$NEW_PORT;" | sudo tee /etc/nginx/upstreams/insight-api-upstream.conf
+              sudo nginx -s reload
+              echo "🔁 NGINX reloaded and now using port $NEW_PORT"
+
+              # ⏳ Wait 2s to ensure new version served
               sleep 2
 
+              # 🔥 Dọn container cũ
+              echo "Stopping container on old port $CURRENT_PORT"
+              sudo docker ps -q --filter "publish=$CURRENT_PORT" | xargs -r sudo docker stop
+              sudo docker ps -a -q --filter "publish=$CURRENT_PORT" | xargs -r sudo docker rm
+
+              # 🧹 Clean up old deploy folders
+              sudo ln -sfn ${{ env.DEPLOY_DIR }} ~/deploy-insight-api
               current_dir_name=$(basename "${{ env.DEPLOY_DIR }}")
               for dir in ~/deploy-insight-api-*; do
                 dir_name=$(basename "$dir")
-                echo "Removing: $dir_name"
                 if [ "$dir_name" != "$current_dir_name" ]; then
                   echo "Removing old deploy folder: $dir"
                   sudo rm -rf "$dir"
