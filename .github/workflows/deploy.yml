@@ -54,7 +54,7 @@ jobs:
 
               # 🛠 Build và deploy container mới trên port $NEW_PORT
               export INSIGHT_API_PORT=$NEW_PORT
-              sudo docker-compose up -d --build
+              sudo INSIGHT_API_PORT=$NEW_PORT docker-compose up -d --build
 
               # 🩺 Health check
               timeout=30
