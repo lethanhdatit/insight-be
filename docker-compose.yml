@@ -12,6 +12,6 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
     ports:
-      - "${INSIGHT_API_PORT:-6500}:6500"  # dùng port động theo ENV
+      - "${INSIGHT_API_PORT:-6500}:6500"
     command: ["dotnet", "InsightPlatform.Api.dll", "--urls", "http://0.0.0.0:6500"]
     restart: always
