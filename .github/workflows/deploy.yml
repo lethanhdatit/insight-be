@@ -43,13 +43,13 @@ jobs:
             sudo docker-compose up -d --build
 
             timeout=30
-            while ! curl -s http://localhost:6500/swagger/index.html > /dev/null && [ $timeout -gt 0 ]; do
+            while ! curl -s http://localhost:6500/health > /dev/null && [ $timeout -gt 0 ]; do
               echo "Waiting for app to respond on port 6500..."
               sleep 1
               timeout=$((timeout - 1))
             done
 
-            if ! curl -s http://localhost:6500/swagger/index.html > /dev/null; then
+            if ! curl -s http://localhost:6500/health > /dev/null; then
               echo "Deployment failed: app not responding on port 6500"
               sudo docker-compose logs
               sudo docker-compose down
@@ -65,6 +65,7 @@ jobs:
             current_dir_name=$(basename "${{ env.DEPLOY_DIR }}")
             for dir in ~/deploy-insight-api-*; do
               dir_name=$(basename "$dir")
+              echo "Removing: $dir_name"
               if [ "$dir_name" != "$current_dir_name" ]; then
                 echo "Removing old deploy folder: $dir"
                 sudo rm -rf "$dir"
