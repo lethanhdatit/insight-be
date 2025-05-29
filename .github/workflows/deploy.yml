@@ -41,6 +41,7 @@ jobs:
             export TIMESTAMP=$(date +%s)
 
             mkdir -p ./socket
+            sudo chmod -R 777 ./socket
 
             sudo docker-compose up -d --build
 
@@ -64,12 +65,12 @@ jobs:
 
             sleep 2
 
-            current_dir_name=$(basename "${{ env.DEPLOY_DIR }}")            
+            current_dir_name=$(basename "${{ env.DEPLOY_DIR }}")
             for dir in ~/deploy-insight-api-*; do
               dir_name=$(basename "$dir")
               if [ "$dir_name" != "$current_dir_name" ]; then
                 echo "Removing old deploy folder: $dir"
-                rm -rf "$dir"
+                sudo rm -rf "$dir"
               fi
             done
 
