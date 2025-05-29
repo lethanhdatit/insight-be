@@ -96,13 +96,13 @@ services.AddSwaggerGen(options =>
 });
 
 // === Build & Pipeline ===
-if (!builder.Environment.IsDevelopment())
-{
-    builder.WebHost.ConfigureKestrel(options =>
-    {
-        options.ListenUnixSocket("/app/socket/socket.sock");
-    });
-}
+//if (!builder.Environment.IsDevelopment())
+//{
+//    builder.WebHost.ConfigureKestrel(options =>
+//    {
+//        options.ListenUnixSocket("/app/socket/socket.sock");
+//    });
+//}
     
 var app = builder.Build();
 
