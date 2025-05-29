@@ -27,4 +27,4 @@ FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
 
-ENTRYPOINT ["dotnet", "InsightPlatform.Api.dll"]
+CMD ["dotnet", "InsightPlatform.Api.dll"]

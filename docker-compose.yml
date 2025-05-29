@@ -13,6 +13,5 @@ services:
       - ASPNETCORE_ENVIRONMENT=Production
     ports:
       - "6500:6500"
-    command: >
-      bash -c "dotnet InsightPlatform.Api.dll --urls http://0.0.0.0:6500"
+    command: ["dotnet", "InsightPlatform.Api.dll", "--urls", "http://0.0.0.0:6500"]
     restart: always
