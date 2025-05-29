@@ -34,12 +34,30 @@ jobs:
           password: ${{ secrets.AZURE_VM_PASSWORD }}
           script: |
             cd ${{ env.DEPLOY_DIR }}
+            export TIMESTAMP=$(date +%s)
+
             docker-compose up -d --build
+
+            timeout=30
+            while [ ! -S ./socket.sock ] && [ $timeout -gt 0 ]; do
+              echo "Waiting for socket.sock..."
+              sleep 1
+              timeout=$((timeout - 1))
+            done
+
+            if [ ! -S ./socket.sock ]; then
+              echo "Deployment failed: socket.sock not created"
+              docker-compose down
+              exit 1
+            fi
 
             ln -sfn ${{ env.DEPLOY_DIR }} ~/deploy-insight-api
 
-            current_dir_name=$(basename "${{ env.DEPLOY_DIR }}")
+            sudo nginx -s reload
 
+            sleep 2
+
+            current_dir_name=$(basename "${{ env.DEPLOY_DIR }}")            
             for dir in ~/deploy-insight-api-*; do
               dir_name=$(basename "$dir")
               if [ "$dir_name" != "$current_dir_name" ]; then
@@ -47,3 +65,5 @@ jobs:
                 rm -rf "$dir"
               fi
             done
+
+            docker container prune -f
