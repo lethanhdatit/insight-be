@@ -8,8 +8,9 @@ services:
       dockerfile: InsightPlatform.Api/Dockerfile
     volumes:
       - ./InsightPlatform.Api/appsettings.Production.json:/app/appsettings.Production.json:ro
-      - /home/sixgo_admin/deploy-insight-api/socket:/app/socket
+      - ./socket:/app/socket
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
-      - ASPNETCORE_URLS=http://unix:/app/socket.sock
+    command: >
+      bash -c "dotnet InsightPlatform.Api.dll --urls http://unix:/app/socket/socket.sock"
     restart: always
