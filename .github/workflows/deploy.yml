@@ -40,11 +40,11 @@ jobs:
               cd ${{ env.DEPLOY_DIR }}
               export TIMESTAMP=$(date +%s)
 
-              # 🔍 Tìm port đang dùng (6500/6501/6502...) từ file upstream
+              # 🔍 Find current port (6500/6501/6502...) from upstream file
               CURRENT_PORT=$(grep -oP 'http://127.0.0.1:\K[0-9]+' /etc/nginx/upstreams/insight-api-upstream.conf || echo "6500")
               echo "Current port in use: $CURRENT_PORT"
 
-              # 🔄 Chọn port mới để tránh trùng
+              # 🔄 Choosing new port
               if [ "$CURRENT_PORT" -eq "6500" ]; then
                 NEW_PORT=6501
               else
@@ -52,7 +52,7 @@ jobs:
               fi
               echo "Using new port: $NEW_PORT"
 
-              # 🛠 Build và deploy container mới trên port $NEW_PORT
+              # 🛠 Build and deploy new container on port $NEW_PORT
               export INSIGHT_API_PORT=$NEW_PORT
               sudo INSIGHT_API_PORT=$NEW_PORT docker-compose up -d --build
 
@@ -81,10 +81,16 @@ jobs:
               # ⏳ Wait 2s to ensure new version served
               sleep 2
 
-              # 🔥 Dọn container cũ
-              echo "Stopping container on old port $CURRENT_PORT"
-              sudo docker ps --filter "ancestor=insightplatformapi" --format "{{.ID}} {{.Ports}}" | grep ":$CURRENT_PORT->" | awk '{print $1}' | xargs -r sudo docker stop
-              sudo docker ps -a --filter "ancestor=insightplatformapi" --format "{{.ID}} {{.Ports}}" | grep ":$CURRENT_PORT->" | awk '{print $1}' | xargs -r sudo docker rm
+              # 🔥 Clean up old containers
+              new_container=$(sudo docker ps --filter "ancestor=insightplatformapi" --filter "status=running" --format "{{.ID}}")
+
+              echo "New container ID: $new_container"
+
+              echo "Stopping the following containers:"
+              sudo docker ps --filter "name=deploy-insight-api" --format "{{.ID}} {{.Ports}}" | grep ":$CURRENT_PORT->" | awk '{print $1}' | grep -v "$new_container" | xargs -r sudo docker stop
+
+              echo "Removing the following containers:"
+              sudo docker ps -a --filter "name=deploy-insight-api" --format "{{.ID}} {{.Ports}}" | grep ":$CURRENT_PORT->" | awk '{print $1}' | grep -v "$new_container" | xargs -r sudo docker rm
 
               # 🧹 Clean up old deploy folders
               sudo ln -sfn ${{ env.DEPLOY_DIR }} ~/deploy-insight-api
