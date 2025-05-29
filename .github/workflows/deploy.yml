@@ -40,20 +40,17 @@ jobs:
             cd ${{ env.DEPLOY_DIR }}
             export TIMESTAMP=$(date +%s)
 
-            mkdir -p ./socket
-            sudo chmod -R 777 ./socket
-
             sudo docker-compose up -d --build
 
             timeout=30
-            while [ ! -S ./socket/socket.sock ] && [ $timeout -gt 0 ]; do
-              echo "Waiting for socket.sock..."
+            while ! curl -s http://localhost:6500/swagger/index.html > /dev/null && [ $timeout -gt 0 ]; do
+              echo "Waiting for app to respond on port 6500..."
               sleep 1
               timeout=$((timeout - 1))
             done
 
-            if [ ! -S ./socket/socket.sock ]; then
-              echo "Deployment failed: socket.sock not created"
+            if ! curl -s http://localhost:6500/swagger/index.html > /dev/null; then
+              echo "Deployment failed: app not responding on port 6500"
               sudo docker-compose logs
               sudo docker-compose down
               exit 1

@@ -9,9 +9,10 @@ services:
       dockerfile: InsightPlatform.Api/Dockerfile
     volumes:
       - ./InsightPlatform.Api/appsettings.Production.json:/app/appsettings.Production.json:ro
-      - ./socket:/app/socket
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
+    ports:
+      - "6500:6500"
     command: >
-      bash -c "dotnet InsightPlatform.Api.dll --urls http://unix:/app/socket/socket.sock"
+      bash -c "dotnet InsightPlatform.Api.dll --urls http://0.0.0.0:6500"
     restart: always
