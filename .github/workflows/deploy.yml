@@ -83,8 +83,8 @@ jobs:
 
               # 🔥 Dọn container cũ
               echo "Stopping container on old port $CURRENT_PORT"
-              sudo docker ps -q --filter "publish=$CURRENT_PORT" | xargs -r sudo docker stop
-              sudo docker ps -a -q --filter "publish=$CURRENT_PORT" | xargs -r sudo docker rm
+              sudo docker ps --filter "ancestor=insightplatformapi" --format "{{.ID}} {{.Ports}}" | grep ":$CURRENT_PORT->" | awk '{print $1}' | xargs -r sudo docker stop
+              sudo docker ps -a --filter "ancestor=insightplatformapi" --format "{{.ID}} {{.Ports}}" | grep ":$CURRENT_PORT->" | awk '{print $1}' | xargs -r sudo docker rm
 
               # 🧹 Clean up old deploy folders
               sudo ln -sfn ${{ env.DEPLOY_DIR }} ~/deploy-insight-api
