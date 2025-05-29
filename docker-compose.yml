@@ -6,9 +6,10 @@ services:
     build:
       context: .
       dockerfile: InsightPlatform.Api/Dockerfile
-    ports:
-      - "5000:8080"
     volumes:
       - ./InsightPlatform.Api/appsettings.Production.json:/app/appsettings.Production.json:ro
+      - /home/sixgo_admin/deploy-insight-api/socket:/app/socket
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://unix:/app/socket.sock
+    restart: always
