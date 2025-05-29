@@ -52,6 +52,17 @@ jobs:
               fi
               echo "Using new port: $NEW_PORT"
 
+              echo "Checking for containers using port $NEW_PORT..."
+              containers_using_port=$(sudo docker ps -a --filter "publish=$NEW_PORT" --format "{{.ID}}")
+
+              if [ -n "$containers_using_port" ]; then
+                  echo "Stopping and removing containers using port $NEW_PORT..."
+                  echo "$containers_using_port" | xargs -r sudo docker stop
+                  echo "$containers_using_port" | xargs -r sudo docker rm
+              else
+                  echo "No containers are using port $NEW_PORT."
+              fi
+
               # 🛠 Build and deploy new container on port $NEW_PORT
               export INSIGHT_API_PORT=$NEW_PORT
               sudo INSIGHT_API_PORT=$NEW_PORT docker-compose up -d --build
