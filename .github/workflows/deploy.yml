@@ -58,7 +58,7 @@ jobs:
               exit 1
             fi
 
-            ln -sfn ${{ env.DEPLOY_DIR }} ~/deploy-insight-api
+            sudo ln -sfn ${{ env.DEPLOY_DIR }} ~/deploy-insight-api
 
             sudo nginx -s reload
 
