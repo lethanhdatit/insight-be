@@ -1,4 +1,4 @@
-v3
+v4
 
 dotnet ef migrations add InitialCreate --project InsightPlatform.Api --startup-project InsightPlatform.Api -o Data/Migrations
 
