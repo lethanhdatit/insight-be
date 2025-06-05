@@ -45,9 +45,7 @@ public class OpenAiService : IOpenAiService
                 throw new BusinessException("OpenAI_OutOfBudget", failed.Error?.Message);
 
             throw new BusinessException("OpenAI_Error", failed.Error?.Message);
-        }
-
-       
+        }       
 
         if (passed?.Choices?.Any() == true)
         {
