@@ -65,11 +65,17 @@ public class LuckyNumberBusiness(ILogger<LuckyNumberBusiness> logger
 
             using var fileStream = file.OpenReadStream();
             var obj = await JsonSerializer.DeserializeAsync<Dictionary<string, LuckyNumberCrawledDto>>(fileStream);
-
             int i = 1;
 
             foreach (var item in obj)
             {
+                var data = item.Value;
+                
+                if (!data.AnyListPresent())
+                    continue;
+
+                data.Standardize();
+
                 var key = DateOnly.FromDateTime(DateTime.ParseExact(item.Key, "dd-MM-yyyy", null));
 
                 var existed = await context.LuckyNumberRecords.FirstOrDefaultAsync(f => f.Date == key);
@@ -79,8 +85,8 @@ public class LuckyNumberBusiness(ILogger<LuckyNumberBusiness> logger
                     {
                         Date = key,
                         ProviderId = providerEntity.Id,
-                        CrawlUrl = item.Value.CrawlUrl,
-                        Detail = JsonSerializer.Serialize(item.Value),
+                        CrawlUrl = data.CrawlUrl,
+                        Detail = JsonSerializer.Serialize(data),
                         CreatedTs = DateTime.UtcNow,
                     };
 
@@ -89,9 +95,9 @@ public class LuckyNumberBusiness(ILogger<LuckyNumberBusiness> logger
                 }
                 else if (isOverride)
                 {
-                    existed.CrawlUrl = item.Value.CrawlUrl;
+                    existed.CrawlUrl = data.CrawlUrl;
                     existed.ProviderId = providerEntity.Id;
-                    existed.Detail = JsonSerializer.Serialize(item.Value);
+                    existed.Detail = JsonSerializer.Serialize(data);
 
                     context.LuckyNumberRecords.Update(existed);
                     await context.SaveChangesAsync();
@@ -117,6 +123,7 @@ public class LuckyNumberBusiness(ILogger<LuckyNumberBusiness> logger
             await context.DisposeAsync();
         }
     }
+
     public async Task<BaseResponse<dynamic>> BuildCrawledDataAsync(int? yearsBack = null, bool isOverride = false)
     {
         await using var context = await _contextFactory.CreateDbContextAsync();
@@ -132,19 +139,21 @@ public class LuckyNumberBusiness(ILogger<LuckyNumberBusiness> logger
 
             var list = await query.ToListAsync();
 
+            var prizes = new LuckyNumberCrawledDto().PrizeNames();
+
             foreach (var item in list)
             {
                 var data = JsonSerializer.Deserialize<LuckyNumberCrawledDto>(item.Detail);
 
-                await ExtractByPrizeTypeAsync(isOverride, context, item, data, "ĐB");
-                await ExtractByPrizeTypeAsync(isOverride, context, item, data, "G1");
-                await ExtractByPrizeTypeAsync(isOverride, context, item, data, "G2");
-                await ExtractByPrizeTypeAsync(isOverride, context, item, data, "G3");
-                await ExtractByPrizeTypeAsync(isOverride, context, item, data, "G4");
-                await ExtractByPrizeTypeAsync(isOverride, context, item, data, "G5");
-                await ExtractByPrizeTypeAsync(isOverride, context, item, data, "G6");
-                await ExtractByPrizeTypeAsync(isOverride, context, item, data, "G7");
-                await ExtractByPrizeTypeAsync(isOverride, context, item, data, "G8");
+                if (!data.AnyListPresent())
+                    continue;
+
+                data.Standardize();
+
+                foreach (var priz in prizes)
+                {
+                    await ExtractByPrizeTypeAsync(isOverride, context, item, data, priz);
+                }
 
                 await context.SaveChangesAsync();
             }
@@ -158,47 +167,6 @@ public class LuckyNumberBusiness(ILogger<LuckyNumberBusiness> logger
         finally
         {
             await context.DisposeAsync();
-        }
-    }
-
-    private static async Task ExtractByPrizeTypeAsync(bool isOverride, ApplicationDbContext context, LuckyNumberRecord item, LuckyNumberCrawledDto data, string prizeType)
-    {
-        PropertyInfo prop = typeof(LuckyNumberCrawledDto).GetProperty(prizeType);
-        List<string> numbers = [];
-
-        if (prop != null)
-        {
-            if (prop.GetValue(data) is List<string> value && value.Count > 0)
-            {
-                numbers = value;
-            }
-        }
-
-        if (numbers.Count > 0 && numbers.Any(a => a.IsPresent()))
-        {
-            var existed = await context.LuckyNumberRecordByKinds.FirstOrDefaultAsync(f => f.Date == item.Date
-                                                                                       && f.Kind == prizeType);
-
-            if (existed == null)
-            {
-                existed = new LuckyNumberRecordByKind
-                {
-                    Date = item.Date,
-                    Kind = prizeType,
-                    CreatedTs = DateTime.UtcNow,
-                    Url = item.CrawlUrl,
-                    Numbers = numbers
-                };
-
-                await context.LuckyNumberRecordByKinds.AddAsync(existed);
-            }
-            else if (isOverride)
-            {
-                existed.Url = item.CrawlUrl;
-                existed.Numbers = numbers;
-
-                context.LuckyNumberRecordByKinds.Update(existed);
-            }
         }
     }
 
@@ -296,6 +264,47 @@ public class LuckyNumberBusiness(ILogger<LuckyNumberBusiness> logger
         finally
         {
             await context.DisposeAsync();
+        }
+    }
+
+    private static async Task ExtractByPrizeTypeAsync(bool isOverride, ApplicationDbContext context, LuckyNumberRecord item, LuckyNumberCrawledDto data, string prizeType)
+    {
+        PropertyInfo prop = typeof(LuckyNumberCrawledDto).GetProperty(prizeType);
+        List<string> numbers = [];
+
+        if (prop != null)
+        {
+            if (prop.GetValue(data) is List<string> value && value.Count > 0)
+            {
+                numbers = value;
+            }
+        }
+
+        if (numbers.Count > 0 && numbers.Any(a => a.IsPresent()))
+        {
+            var existed = await context.LuckyNumberRecordByKinds.FirstOrDefaultAsync(f => f.Date == item.Date
+                                                                                       && f.Kind == prizeType);
+
+            if (existed == null)
+            {
+                existed = new LuckyNumberRecordByKind
+                {
+                    Date = item.Date,
+                    Kind = prizeType,
+                    CreatedTs = DateTime.UtcNow,
+                    Url = item.CrawlUrl,
+                    Numbers = numbers
+                };
+
+                await context.LuckyNumberRecordByKinds.AddAsync(existed);
+            }
+            else if (isOverride)
+            {
+                existed.Url = item.CrawlUrl;
+                existed.Numbers = numbers;
+
+                context.LuckyNumberRecordByKinds.Update(existed);
+            }
         }
     }
 }
