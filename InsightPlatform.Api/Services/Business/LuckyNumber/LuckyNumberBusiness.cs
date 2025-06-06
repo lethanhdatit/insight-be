@@ -176,6 +176,8 @@ public class LuckyNumberBusiness(ILogger<LuckyNumberBusiness> logger
 
         try
         {
+            request.Standardize();
+
             var currentDate = DateOnly.FromDateTime(DateTime.Now).ToLongDateString();
 
             string gender = request.Gender == null ? string.Empty : $"**Giới tính**: {request.Gender.GetDescription()}\n";
