@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -13,6 +14,7 @@ public class OpenAiService : IOpenAiService
 {
     private readonly IHttpClientService _httpClientService;
     private readonly OpenAISettings _settings;
+    private const int HttpClientTimeOut = 300;
 
     public OpenAiService(IOptions<OpenAISettings> settings, IHttpClientService httpClientService, IConfiguration config)
     {
@@ -32,10 +34,14 @@ public class OpenAiService : IOpenAiService
             }
         };
 
-        var (passed, failed, statusCode) = await _httpClientService.PostAsync<ChatCompletionResponse, ChatCompletionFailedResponse>(_settings.BaseUrl, request, new Dictionary<string, string>
-        {
-            { "Authorization", $"Bearer {_settings.ApiKey}" }
-        });
+        var (passed, failed, statusCode) = await _httpClientService.PostAsync<ChatCompletionResponse, ChatCompletionFailedResponse>(_settings.BaseUrl, 
+            request,
+            new Dictionary<string, string>
+            {
+                { "Authorization", $"Bearer {_settings.ApiKey}" }
+            },
+            timeout: TimeSpan.FromSeconds(HttpClientTimeOut)
+        );
 
         if (failed != null)
         {
