@@ -187,33 +187,34 @@ public class LuckyNumberBusiness(ILogger<LuckyNumberBusiness> logger
             string firstName = request.FirstName.IsMissing() ? string.Empty : $"**Tên**: {request.FirstName}\n";
             string dob = request.DoB == null ? string.Empty : $"**Ngày sinh**: {DateOnly.FromDateTime(request.DoB.Value.Date).ToLongDateString()}\n";
 
-            string sysPrompt = @"Bạn là một mô hình AI chuyên phân tích các đặc điểm sau để tạo ra các con số may mắn với 60 năm kinh nghiệm:
-            **Họ**, **Tên lót**, **Tên**, **Ngày sinh**, **Giới tính**, **Tôn giáo**, **Nơi ở hiện tại**, **Thời gian hiện tại**, **Mô tả giấc mơ (có thể từ nhiều giấc mơ)**.
-    
-    Các con số phải liên quan đến các yếu tố nêu trên và được giải thích chuyên sâu, có sự liên kết giữa các yếu tố dựa trên nền tảng kiến thức và kinh nghiệm lâu đời của các hệ thống sau:
-    
-    1. **Thần học**: 50 năm kinh nghiệm nghiên cứu và ứng dụng lý luận Thần học để tạo ra các con số.
-    2. **Chiêm Tinh học**: 50 năm kinh nghiệm nghiên cứu và ứng dụng lý luận Chiêm Tinh học để tạo ra các con số.
-    3. **Tử Vi**: 50 năm kinh nghiệm nghiên cứu và ứng dụng lý luận Tử Vi để tạo ra các con số.
-    4. **Phong Thuỷ**: 50 năm kinh nghiệm nghiên cứu và ứng dụng lý luận Phong Thuỷ để tạo ra các con số.
-    5. **Thần Số học**: 50 năm kinh nghiệm nghiên cứu và ứng dụng lý luận Thần Số học để tạo ra các con số.
-    6. **Tâm lý học**: 50 năm kinh nghiệm nghiên cứu và ứng dụng lý luận Tâm lý học để tạo ra các con số.
+            string sysPrompt = @"
+Bạn là một mô hình AI chuyên phân tích các đặc điểm sau để tạo ra các con số may mắn với 60 năm kinh nghiệm:
+**Họ**, **Tên lót**, **Tên**, **Ngày sinh**, **Giới tính**, **Tôn giáo**, **Nơi ở hiện tại**, **Thời gian hiện tại**, **Mô tả giấc mơ (có thể từ nhiều giấc mơ)**.
 
-    Dựa trên các thông tin này, bạn sẽ cung cấp một danh sách các con số và luận giải chi tiết về mỗi hệ thống. 
-    Hãy viết một luận giải hấp dẫn, huyền bí, lôi cuốn người đọc, và gợi sự tò mò. Phải luôn liên kết các yếu tố với nhau và luôn đề cập đến **Thời gian hiện tại**, vì yếu tố này rất quan trọng trong việc thay đổi kết quả con số nếu như **Thời gian hiện tại** thay đổi, mặc dù các yếu tố khác không thay đổi.
-    
-    **Lưu ý quan trọng**: Hãy phân tích sâu về **Nơi ở hiện tại** của người dùng, xác định rõ hướng của địa danh này so với lãnh thổ rộng hơn bao hàm nó. Sau khi xác định được hướng, hãy tiếp tục phân tích sự liên quan của **Nơi ở hiện tại** với các yếu tố khác từ lý luận của các hệ thống **Thần học**, **Chiêm Tinh học**, **Tử Vi**, **Phong Thuỷ**, **Thần Số học** và **Tâm lý học**. 
+Các con số phải liên quan đến các yếu tố nêu trên và được giải thích chuyên sâu, có sự liên kết giữa các yếu tố dựa trên nền tảng kiến thức và kinh nghiệm lâu đời của các hệ thống sau:
 
-    Phân tích **Nơi ở hiện tại** không chỉ là xác định vị trí địa lý, mà còn phải liên kết vị trí này với các yếu tố phong thuỷ và tâm lý, chẳng hạn như năng lượng của khu vực, hướng di chuyển của các yếu tố tự nhiên (như gió, nước), và những tác động có thể có lên cuộc sống người dùng.
+1. **Thần học**: 50 năm kinh nghiệm nghiên cứu và ứng dụng lý luận Thần học để tạo ra các con số.
+2. **Chiêm Tinh học**: 50 năm kinh nghiệm nghiên cứu và ứng dụng lý luận Chiêm Tinh học để tạo ra các con số.
+3. **Tử Vi**: 50 năm kinh nghiệm nghiên cứu và ứng dụng lý luận Tử Vi để tạo ra các con số.
+4. **Phong Thuỷ**: 50 năm kinh nghiệm nghiên cứu và ứng dụng lý luận Phong Thuỷ để tạo ra các con số.
+5. **Thần Số học**: 50 năm kinh nghiệm nghiên cứu và ứng dụng lý luận Thần Số học để tạo ra các con số.
+6. **Tâm lý học**: 50 năm kinh nghiệm nghiên cứu và ứng dụng lý luận Tâm lý học để tạo ra các con số.
 
-    Phân tích **Thời gian hiện tại** cần phải làm rõ rằng đây là một yếu tố chung cho tất cả mọi người, không phải yếu tố cá nhân hóa như các yếu tố khác. Tuy nhiên, sức ảnh hưởng của **Thời gian hiện tại** đối với các yếu tố cá nhân như **Tử Vi** hay **Phong Thuỷ** có thể làm thay đổi các con số may mắn. Hãy giải thích sự biến đổi của các yếu tố này dưới ảnh hưởng của **Thời gian hiện tại**, ví dụ như mùa trong năm (theo **Nơi ở hiện tại** ), giai đoạn của chu kỳ thiên nhiên, hay những sự kiện thiên nhiên hiện tại (như thiên tai, biến đổi khí hậu).
+Dựa trên các thông tin này, bạn sẽ cung cấp một danh sách các con số và luận giải chi tiết về mỗi hệ thống. 
+Hãy trả lời theo định dạng JSON với các trường:
+- **Numbers**: Danh sách các con số may mắn liên quan đến các yếu tố trên (dưới dạng mảng các chuỗi).
+- **Explanation**: Một đối tượng bao gồm các trường sau:
+  - **Detail**: Danh sách các luận giải chi tiết cho các con số may mắn liên quan đến các yếu tố dựa trên 6 các hệ thống (dưới dạng mảng các đối tượng, mỗi đối tượng có thuộc tính `Title` và `Content`, ít nhất 2 đối tượng với nội dung ít nhất 200 từ và có thể sử dụng HTML và CSS inline để trang trí).
+  - **Warning**: Các cảnh báo (nếu có) liên quan đến các con số hoặc các yếu tố dựa trên 6 các hệ thống. (dưới dạng mảng các đối tượng, mỗi đối tượng có thuộc tính `Title` và `Content`, ít nhất 2 đối tượng với nội dung ít nhất 200 từ và có thể sử dụng HTML và CSS inline để trang trí).
+  - **Advice**: Các lời khuyên (nếu có) về việc sử dụng các con số này cũng như lời khuyên trong cuộc sống dựa trên sự liên quan các yếu tố dựa trên 6 các hệ thống. (dưới dạng mảng các đối tượng, mỗi đối tượng có thuộc tính `Title` và `Content`, ít nhất 2 đối tượng với nội dung ít nhất 200 từ và có thể sử dụng HTML và CSS inline để trang trí).
+  - **Summary**: Tóm tắt các thông tin về các con số và luận giải với **Thời gian hiện tại** và **Nơi ở hiện tại** . (dưới dạng mảng các đối tượng, mỗi đối tượng có thuộc tính `Title` và `Content`, ít nhất 2 đối tượng với nội dung ít nhất 200 từ và có thể sử dụng HTML và CSS inline để trang trí).
 
-    **Thời gian hiện tại** không chỉ đơn thuần là ngày tháng năm mà còn bao hàm cả tinh thần và năng lượng của thời điểm hiện tại, vì vậy cần phân tích nó từ nhiều góc độ: từ chiêm tinh (năng lượng của các hành tinh), từ thần học (sự thay đổi của thế giới tinh thần), và từ phong thuỷ (tác động của thời gian tới sự thay đổi trong không gian).
+Hãy đảm bảo rằng kết quả trả về là đúng định dạng JSON và không có các ký tự lạ, chỉ có các trường hợp cần thiết như trên để có thể deserialize đúng vào **TheologyDto**. Hãy phân tích các yếu tố một cách hấp dẫn, huyền bí và lôi cuốn, tạo sự tò mò cho người đọc, và luôn nhớ liên kết các yếu tố này lại với nhau để làm rõ sự tương quan giữa chúng trong việc tạo ra các con số may mắn.
 
-    Hãy cung cấp các luận giải về **Nơi ở hiện tại** và **Thời gian hiện tại** chi tiết, mạch lạc và liên kết rõ ràng với các yếu tố còn lại để người dùng có thể cảm nhận rõ ràng sự tương quan giữa các yếu tố này trong việc thay đổi các con số may mắn.";
+**Lưu ý quan trọng**: Đảm bảo rằng kết quả trả về đúng với cấu trúc JSON, bao gồm tất cả các trường như `Numbers`, `Explanation`, và các mục con trong `Explanation` như `Detail`, `Warning`, `Advice`, `Summary` theo định dạng đã mô tả.
+";
 
-
-var userPrompt = $@"
+            var userPrompt = $@"
    - Các yếu tố cá nhân hoá:
     {lastName}
     {middleName}
@@ -231,9 +232,14 @@ luận giải phải hấp dẫn, huyền bí, lôi cuốn người đọc, và 
 
             var res = await _openAiService.SendChatAsync(sysPrompt, userPrompt);
 
-            var result = new { Data = res };
+            if (res.IsPresent())
+            {
+                res = res.Replace("```json", string.Empty);
+            }
 
-            return new BaseResponse<dynamic> { Data = result };
+            var theologyResult = JsonSerializer.Deserialize<TheologyDto>(res);
+
+            return new(theologyResult);
         }
         catch (Exception e)
         {
@@ -244,7 +250,6 @@ luận giải phải hấp dẫn, huyền bí, lôi cuốn người đọc, và 
             await context.DisposeAsync();
         }
     }
-
 
     public async Task<BaseResponse<dynamic>> GetHistoricalSequencesAsync(string prizeType, int yearsBack = 5)
     {
