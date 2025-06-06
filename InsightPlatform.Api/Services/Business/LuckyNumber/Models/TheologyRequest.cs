@@ -15,18 +15,24 @@ public class TheologyRequest
     [JsonPropertyName("dreaming")]
     public string Dreaming { get; set; }
 
+    [JsonPropertyName("location")]
+    public string Location { get; set; }
+
     [JsonPropertyName("dob")]
     public DateTime? DoB { get; set; }
 
-    [JsonPropertyName("numberLength")]
-    public int? NumberLength { get; set; } = 2;
-    
     [JsonPropertyName("gender")]
-    public Gender? Gender { get; set; }
-    
-    [JsonPropertyName("location")]
-    public string Location { get; set; }    
+    public Gender? Gender { get; set; }    
     
     [JsonPropertyName("religion")]
     public Religion? Religion { get; set; }
+
+    public void Standardize()
+    {
+        FirstName = FirstName?.Trim();
+        MiddleName = MiddleName?.Trim();
+        LastName = LastName?.Trim();
+        Dreaming = Dreaming?.Trim();
+        Location = Location?.Trim();
+    }
 }
