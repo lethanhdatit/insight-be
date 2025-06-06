@@ -18,11 +18,14 @@ public static class ExceptionHandler
         {
             case BusinessException ex:
                 {
-                    if (!env.IsProduction())
-                    {
-                        message = AddInnerExceptionMessage(ex, message);
-                        message += AddSourceMessage(ex.Source, message);
-                    }
+                    //if (!env.IsProduction())
+                    //{
+                    //    message = AddInnerExceptionMessage(ex, message);
+                    //    message += AddSourceMessage(ex.Source, message);
+                    //}
+
+                    message = AddInnerExceptionMessage(ex, message);
+                    message += AddSourceMessage(ex.Source, message);
 
                     data = ex.Errors?.Data;
                 }
@@ -30,13 +33,16 @@ public static class ExceptionHandler
             default:
                 {
                     statusCode = HttpStatusCode.InternalServerError;
-                    message = env.IsProduction() ? "Unexpected error in backend side" : message;
+                    //message = env.IsProduction() ? "Unexpected error in backend side" : message;
 
-                    if (!env.IsProduction())
-                    {
-                        message = AddInnerExceptionMessage(exception, message);
-                        message += AddSourceMessage(exception.Source, message);
-                    }
+                    //if (!env.IsProduction())
+                    //{
+                    //    message = AddInnerExceptionMessage(exception, message);
+                    //    message += AddSourceMessage(exception.Source, message);
+                    //}
+
+                    message = AddInnerExceptionMessage(exception, message);
+                    message += AddSourceMessage(exception.Source, message);
 
                     isHandled = false;
                 }
