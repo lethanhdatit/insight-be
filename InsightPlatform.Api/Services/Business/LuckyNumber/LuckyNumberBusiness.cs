@@ -204,14 +204,14 @@ Dựa trên các thông tin này, bạn sẽ cung cấp một danh sách các co
 Hãy trả lời theo định dạng JSON với các trường:
 - **Numbers**: Danh sách các con số may mắn liên quan đến các yếu tố trên (dưới dạng mảng các chuỗi).
 - **Explanation**: Một đối tượng bao gồm các trường sau:
-  - **Detail**: Danh sách các luận giải chi tiết cho các con số may mắn liên quan đến các yếu tố dựa trên 6 các hệ thống (dưới dạng mảng các đối tượng, mỗi đối tượng có thuộc tính `Title` và `Content`, ít nhất 2 đối tượng với nội dung ít nhất 200 từ và có thể sử dụng HTML và CSS inline để trang trí).
-  - **Warning**: Các cảnh báo (nếu có) liên quan đến các con số hoặc các yếu tố dựa trên 6 các hệ thống. (dưới dạng mảng các đối tượng, mỗi đối tượng có thuộc tính `Title` và `Content`, ít nhất 2 đối tượng với nội dung ít nhất 200 từ và có thể sử dụng HTML và CSS inline để trang trí).
-  - **Advice**: Các lời khuyên (nếu có) về việc sử dụng các con số này cũng như lời khuyên trong cuộc sống dựa trên sự liên quan các yếu tố dựa trên 6 các hệ thống. (dưới dạng mảng các đối tượng, mỗi đối tượng có thuộc tính `Title` và `Content`, ít nhất 2 đối tượng với nội dung ít nhất 200 từ và có thể sử dụng HTML và CSS inline để trang trí).
-  - **Summary**: Tóm tắt các thông tin về các con số và luận giải với **Thời gian hiện tại** và **Nơi ở hiện tại** . (dưới dạng mảng các đối tượng, mỗi đối tượng có thuộc tính `Title` và `Content`, ít nhất 2 đối tượng với nội dung ít nhất 200 từ và có thể sử dụng HTML và CSS inline để trang trí).
+  - **Detail**: Danh sách các luận giải chi tiết cho các con số may mắn liên quan đến các yếu tố dựa trên 6 các hệ thống (dưới dạng mảng các đối tượng, mỗi đối tượng có thuộc tính `Title` và `Content`, ít nhất 2 đối tượng với nội dung ít nhất 200 từ và **không được sử dụng HTML và CSS**).
+  - **Warning**: Các cảnh báo (nếu có) liên quan đến các con số hoặc các yếu tố dựa trên 6 các hệ thống. (dưới dạng mảng các đối tượng, mỗi đối tượng có thuộc tính `Title` và `Content`, ít nhất 2 đối tượng với nội dung ít nhất 200 từ và **không được sử dụng HTML và CSS**).
+  - **Advice**: Các lời khuyên (nếu có) về việc sử dụng các con số này cũng như lời khuyên trong cuộc sống dựa trên sự liên quan các yếu tố dựa trên 6 các hệ thống. (dưới dạng mảng các đối tượng, mỗi đối tượng có thuộc tính `Title` và `Content`, ít nhất 2 đối tượng với nội dung ít nhất 200 từ và **không được sử dụng HTML và CSS**).
+  - **Summary**: Tóm tắt các thông tin về các con số và luận giải với **Thời gian hiện tại** và **Nơi ở hiện tại** . (dưới dạng mảng các đối tượng, mỗi đối tượng có thuộc tính `Title` và `Content`, ít nhất 2 đối tượng với nội dung ít nhất 200 từ và **không được sử dụng HTML và CSS**).
 
 Hãy đảm bảo rằng kết quả trả về là đúng định dạng JSON và không có các ký tự lạ, chỉ có các trường hợp cần thiết như trên để có thể deserialize đúng vào **TheologyDto**. Hãy phân tích các yếu tố một cách hấp dẫn, huyền bí và lôi cuốn, tạo sự tò mò cho người đọc, và luôn nhớ liên kết các yếu tố này lại với nhau để làm rõ sự tương quan giữa chúng trong việc tạo ra các con số may mắn.
 
-**Lưu ý quan trọng**: Đảm bảo rằng kết quả trả về đúng với cấu trúc JSON, bao gồm tất cả các trường như `Numbers`, `Explanation`, và các mục con trong `Explanation` như `Detail`, `Warning`, `Advice`, `Summary` theo định dạng đã mô tả.
+**Lưu ý quan trọng**: Đảm bảo rằng kết quả trả về đúng với cấu trúc JSON, bao gồm tất cả các trường như `Numbers`, `Explanation`, và các mục con trong `Explanation` như `Detail`, `Warning`, `Advice`, `Summary` theo định dạng đã mô tả. **không được sử dụng HTML và CSS**
 ";
 
             var userPrompt = $@"
