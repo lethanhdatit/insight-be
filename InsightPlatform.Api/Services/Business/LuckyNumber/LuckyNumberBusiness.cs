@@ -176,10 +176,8 @@ public class LuckyNumberBusiness(ILogger<LuckyNumberBusiness> logger
 
         try
         {
-            // Lấy thời gian hiện tại
             var currentDate = DateOnly.FromDateTime(DateTime.Now).ToLongDateString();
 
-            // Kiểm tra và xử lý dữ liệu input
             string gender = request.Gender == null ? string.Empty : $"**Giới tính**: {request.Gender.GetDescription()}\n";
             string religion = request.Religion == null ? string.Empty : $"**Tôn giáo**: {request.Religion.GetDescription()}\n";
             string location = request.Location.IsMissing() ? string.Empty : $"**Nơi ở hiện tại**: {request.Location}\n";
@@ -189,7 +187,6 @@ public class LuckyNumberBusiness(ILogger<LuckyNumberBusiness> logger
             string firstName = request.FirstName.IsMissing() ? string.Empty : $"**Tên**: {request.FirstName}\n";
             string dob = request.DoB == null ? string.Empty : $"**Ngày sinh**: {DateOnly.FromDateTime(request.DoB.Value.Date).ToLongDateString()}\n";
 
-            // Mô tả hệ thống yêu cầu
             string sysPrompt = @"Bạn là một mô hình AI chuyên phân tích các đặc điểm sau để tạo ra các con số may mắn với 60 năm kinh nghiệm:
             **Họ**, **Tên lót**, **Tên**, **Ngày sinh**, **Giới tính**, **Tôn giáo**, **Nơi ở hiện tại**, **Thời gian hiện tại**, **Mô tả giấc mơ (có thể từ nhiều giấc mơ)**.
     
@@ -232,18 +229,15 @@ var userPrompt = $@"
     Dựa trên các thông tin trên, Hãy chọn ra chuỗi con số may mắn và cung cấp các luận giải cho nó về đầy đủ các hệ thống: **Thần học**, **Chiêm Tinh học**, **Tử Vi**, **Phong Thuỷ**, **Thần Số học** và **Tâm lý học**.
 luận giải phải hấp dẫn, huyền bí, lôi cuốn người đọc, và gợi sự tò mò. Phải luôn liên kết các yếu tố với nhau và luôn đề cập đến **Thời gian hiện tại**, vì yếu tố này rất quan trọng trong việc thay đổi kết quả con số nếu như **Thời gian hiện tại** thay đổi, mặc dù các yếu tố khác không thay đổi.";
 
-            // Tạo API Call và nhận kết quả từ OpenAI
             var res = await _openAiService.SendChatAsync(sysPrompt, userPrompt);
 
-            // Tách kết quả trả về và đảm bảo tính nhất quán
             var result = new { Data = res };
 
             return new BaseResponse<dynamic> { Data = result };
         }
         catch (Exception e)
         {
-            // Xử lý lỗi
-            throw new Exception("Đã xảy ra lỗi khi tạo con số may mắn.", e);
+            throw new BusinessException("UnavailableToCreateNumbers", "Unavailable to create numbers.", e);
         }
         finally
         {

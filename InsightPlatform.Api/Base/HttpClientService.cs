@@ -6,60 +6,86 @@ using System.Net.Http;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Threading;
 using System.Threading.Tasks;
 
 
 internal class HttpClientService : IHttpClientService
 {
     private readonly HttpClient _httpClient;
+    private readonly AppSettings _appSettings;
 
     public HttpClientService(HttpClient httpClient, IOptions<AppSettings> configuration)
     {
         _httpClient = httpClient;
-        var requestTimeout = configuration.Value.SystemHttpRequestTimeout;
-        _httpClient.Timeout = requestTimeout > 0 ? TimeSpan.FromSeconds(requestTimeout) : _httpClient.Timeout;
+        _appSettings = configuration.Value;
     }
 
-    public async Task<T> GetAsync<T>(string endpoint, IDictionary<string, string> headers = null, JsonSerializerOptions options = null)
+    public async Task<T> GetAsync<T>(string endpoint
+        , IDictionary<string, string> headers = null
+        , JsonSerializerOptions options = null
+        , TimeSpan? timeout = null)
     {
         using var request = CreateRequest(HttpMethod.Get, endpoint, headers);
         return await SendRequestAsync<T>(request, options);
     }
 
-    public async Task<T> PostAsync<T>(string endpoint, dynamic data, IDictionary<string, string> headers = null, JsonSerializerOptions options = null)
+    public async Task<T> PostAsync<T>(string endpoint
+        , dynamic data
+        , IDictionary<string, string> headers = null
+        , JsonSerializerOptions options = null
+        , TimeSpan? timeout = null)
     {
         using var request = CreateRequest(HttpMethod.Post, endpoint, headers, data);
         return await SendRequestAsync<T>(request, options);
     }
 
-    public async Task<T> PutAsync<T>(string endpoint, dynamic data, IDictionary<string, string> headers = null, JsonSerializerOptions options = null)
+    public async Task<T> PutAsync<T>(string endpoint
+        , dynamic data
+        , IDictionary<string, string> headers = null
+        , JsonSerializerOptions options = null
+        , TimeSpan? timeout = null)
     {
         using var request = CreateRequest(HttpMethod.Put, endpoint, headers, data);
         return await SendRequestAsync<T>(request, options);
     }
 
-    public async Task DeleteAsync(string endpoint, IDictionary<string, string> headers = null, JsonSerializerOptions options = null)
+    public async Task DeleteAsync(string endpoint
+        , IDictionary<string, string> headers = null
+        , JsonSerializerOptions options = null
+        , TimeSpan? timeout = null)
     {
         using var request = CreateRequest(HttpMethod.Delete, endpoint, headers);
         await SendRequestAsync<object>(request, options);
     }
 
-    public async Task<(SucessT, FailedT, HttpStatusCode)> GetAsync<SucessT, FailedT>(string endpoint, IDictionary<string, string> headers = null, JsonSerializerOptions options = null)
+    public async Task<(SucessT, FailedT, HttpStatusCode)> GetAsync<SucessT, FailedT>(string endpoint
+        , IDictionary<string, string> headers = null
+        , JsonSerializerOptions options = null
+        , TimeSpan? timeout = null)
     {
         using var request = CreateRequest(HttpMethod.Get, endpoint, headers);
-        return await SendRequestAsync<SucessT, FailedT>(request, options);
+        return await SendRequestAsync<SucessT, FailedT>(request, options, timeout);
     }
 
-    public async Task<(SucessT, FailedT, HttpStatusCode)> PostAsync<SucessT, FailedT>(string endpoint, dynamic data, IDictionary<string, string> headers = null, JsonSerializerOptions options = null)
+    public async Task<(SucessT, FailedT, HttpStatusCode)> PostAsync<SucessT, FailedT>(string endpoint
+        , dynamic data
+        , IDictionary<string, string> headers = null
+        , JsonSerializerOptions options = null
+        , TimeSpan? timeout = null)
     {
         using var request = CreateRequest(HttpMethod.Post, endpoint, headers, data);
-        return await SendRequestAsync<SucessT, FailedT>(request, options);
+        return await SendRequestAsync<SucessT, FailedT>(request, options, timeout);
     }
 
-    public async Task<(SucessT, FailedT, HttpStatusCode)> PutAsync<SucessT, FailedT>(string endpoint, dynamic data, IDictionary<string, string> headers = null, JsonSerializerOptions options = null)
+    public async Task<(SucessT, FailedT, HttpStatusCode)> PutAsync<SucessT, FailedT>(string endpoint
+        , dynamic data
+        , IDictionary<string, string> headers = null
+        , JsonSerializerOptions options = null
+        , TimeSpan? timeout = null)
     {
         using var request = CreateRequest(HttpMethod.Put, endpoint, headers, data);
-        return await SendRequestAsync<SucessT, FailedT>(request, options);
+        return await SendRequestAsync<SucessT, FailedT>(request, options, timeout);
     }
 
     private static HttpRequestMessage CreateRequest(HttpMethod method, string endpoint, IDictionary<string, string> headers, dynamic data = null)
@@ -91,49 +117,75 @@ internal class HttpClientService : IHttpClientService
         return request;
     }
 
-    private async Task<T> SendRequestAsync<T>(HttpRequestMessage request, JsonSerializerOptions options = null)
+    private async Task<T> SendRequestAsync<T>(HttpRequestMessage request
+        , JsonSerializerOptions options = null
+        , TimeSpan? timeout = null)
     {
-        var response = await _httpClient.SendAsync(request);
+        var requestTimeout = timeout ?? TimeSpan.FromSeconds(_appSettings.SystemHttpRequestTimeout);
 
-        if(!response.IsSuccessStatusCode)
+        using var cts = new CancellationTokenSource(requestTimeout);
+
+        try
         {
-            var failedResponse = await response.Content.ReadAsStringAsync();
-            throw new HttpRequestException(failedResponse);
+            var response = await _httpClient.SendAsync(request, cts.Token);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var failedResponse = await response.Content.ReadAsStringAsync();
+                throw new HttpRequestException(failedResponse);
+            }
+
+            var responseData = await response.Content.ReadAsStringAsync();
+
+            var defaultOptions = options ?? new JsonSerializerOptions
+            {
+                DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+            };
+
+            foreach (var item in SystemSerialization.JsonConverters)
+                defaultOptions.Converters.Add(item);
+
+            return JsonSerializer.Deserialize<T>(responseData, defaultOptions);
         }
-
-        var responseData = await response.Content.ReadAsStringAsync();
-
-        var defaultOptions = options ?? new JsonSerializerOptions
+        catch (TaskCanceledException)
         {
-            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
-        };
-
-        foreach (var item in SystemSerialization.JsonConverters)
-            defaultOptions.Converters.Add(item);
-
-        return JsonSerializer.Deserialize<T>(responseData, defaultOptions);
+            throw new TimeoutException("The request timed out.");
+        }
     }
 
-    private async Task<(SucessT, FailedT, HttpStatusCode)> SendRequestAsync<SucessT, FailedT>(HttpRequestMessage request, JsonSerializerOptions options = null)
+    private async Task<(SucessT, FailedT, HttpStatusCode)> SendRequestAsync<SucessT, FailedT>(HttpRequestMessage request
+        , JsonSerializerOptions options = null
+        , TimeSpan? timeout = null)
     {
-        var defaultOptions = options ?? new JsonSerializerOptions
+        var requestTimeout = timeout ?? TimeSpan.FromSeconds(_appSettings.SystemHttpRequestTimeout);
+
+        using var cts = new CancellationTokenSource(requestTimeout);
+
+        try
         {
-            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
-        };
+            var defaultOptions = options ?? new JsonSerializerOptions
+            {
+                DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+            };
 
-        foreach (var item in SystemSerialization.JsonConverters)
-            defaultOptions.Converters.Add(item);
+            foreach (var item in SystemSerialization.JsonConverters)
+                defaultOptions.Converters.Add(item);
 
-        var response = await _httpClient.SendAsync(request);
+            var response = await _httpClient.SendAsync(request, cts.Token);
 
-        if (!response.IsSuccessStatusCode)
-        {
-            var failedResponseData = await response.Content.ReadAsStringAsync();
-            return (default(SucessT), JsonSerializer.Deserialize<FailedT>(failedResponseData, defaultOptions), response.StatusCode);
+            if (!response.IsSuccessStatusCode)
+            {
+                var failedResponseData = await response.Content.ReadAsStringAsync();
+                return (default(SucessT), JsonSerializer.Deserialize<FailedT>(failedResponseData, defaultOptions), response.StatusCode);
+            }
+
+            var responseData = await response.Content.ReadAsStringAsync();
+            return (JsonSerializer.Deserialize<SucessT>(responseData, defaultOptions), default(FailedT), response.StatusCode);
         }
-
-        var responseData = await response.Content.ReadAsStringAsync();
-        return (JsonSerializer.Deserialize<SucessT>(responseData, defaultOptions), default(FailedT), response.StatusCode);
+        catch (TaskCanceledException)
+        {
+            throw new TimeoutException("The request timed out.");
+        }
     }
 
     private static void AddHeaders(HttpRequestMessage request, IDictionary<string, string> headers)
