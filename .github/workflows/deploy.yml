@@ -104,7 +104,6 @@ jobs:
               sudo docker ps -a --filter "name=deploy-insight-api" --format "{{.ID}} {{.Ports}}" | grep ":$CURRENT_PORT->" | awk '{print $1}' | grep -v "$new_container" | xargs -r sudo docker rm
 
               # 🧹 Clean up old deploy folders
-              sudo ln -sfn ${{ env.DEPLOY_DIR }} ~/deploy-insight-api
               current_dir_name=$(basename "${{ env.DEPLOY_DIR }}")
               for dir in ~/deploy-insight-api-*; do
                 dir_name=$(basename "$dir")
