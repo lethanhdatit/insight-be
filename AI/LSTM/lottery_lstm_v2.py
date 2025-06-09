@@ -6,13 +6,13 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import LSTM, Dense
 
 # === 1. Kết nối và tải dữ liệu từ API ===
-API_URL = "https://localhost:60632/api/LuckyNumber/historical-prizetype-flat"  # Thay thế URL này bằng URL API của bạn
+API_URL = "https://api.insight.ai.vn/api/LuckyNumber/historical-prizetype-flat"  # Thay thế URL này bằng URL API của bạn
 
 params = {
     "fromDate": '20-01-2004'
 }
 
-response = requests.get(API_URL, params=params, verify=False)
+response = requests.get(API_URL, params=params)
 data = (response.json())['data']
 
 # Chuyển dữ liệu thành DataFrame

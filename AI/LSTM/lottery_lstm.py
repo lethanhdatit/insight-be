@@ -6,7 +6,7 @@ from tensorflow.keras.utils import to_categorical
 
 # ==== Config biến nằm trên cùng ====
 
-API_URL = "https://localhost:60632/api/LuckyNumber/historical-sequences?prizeType=%C4%90B&yearsBack=1"  # Đổi thành URL thực tế
+API_URL = "https://api.insight.ai.vn/api/LuckyNumber/historical-sequences?prizeType=%C4%90B&yearsBack=1"  # Đổi thành URL thực tế
 PRIZE_TYPE = "ĐB"            # Loại giải muốn train
 YEARS_BACK = 15              # Lấy dữ liệu 15 năm gần nhất
 WINDOW_SIZE = 20             # Số ngày liên tiếp làm input
@@ -22,7 +22,7 @@ params = {
     "yearsBack": YEARS_BACK
 }
 
-response = requests.get(API_URL, params=params, verify=False)
+response = requests.get(API_URL, params=params)
 response.raise_for_status()
 data = (response.json())['data']  # Danh sách dict {'Date': 'dd-MM-yyyy', 'Number': 'chuỗi số'}
 
