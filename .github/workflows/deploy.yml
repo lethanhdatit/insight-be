@@ -115,4 +115,4 @@ jobs:
               done
 
               sudo docker container prune -f
-              sudo docker image prune -a
+              docker system prune -a --volumes -f
