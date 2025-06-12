@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 
 public interface IAccountBusiness
 {
-    Task<BaseResponse<Guid?>> InitGuest();
+    Task<BaseResponse<dynamic>> InitGuest();
 
     Task<BaseResponse<dynamic>> GoogleLoginAsync(string idToken);
 
