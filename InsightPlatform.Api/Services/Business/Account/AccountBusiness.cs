@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System;
+using System.Collections.Generic;
 using System.Net.Http;
 using System.Security.Claims;
 using System.Threading.Tasks;
@@ -19,7 +20,7 @@ public class AccountBusiness(ILogger<AccountBusiness> logger
     private readonly ExternalLoginSettings _externalLoginSettings = externalLoginSettings.Value;
     private readonly IHttpClientService _httpClientService = httpClientService;
 
-    public async Task<BaseResponse<Guid?>> InitGuest()
+    public async Task<BaseResponse<dynamic>> InitGuest()
     {
         await using var context = await _contextFactory.CreateDbContextAsync();
         await using var transaction = await context.Database.BeginTransactionAsync();
@@ -27,27 +28,41 @@ public class AccountBusiness(ILogger<AccountBusiness> logger
         try
         {
             var guestUserId = Current.UserId;
+            User user = null;
 
-            if (!guestUserId.HasValue || guestUserId == Guid.Empty || !await context.Users.AnyAsync(a => a.Id == guestUserId))
+            if (guestUserId.HasValue)
             {
-                var guestUser = new User
+                user = await context.Users.FirstOrDefaultAsync(u => u.Id == guestUserId);
+            }
+
+            if (user == null)
+            {
+                user = new User
                 {
                     UserAgent = Current.UA?.RawUserAgent,
                     ClientLocale = Current.CurrentCulture?.Name,
                     CreatedAt = DateTime.UtcNow,
                 };
 
-                await context.Users.AddAsync(guestUser);
+                await context.Users.AddAsync(user);
                 await context.SaveChangesAsync();
-
-                guestUserId = guestUser.Id;
+                await transaction.CommitAsync();
             }
-            
-            await transaction.CommitAsync();
 
-            return new(guestUserId);
+            var (accessToken, expiration) = GenerateAccessTokenFromUser(user);
+            var isGuest = user.PasswordSalt.IsMissing() 
+                       && user.GoogleId == null 
+                       && user.FacebookId == null;
+
+            return new(new
+            {
+                Token = accessToken,
+                Expiration = expiration,
+                Username = user.Username,
+                IsGuest = isGuest
+            });
         }
-        catch
+        catch(Exception e)
         {
             await transaction.RollbackAsync();
             throw;
@@ -79,8 +94,7 @@ public class AccountBusiness(ILogger<AccountBusiness> logger
             var guestUser = await context.Users.FirstOrDefaultAsync(u => u.Id == guestUserId);
             var ggUser = await context.Users.FirstOrDefaultAsync(u => u.GoogleId == payload.Subject);
 
-            string accessToken = string.Empty;
-            DateTime? expiration = null;
+            User user = null;
 
             if (guestUser == null && ggUser == null)
             {
@@ -96,7 +110,7 @@ public class AccountBusiness(ILogger<AccountBusiness> logger
                 await context.Users.AddAsync(ggUser);
                 await context.SaveChangesAsync();
 
-                (accessToken, expiration) = GenerateAccessTokenFromUser(ggUser);
+                user = ggUser;
             }
             else if (guestUser != null && ggUser == null)
             {
@@ -110,20 +124,29 @@ public class AccountBusiness(ILogger<AccountBusiness> logger
                     context.Users.Update(guestUser);
                     await context.SaveChangesAsync();
 
-                    (accessToken, expiration) = GenerateAccessTokenFromUser(guestUser);
+                    user = guestUser;
                 }
             }
             else
             {
-                (accessToken, expiration) = GenerateAccessTokenFromUser(ggUser);
+                user = ggUser;
             }
 
             await transaction.CommitAsync();
 
+            var (accessToken, expiration) = GenerateAccessTokenFromUser(user);
+            var username = user.Username;
+
+            var isGuest = user.PasswordSalt.IsMissing()
+                       && user.GoogleId.IsMissing()
+                       && user.FacebookId.IsMissing();
+
             return new(new
             {
                 Token = accessToken,
-                Expiration = expiration
+                Expiration = expiration,
+                Username = username,
+                IsGuest = isGuest
             });
         }
         catch
@@ -155,8 +178,7 @@ public class AccountBusiness(ILogger<AccountBusiness> logger
             var guestUser = await context.Users.FirstOrDefaultAsync(u => u.Id == guestUserId);
             var fbUser = await context.Users.FirstOrDefaultAsync(u => u.FacebookId == payload.Id);
 
-            string accessToken = string.Empty;
-            DateTime? expiration = null;
+            User user = null;
 
             if (guestUser == null && fbUser == null)
             {
@@ -172,7 +194,7 @@ public class AccountBusiness(ILogger<AccountBusiness> logger
                 await context.Users.AddAsync(fbUser);
                 await context.SaveChangesAsync();
 
-                (accessToken, expiration) = GenerateAccessTokenFromUser(fbUser);
+                user = fbUser;
             }
             else if (guestUser != null && fbUser == null)
             {
@@ -186,20 +208,29 @@ public class AccountBusiness(ILogger<AccountBusiness> logger
                     context.Users.Update(guestUser);
                     await context.SaveChangesAsync();
 
-                    (accessToken, expiration) = GenerateAccessTokenFromUser(guestUser);
+                    user = guestUser;
                 }
             }
             else
             {
-                (accessToken, expiration) = GenerateAccessTokenFromUser(fbUser);
+                user = fbUser;
             }
 
             await transaction.CommitAsync();
 
+            var (accessToken, expiration) = GenerateAccessTokenFromUser(user);
+            var username = user.Username;
+
+            var isGuest = user.PasswordSalt.IsMissing()
+                       && user.GoogleId.IsMissing()
+                       && user.FacebookId.IsMissing();
+
             return new(new
             {
                 Token = accessToken,
-                Expiration = expiration
+                Expiration = expiration,
+                Username = username,
+                IsGuest = isGuest
             });
         }
         catch
@@ -272,11 +303,18 @@ public class AccountBusiness(ILogger<AccountBusiness> logger
             await transaction.CommitAsync();
 
             var (accessToken, expiration) = GenerateAccessTokenFromUser(user);
+            var username = user.Username;
+
+            var isGuest = user.PasswordSalt.IsMissing()
+                       && user.GoogleId.IsMissing()
+                       && user.FacebookId.IsMissing();
 
             return new(new
             {
                 Token = accessToken,
-                Expiration = expiration
+                Expiration = expiration,
+                Username = username,
+                IsGuest = isGuest
             });
         }
         catch
@@ -305,13 +343,20 @@ public class AccountBusiness(ILogger<AccountBusiness> logger
         if (user == null || !PasswordHelper.VerifyPassword(payload.Password, user.PasswordHash, user.PasswordSalt))
             throw new BusinessException("InvalidCredentials", "Username or password incorrect");
 
-        var (accessToken, expiration) = GenerateAccessTokenFromUser(user);
+         var (accessToken, expiration) = GenerateAccessTokenFromUser(user);
+            var username = user.Username;
 
-        return new(new
-        {
-            Token = accessToken,
-            Expiration = expiration
-        });
+            var isGuest = user.PasswordSalt.IsMissing()
+                       && user.GoogleId.IsMissing()
+                       && user.FacebookId.IsMissing();
+
+            return new(new
+            {
+                Token = accessToken,
+                Expiration = expiration,
+                Username = username,
+                IsGuest = isGuest
+            });
     }
 
     public async Task<FacebookUserInfo> ValidateFacebookTokenAsync(string accessToken)
@@ -326,13 +371,18 @@ public class AccountBusiness(ILogger<AccountBusiness> logger
 
     private (string token, DateTime expiration) GenerateAccessTokenFromUser(User user)
     {
-        return TokenHelper.GetToken(_tokenSettings,
-        [
+        List<Claim> claims = [
             new Claim(Microsoft.IdentityModel.JsonWebTokens.JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-            new Claim(Microsoft.IdentityModel.JsonWebTokens.JwtRegisteredClaimNames.Sub, user.Id.ToString()),
-            new Claim(ClaimTypes.Name, user.Username),
-            new Claim(SystemClaim.FullName, user.DisplayName),
-        ]);
+            new Claim(Microsoft.IdentityModel.JsonWebTokens.JwtRegisteredClaimNames.Sub, user.Id.ToString())
+        ];
+
+        if (user.Username.IsPresent())
+            claims.Add(new Claim(ClaimTypes.Name, user.Username));
+
+        if (user.DisplayName.IsPresent())
+            claims.Add(new Claim(SystemClaim.FullName, user.DisplayName));
+
+        return TokenHelper.GetToken(_tokenSettings, claims);
     }
 }
 
