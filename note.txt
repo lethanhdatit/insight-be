@@ -14,3 +14,6 @@ $path = "D:\insight\insight-be\InsightPlatform.Api\appsettings.Production.json"
 
 docker-compose up -d --build
 docker system prune -a --volumes -f
+
+
+[Convert]::ToBase64String([IO.File]::ReadAllBytes("D:\insight\insight-fe\.env.prod")) | Set-Clipboard

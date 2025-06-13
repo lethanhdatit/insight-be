@@ -18,4 +18,5 @@ public class User
     public DateTime? DeletedTs { get; set; }
     public DateTime? DisabledTs { get; set; }
     public ICollection<Pain> Pains { get; set; }
+    public ICollection<TheologyRecord> TheologyRecords { get; set; }
 }
