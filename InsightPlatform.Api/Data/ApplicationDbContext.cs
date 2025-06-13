@@ -10,6 +10,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<LuckyNumberProvider> LuckyNumberProviders { get; set; }
     public DbSet<LuckyNumberRecord> LuckyNumberRecords { get; set; }
     public DbSet<LuckyNumberRecordByKind> LuckyNumberRecordByKinds { get; set; }
+    public DbSet<TheologyRecord> TheologyRecords { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -28,6 +29,17 @@ public class ApplicationDbContext : DbContext
             entity.HasOne(p => p.Provider)
                     .WithMany(u => u.Records)
                     .HasForeignKey(p => p.ProviderId)
+                    .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<TheologyRecord>(entity =>
+        {
+            entity.Property(e => e.Input).HasColumnType("jsonb");
+            entity.Property(e => e.Result).HasColumnType("jsonb");
+
+            entity.HasOne(p => p.User)
+                    .WithMany(u => u.TheologyRecords)
+                    .HasForeignKey(p => p.UserId)
                     .OnDelete(DeleteBehavior.SetNull);
         });
     }

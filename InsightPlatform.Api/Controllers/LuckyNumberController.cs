@@ -38,6 +38,13 @@ public class LuckyNumberController(IWebHostEnvironment env
         return HandleOk(res);
     }
 
+    [HttpGet("theology/{id}")]
+    public async Task<IActionResult> Theology([FromRoute] Guid id)
+    {
+        var res = await _luckyNumberBusiness.GetTheologyAndNumbersAsync(id);
+        return HandleOk(res);
+    }
+
     [HttpGet("historical-sequences")]
     public async Task<IActionResult> GetHistoricalSequences([FromQuery] string prizeType, [FromQuery] int yearsBack = 5)
     {

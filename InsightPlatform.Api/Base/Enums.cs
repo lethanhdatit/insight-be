@@ -65,3 +65,8 @@ public enum Religion
     [Description("Tôn giáo khác")]
     Other = 10
 }
+
+public enum TheologyKind : byte
+{
+    Basic = 1,
+}

@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Reflection;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -50,6 +51,13 @@ public static partial class StringExtensions
     private static bool IsEncoded(string url)
     {
         return url.Contains('%') || url.Contains('+');
+    }
+
+    public static string ComputeSha256Hash(this string rawData)
+    {
+        using var sha256 = SHA256.Create();
+        var bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(rawData));
+        return Convert.ToHexString(bytes).ToLowerInvariant();
     }
 
     public static (bool, string) CompareWords(this string source, string target, string replaceBy = null)
