@@ -7,13 +7,13 @@ using System.Text;
 
 public static class TokenHelper
 {
-    public static (string token, DateTime expiration) GetToken(TokenSettings appSettings, List<Claim> userClaims)
+    public static (string token, DateTime? expiration) GetToken(TokenSettings appSettings, List<Claim> userClaims, bool isRememberMe = false)
     {
         var secretKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(appSettings.SecretKey));
         var signInCredentials = new SigningCredentials(secretKey, SecurityAlgorithms.HmacSha256);
 
-        TimeSpan exp = TimeSpan.FromSeconds(appSettings.AccessTokenExpSeconds);
-        var expiration = DateTime.UtcNow.Add(exp);
+        var expInt = isRememberMe ? appSettings.AccessTokenRememberExpSeconds : appSettings.AccessTokenExpSeconds;
+        var expiration = expInt >= 0 ? DateTime.UtcNow.Add(TimeSpan.FromSeconds(expInt)) : (DateTime?)null;
 
         var tokenOptions = new JwtSecurityToken(
             issuer: appSettings.Issuer,

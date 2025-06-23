@@ -59,6 +59,7 @@ services.AddHostedService<ConsumerInitializer>();
 services.AddSingleton<IOpenAiService, OpenAiService>();
 services.AddScoped<IPainBusiness, PainBusiness>();
 services.AddScoped<ILuckyNumberBusiness, LuckyNumberBusiness>();
+services.AddScoped<IBocMenhBusiness, BocMenhBusiness>();
 services.AddScoped<IAccountBusiness, AccountBusiness>();
 
 // === Controller & Swagger ===

@@ -1,0 +1,33 @@
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
+using System;
+using System.Threading.Tasks;
+
+[Authorize]
+[ApiController]
+[Route("api/[controller]")]
+public class BocMenhController(IWebHostEnvironment env
+        , ILogger<BocMenhController> logger
+        , IBocMenhBusiness bocMenhBusiness
+    ) : BaseController(env, logger)
+{
+    private readonly IBocMenhBusiness _bocMenhBusiness = bocMenhBusiness;
+
+
+    [HttpPost("theology")]
+    public async Task<IActionResult> Theology([FromBody] TheologyRequest request)
+    {
+        var res = await _bocMenhBusiness.TheologyAndNumbersAsync(request);
+        return HandleOk(res);
+    }
+
+    [HttpGet("theology/{id}")]
+    public async Task<IActionResult> Theology([FromRoute] Guid id)
+    {
+        var res = await _bocMenhBusiness.GetTheologyAndNumbersAsync(id);
+        return HandleOk(res);
+    }
+}

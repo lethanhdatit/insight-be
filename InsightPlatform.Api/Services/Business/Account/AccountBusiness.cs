@@ -49,13 +49,16 @@ public class AccountBusiness(ILogger<AccountBusiness> logger
                 await transaction.CommitAsync();
             }
 
-            var (accessToken, expiration) = GenerateAccessTokenFromUser(user);
+            var (accessToken, expiration) = GenerateAccessTokenFromUser(user, true);
             var isGuest = user.PasswordSalt.IsMissing() 
                        && user.GoogleId == null 
                        && user.FacebookId == null;
 
             return new(new
             {
+                Id = user.Id,
+                Email = user.Email,
+                DisplayName = user.DisplayName,
                 Token = accessToken,
                 Expiration = expiration,
                 Username = user.Username,
@@ -134,7 +137,7 @@ public class AccountBusiness(ILogger<AccountBusiness> logger
 
             await transaction.CommitAsync();
 
-            var (accessToken, expiration) = GenerateAccessTokenFromUser(user);
+            var (accessToken, expiration) = GenerateAccessTokenFromUser(user, true);
             var username = user.Username;
 
             var isGuest = user.PasswordSalt.IsMissing()
@@ -143,6 +146,9 @@ public class AccountBusiness(ILogger<AccountBusiness> logger
 
             return new(new
             {
+                Id = user.Id,
+                Email = user.Email,
+                DisplayName = user.DisplayName,
                 Token = accessToken,
                 Expiration = expiration,
                 Username = username,
@@ -218,7 +224,7 @@ public class AccountBusiness(ILogger<AccountBusiness> logger
 
             await transaction.CommitAsync();
 
-            var (accessToken, expiration) = GenerateAccessTokenFromUser(user);
+            var (accessToken, expiration) = GenerateAccessTokenFromUser(user, true);
             var username = user.Username;
 
             var isGuest = user.PasswordSalt.IsMissing()
@@ -227,6 +233,9 @@ public class AccountBusiness(ILogger<AccountBusiness> logger
 
             return new(new
             {
+                Id = user.Id,
+                Email = user.Email,
+                DisplayName = user.DisplayName,
                 Token = accessToken,
                 Expiration = expiration,
                 Username = username,
@@ -302,7 +311,7 @@ public class AccountBusiness(ILogger<AccountBusiness> logger
            
             await transaction.CommitAsync();
 
-            var (accessToken, expiration) = GenerateAccessTokenFromUser(user);
+            var (accessToken, expiration) = GenerateAccessTokenFromUser(user, false);
             var username = user.Username;
 
             var isGuest = user.PasswordSalt.IsMissing()
@@ -311,6 +320,9 @@ public class AccountBusiness(ILogger<AccountBusiness> logger
 
             return new(new
             {
+                Id = user.Id,
+                Email = user.Email,
+                DisplayName = user.DisplayName,
                 Token = accessToken,
                 Expiration = expiration,
                 Username = username,
@@ -343,7 +355,7 @@ public class AccountBusiness(ILogger<AccountBusiness> logger
         if (user == null || !PasswordHelper.VerifyPassword(payload.Password, user.PasswordHash, user.PasswordSalt))
             throw new BusinessException("InvalidCredentials", "Username or password incorrect");
 
-         var (accessToken, expiration) = GenerateAccessTokenFromUser(user);
+         var (accessToken, expiration) = GenerateAccessTokenFromUser(user, payload.RememberMe);
             var username = user.Username;
 
             var isGuest = user.PasswordSalt.IsMissing()
@@ -352,6 +364,9 @@ public class AccountBusiness(ILogger<AccountBusiness> logger
 
             return new(new
             {
+                Id = user.Id,
+                Email = user.Email,
+                DisplayName = user.DisplayName,
                 Token = accessToken,
                 Expiration = expiration,
                 Username = username,
@@ -369,7 +384,7 @@ public class AccountBusiness(ILogger<AccountBusiness> logger
         return userInfoResponse;
     }
 
-    private (string token, DateTime expiration) GenerateAccessTokenFromUser(User user)
+    private (string token, DateTime? expiration) GenerateAccessTokenFromUser(User user, bool isRememberMe)
     {
         List<Claim> claims = [
             new Claim(Microsoft.IdentityModel.JsonWebTokens.JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
@@ -382,7 +397,7 @@ public class AccountBusiness(ILogger<AccountBusiness> logger
         if (user.DisplayName.IsPresent())
             claims.Add(new Claim(SystemClaim.FullName, user.DisplayName));
 
-        return TokenHelper.GetToken(_tokenSettings, claims);
+        return TokenHelper.GetToken(_tokenSettings, claims, isRememberMe);
     }
 }
 
@@ -404,4 +419,5 @@ public class LoginRequest
 {
     public string Username { get; set; }
     public string Password { get; set; }
+    public bool RememberMe { get; set; }
 }

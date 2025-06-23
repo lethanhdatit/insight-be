@@ -14,8 +14,4 @@ public interface ILuckyNumberBusiness
     Task<BaseResponse<dynamic>> GetHistoricalPrizetypeFlatAsync(string fromDate);
 
     Task<BaseResponse<dynamic>> BuildCrawledDataAsync(int? yearsBack = null, bool isOverride = false);
-
-    Task<BaseResponse<dynamic>> TheologyAndNumbersAsync(TheologyRequest request);
-
-    Task<BaseResponse<dynamic>> GetTheologyAndNumbersAsync(Guid id);
 }
