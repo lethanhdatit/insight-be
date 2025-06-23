@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -5,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Threading.Tasks;
 
+[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public class LuckyNumberController(IWebHostEnvironment env
@@ -31,27 +33,15 @@ public class LuckyNumberController(IWebHostEnvironment env
         return HandleOk(res);
     }
 
-    [HttpPost("theology")]
-    public async Task<IActionResult> Theology([FromBody] TheologyRequest request)
-    {
-        var res = await _luckyNumberBusiness.TheologyAndNumbersAsync(request);
-        return HandleOk(res);
-    }
-
-    [HttpGet("theology/{id}")]
-    public async Task<IActionResult> Theology([FromRoute] Guid id)
-    {
-        var res = await _luckyNumberBusiness.GetTheologyAndNumbersAsync(id);
-        return HandleOk(res);
-    }
-
+    [AllowAnonymous]
     [HttpGet("historical-sequences")]
     public async Task<IActionResult> GetHistoricalSequences([FromQuery] string prizeType, [FromQuery] int yearsBack = 5)
     {
         var res = await _luckyNumberBusiness.GetHistoricalSequencesAsync(prizeType, yearsBack);
         return HandleOk(res);
     }
-    
+
+    [AllowAnonymous]
     [HttpGet("historical-prizetype-flat")]
     public async Task<IActionResult> GetHistoricalPrizetypeFlat([FromQuery] string fromDate)
     {
