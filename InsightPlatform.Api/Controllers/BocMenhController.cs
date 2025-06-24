@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using System;
@@ -28,6 +27,14 @@ public class BocMenhController(IWebHostEnvironment env
     public async Task<IActionResult> Theology([FromRoute] Guid id)
     {
         var res = await _bocMenhBusiness.GetTheologyAndNumbersAsync(id);
+        return HandleOk(res);
+    }
+
+    [AllowAnonymous]
+    [HttpPost("calendar")]
+    public IActionResult GetLunarCalendar([FromBody] DateTime solarDate, [FromQuery] bool includeMonthDetail = false)
+    {
+        var res = _bocMenhBusiness.GetVietnameseCalendar(solarDate, includeMonthDetail);
         return HandleOk(res);
     }
 }
