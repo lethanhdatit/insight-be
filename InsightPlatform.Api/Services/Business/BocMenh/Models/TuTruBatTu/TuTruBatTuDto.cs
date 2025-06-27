@@ -5,6 +5,9 @@ public class TuTruBatTuDto
 {
     [JsonPropertyName("original")]
     public string Original { get; set; }
+    
+    [JsonPropertyName("preData")]
+    public CalendarMeta PreData { get; set; }
 
     [JsonPropertyName("metaData")]
     public List<MetadataEntry> MetaData { get; set; }

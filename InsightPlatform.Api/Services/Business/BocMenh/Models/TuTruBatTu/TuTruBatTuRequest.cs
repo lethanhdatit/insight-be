@@ -8,7 +8,7 @@ public class TuTruBatTuRequest : TheologyBase
 
     public Gender gender { get; set; }
 
-    public TuTruBatTuCategory Category { get; set; }
+    public TuTruBatTuCategory category { get; set; }
 
     public void Standardize()
     {
@@ -21,7 +21,7 @@ public class TuTruBatTuRequest : TheologyBase
              Normalize(birthPlace),
              Normalize(birthDateTime, "dd/MM/yyyy HH:mm"),
              Normalize(((short?)gender)?.ToString()),
-             Normalize(((short?)Category)?.ToString()),
+             Normalize(((short?)category)?.ToString()),
              Normalize(((short?)kind)?.ToString()),
              Normalize(sysPrompt),
              Normalize(userPrompt)
