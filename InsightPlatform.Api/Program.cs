@@ -6,6 +6,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using System;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -19,7 +20,7 @@ services.Configure<CorsWhiteListSettings>(configuration.GetSection(CorsWhiteList
 services.Configure<ExternalLoginSettings>(configuration.GetSection(ExternalLoginSettings.Path));
 services.Configure<QueueMessagingSettings>(configuration.GetSection(QueueMessagingSettings.Path));
 services.Configure<LocalizationSettings>(configuration.GetSection(LocalizationSettings.Path));
-services.Configure<OpenAISettings>(configuration.GetSection(OpenAISettings.Path));
+services.Configure<AISettings>(configuration.GetSection(AISettings.Path));
 
 // === Infrastructure ===
 services.AddHttpContextAccessor();
@@ -57,6 +58,7 @@ services.AddHostedService<ConsumerInitializer>();
 
 // === Business logic ===
 services.AddSingleton<IOpenAiService, OpenAiService>();
+services.AddSingleton<IGeminiAIService, GeminiAIService>();
 services.AddScoped<IPainBusiness, PainBusiness>();
 services.AddScoped<ILuckyNumberBusiness, LuckyNumberBusiness>();
 services.AddScoped<IBocMenhBusiness, BocMenhBusiness>();
@@ -66,6 +68,12 @@ services.AddScoped<IAccountBusiness, AccountBusiness>();
 services.AddControllers(options =>
 {
     options.Filters.Add(typeof(HandleExceptionMiddleware));
+}).AddJsonOptions(options =>
+{
+    // Configure options to ignore null properties
+    options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+    foreach (var item in SystemSerialization.JsonConverters)
+        options.JsonSerializerOptions.Converters.Add(item);
 });
 services.AddEndpointsApiExplorer();
 services.AddSwaggerGen(options =>

@@ -11,6 +11,7 @@ public class BocMenhBusiness(ILogger<BocMenhBusiness> logger
     , IHttpContextAccessor contextAccessor
     , IAccountBusiness accountBusiness
     , IOpenAiService openAiService
+    , IGeminiAIService geminiAIService
     , IOptions<AppSettings> appOptions
     , PainPublisher publisher) : BaseHttpBusiness<BocMenhBusiness, ApplicationDbContext>(logger, contextFactory, contextAccessor), IBocMenhBusiness
 {
@@ -18,6 +19,7 @@ public class BocMenhBusiness(ILogger<BocMenhBusiness> logger
     private readonly AppSettings _appSettings = appOptions.Value;
     private readonly IAccountBusiness _accountBusiness = accountBusiness;
     private readonly IOpenAiService _openAiService = openAiService;
+    private readonly IGeminiAIService _geminiAIService = geminiAIService;
 
     public async Task<BaseResponse<dynamic>> TheologyAndNumbersAsync(TheologyRequest request)
     {
@@ -170,14 +172,265 @@ luận giải phải hấp dẫn, huyền bí, lôi cuốn người đọc, và 
 
         var existed = await context.TheologyRecords.FirstOrDefaultAsync(f => f.Id == id 
                                                                           && f.UserId == currentUserId
+                                                                          && f.Kind == (short)TheologyKind.Basic
                                                                           && f.Result != null);
 
         if(existed == null)
             throw new BusinessException("TheologyNotFound", "Theology not found");
 
-        var theologyResult = JsonSerializer.Deserialize<TheologyDto>(existed.Result);
+        var res = JsonSerializer.Deserialize<TheologyDto>(existed.Result);
 
-        return new(theologyResult);
+        return new(res);
+    }
+
+    public async Task<BaseResponse<dynamic>> GetTuTruBatTuAsync(Guid id)
+    {
+        await using var context = await _contextFactory.CreateDbContextAsync();
+
+        var currentUserId = Current.UserId;
+
+        var existed = await context.TheologyRecords.FirstOrDefaultAsync(f => f.Id == id 
+                                                                          && f.UserId == currentUserId
+                                                                          && f.Kind == (short)TheologyKind.TuTruBatTu
+                                                                          && f.Result != null);
+
+        if(existed == null)
+            throw new BusinessException("TuTruBatTuNotFound", "TuTruBatTu not found");
+
+        var res = JsonSerializer.Deserialize<TuTruBatTuDto>(existed.Result);
+
+        return new(res);
+    }
+
+    public async Task<BaseResponse<dynamic>> TuTruBatTuAsync(TuTruBatTuRequest request)
+    {
+        await using var context = await _contextFactory.CreateDbContextAsync();
+
+        try
+        {
+            request.Standardize();
+
+            var userId = Current.UserId;
+            var kind = TheologyKind.TuTruBatTu;
+
+            if (userId == null || !await context.Users.AnyAsync(a => a.Id == userId))
+            {
+                throw new BusinessException("Unauthorized", "401 Unauthorized");
+            }
+
+            var baseData = VietnameseCalendar.GetLunarCalendarDetails(request.birthDateTime, false).LunarDetails;
+
+            string category = request.Category.GetDescription();
+
+            var resTemplate = ClassStructureBuilder.BuildAsString(typeof(TuTruBatTuFromAI));
+
+            string userPrompt = $@"
+Tôi muốn phân tích lá số Bát Tự theo hướng {category}.
+Thông tin như sau:
+
+- Nơi sinh: {request.birthPlace?.Trim() ?? string.Empty}, Việt Nam
+- Giới tính: {request.gender.GetDescription()}
+- Ngày giờ sinh Dương lịch: {baseData.SolarDate.Date:dd/MM/yyyy HH:mm} ({baseData.SolarDate.DayOfWeek.Code})
+- Ngày giờ sinh Âm lịch: {baseData.LunarDate.Date:dd/MM/yyyy HH:mm} {(baseData.LunarDate.IsLeapMonth ? "(Nhuận)" : "")}
+- Tứ trụ:
+    + Trụ Giờ: 
+       - Can:{baseData.TuTru.Hour.Can.Display} 
+       - Chi: {baseData.TuTru.Hour.Chi.Display} 
+       - Nạp âm: {baseData.TuTru.Hour.NapAm.Display}
+    + Trụ Ngày:
+       - Can:{baseData.TuTru.Day.Can.Display} 
+       - Chi: {baseData.TuTru.Day.Chi.Display} 
+       - Nạp âm: {baseData.TuTru.Day.NapAm.Display}
+    + Trụ Tháng: 
+       - Can:{baseData.TuTru.Month.Can.Display} 
+       - Chi: {baseData.TuTru.Month.Chi.Display} 
+       - Nạp âm: {baseData.TuTru.Month.NapAm.Display}
+    + Trụ Năm:
+       - Can:{baseData.TuTru.Year.Can.Display} 
+       - Chi: {baseData.TuTru.Year.Chi.Display} 
+       - Nạp âm: {baseData.TuTru.Year.NapAm.Display}
+- Tiết khí: {baseData.SolarTerm}
+- Phật lịch: {baseData.BuddhistCalendar}
+- Giờ hoàng đạo: {baseData.AuspiciousHour}
+- Tháng nhuận: {(baseData.IsLeapMonth ? "Có" : "Không")}
+";
+
+            string systemPrompt = $@"Bạn là một chuyên gia Bát Tự chuyên phân tích {category}. Hãy trả lời theo format cố định bên dưới để mọi kết quả luôn nhất quán, dù cùng một thông tin được hỏi nhiều lần. Mục tiêu là đưa ra luận giải mạch lạc, dễ hiểu nhưng đầy đủ chiều sâu huyền học.
+
+== ĐỊNH HƯỚNG TRẢ LỜI ==
+
+0. Nên nhớ rằng kết quả bạn đưa ra sẽ được dùng để hiển thị trên một website dịch vụ xem phong thuỷ chuyên nghiệp, nên hãy quả qua các câu nói dư thừa như lời chào, lời giới thiệu về bản thân bạn, hoặc kiểu nêu ra câu hỏi dẫn từ các hướng dẫn của tôi bên dưới,... những câu nói này trên hệ thống website đó sẽ tự xử lý riêng.
+   **Tôi không muốn người dùng khi đọc được kết quả này biết là từ AI sinh ra**
+   **Nội dung hiển thị ở dạng mã html, tailwind css**
+
+1. Trả lời theo đúng **thứ tự 8 mục bên dưới**, **không được thay đổi**, **không rút gọn**, **không bỏ mục**.
+
+2. Mỗi phần **phải phân tích đầy đủ mặt mạnh – mặt yếu**, nhưng đặc biệt **tập trung vào khuyết thiếu – hành xấu – mâu thuẫn** để dẫn dắt đến **phần cải vận**.
+
+3. Phân tích **dụng thần** là trọng tâm – ưu tiên theo hành khuyết, nhưng **phải giải thích kỹ nếu không dùng hành khuyết làm dụng thần**, có thể do bị xung khắc hoặc thiên lệch hệ thống.
+
+4. Phần **cải vận phải cụ thể – logic – gắn kết chặt chẽ với phân tích dụng thần và vận khí bên trên**. Tuyệt đối **không trả lời chung chung**.
+
+5. **Gợi ý cải vận bằng vật phẩm phong thủy phải có ít nhất 10 vật phẩm**, chia theo nhiều nhóm, mỗi món phải rõ **hành khí – chất liệu – công dụng – cách dùng**, mỗi món phải đi kèm thẻ **<MetaItem />**. Đây là phần quan trọng và không thể thiếu. 
+
+6. Văn phong chuyên sâu, dễ hiểu, gần gũi.
+
+7. Tất cả các yêu cầu nào có thẻ <Metadata></Metadata> phải giữ lại format thẻ này để phục vụ trích xuất thông tin.
+
+8. **Ngoại trừ phần nội dung bên trong thẻ <Metadata></Metadata> ra thì các nội dung còn lại nên được trang trí bằng
+html, tailwind css đơn giản vì tôi sẽ dùng nó nhúng vào website của tôi cũng dùng tailwind css. 
+phong cách chủ đạo là huyền bí, huyền học, tone đen, vàng, cam. đặc biệt cần phải tô màu hoặc in đậm (bằng html) các yếu tố như là ngũ hành, .... chọn màu đúng với đặc tính của nó, ví dụ: hành Kim thì màu vàng, ...
+**
+
+== FORMAT TRẢ LỜI CỐ ĐỊNH ==
+
+🔹 **Nhật Chủ – Khí chất tổng quan**
+Phân tích Nhật Can: Âm Dương, Ngũ Hành, Nạp Âm
+Đặc tính Thiên Can – Địa Chi trụ ngày
+Áp dụng nguyên tắc phân tích mạnh – yếu – khuyết – xung – cải vận
+**Phải đề cập, dẫn chứng liên quan đến {category}**
+
+🔹 **Cục diện Ngũ Hành – Vượng suy**
+Tổng số lượng hành – vượng suy từng hành một (Kim – Mộc – Thủy – Hỏa – Thổ)
+Nhận định: mệnh thân vượng hay nhược, Thiên lệch ngũ hành, mâu thuẫn tử trụ, tương khắc...
+Tập trung khai thác khuyết thiếu – hành xấu – mâu thuẫn để dẫn dắt đến phần cải vận.
+Áp dụng nguyên tắc phân tích mạnh – yếu – khuyết – xung – cải vận
+**Phải đề cập, dẫn chứng liên quan đến {category}**
+
+🔹 **Thập Thần – Bản chất vận hạn chính**
+Phân tích các thần liên quan đến {category}
+Có các cách cục hay thần sát đặc biệt không? nếu có thì phân tích chi tiêt vào, nếu không cũng nêu ra là không có.
+Có lộ các Thập Thần quan trọng không? (Tài – Quan – Thực – Ấn – Tỷ) nếu có thì phân tích chi tiết vào, nếu không cũng nêu ra là không.
+tập trung khai thác khuyết thiếu – hành xấu – mâu thuẫn để dẫn dắt đến phần cải vận.
+**Phải đề cập, dẫn chứng liên quan đến {category}**
+
+🔹 **Dụng Thần – Kỵ Thần**
+Dụng Thần chính và phụ (nếu có): lý do chọn (phải ưu tiên chọn hành khuyết), giải thích nếu loại trừ hành khuyết. **Ảnh hưởng như thế nào đến {category} của người dùng**
+Kỵ Thần cần tránh: lý do chọn, nguyên nhân. **ảnh hưởng như thế nào đến {category} của người dùng**
+
+**Thêm cố định thẻ meta này:**
+<Metadata>
+Đặt metadata cho Dụng Thần, và Kỵ Thần có dạng như ví dụ sau đây (nhớ bỏ phần ví dụ đi):
+  <MetaDungThan NguHanhBanMenh='Kim,Thủy' />
+  <MetaKyThan NguHanhBanMenh='Hỏa,Thổ' />
+</Metadata>
+
+🔹 **Đại Vận – Chu kỳ vận hạn 10 năm**
+Trình bày theo bảng: tuổi, Can Chi, hành khí
+Phân tích thuận – nghịch vận từng giai đoạn
+phân tích thật sâu vào từng giai đoạn, lý do tại sao, ...
+**Phải đề cập, dẫn chứng liên quan đến {category}**
+Áp dụng nguyên tắc phân tích mạnh – yếu – khuyết – xung – cải vận
+
+🔹 **Ngành nghề hoặc mô hình phù hợp với mục tiêu {category}**
+Gợi ý dựa trên dụng thần, khí chất
+Định hướng mô hình: làm thuê – làm chủ – đầu tư – cố vấn – freelancer
+Áp dụng nguyên tắc phân tích mạnh – yếu – khuyết – xung – cải vận
+
+🔹 **Gợi ý cải vận – Kích hoạt khí vận theo mục tiêu {category}**
+Gợi ý hành trì, môi trường sống tương ứng
+Gợi ý bổ sung để tăng cường điểm mạnh, tránh ảnh hưởng đến Kỵ Thần
+Dẫn nhập, gợi ý người dùng nên sử dụng thêm các sản phẩn có hành khí, chất liệu, công dụng phù hợp với **Dụng Thần**, **Kỵ Thần**
+
+**Thêm cố định thẻ meta này:**
+<Metadata>
+   Đặt metadata **GỢI Ý ÍT NHẤT 10 VẬT PHẨM PHONG THỦY**: Ưu tiên vật đeo: vòng tay, cổ, dây chuyền,... . Kèm vật phẩm phụ: linh vật – đá – đồ để bàn – vật phẩm cầu tài, ...
+    **Đặt mỗi vật phẩm gợi ý vào thẻ MetaItem có dạng như ví dụ sau đây (nhớ bỏ phần ví dụ đi):
+    <MetaItem Ten='Thiềm Thừ' HanhKhi='Thủy,Mộc' ChatLieu='Đá Obsidian' CongDung='Chiêu tài' CachDung='Đặt tại bàn làm việc hướng Bắc' />
+</Metadata>
+
+🔹 **Lời kết tổng quan**
+Tóm tắt ưu/nhược trong {category}
+Nhấn mạnh **hành động cần làm** để cải hóa và phát huy
+**Đặc biệt nhấn mạnh vai trò và sự cần thiết của việc sử dụng ít nhất 10 vật phẩm phong thủy cải vận**
+
+===> **TRẢ LỜI BẮT BUỘC THEO ĐÚNG FORMAT TRÊN**. KHÔNG VIẾT CHUNG CHUNG. KHÔNG RÚT GỌN. KHÔNG BỎ MỤC. LUẬN GIẢI RÕ – GỢI Ý CỤ THỂ.
+
+Sau đây là yêu cầu và thông tin của người dùng:
+{userPrompt}
+";
+
+            var key = request.InitUniqueKey(kind, systemPrompt, null);
+
+            var existed = await context.TheologyRecords.FirstOrDefaultAsync(f => f.UniqueKey == key && f.Result != null);
+
+            if (existed != null)
+            {
+                if (existed.UserId != userId)
+                {
+                    var cloned = new TheologyRecord
+                    {
+                        UserId = userId.Value,
+                        UniqueKey = existed.UniqueKey,
+                        Kind = existed.Kind,
+                        Input = existed.Input,
+                        SystemPrompt = existed.SystemPrompt,
+                        UserPrompt = existed.UserPrompt,
+                        Result = existed.Result,
+                        CreatedTs = DateTime.UtcNow,
+                    };
+
+                    await context.TheologyRecords.AddAsync(cloned);
+                    await context.SaveChangesAsync();
+
+                    existed = cloned;
+                }
+
+                return new(new
+                {
+                    Id = existed.Id
+                });
+            }
+            else
+            {
+                var res = await _geminiAIService.SendChatAsync(systemPrompt);
+
+                if (res.IsPresent())
+                {
+                    res = res.Replace("```html", string.Empty);
+
+                    res = res.Replace("```json", string.Empty);
+
+                    if (res.EndsWith("```"))
+                    {
+                        res = res.TrimEnd('`');
+                    }
+                }
+
+                var (processedInput, metaData) = MetadataExtractor.Extract(res, true);
+
+                existed = new TheologyRecord
+                {
+                    UserId = userId.Value,
+                    UniqueKey = key,
+                    Kind = (byte)kind,
+                    Input = JsonSerializer.Serialize(request),
+                    SystemPrompt = systemPrompt,
+                    Result = JsonSerializer.Serialize(new TuTruBatTuDto
+                    {
+                        Original = processedInput,
+                        MetaData = metaData,
+                    }),
+                    CreatedTs = DateTime.UtcNow,
+                };
+
+                await context.TheologyRecords.AddAsync(existed);
+                await context.SaveChangesAsync();
+            }
+
+            return new(new
+            {
+                Id = existed.Id
+            });
+        }
+        catch (Exception e)
+        {
+            throw new BusinessException("UnavailableToTuTruBatTu", "Unavailable to TuTruBatTu.", e);
+        }
+        finally
+        {
+            await context.DisposeAsync();
+        }
     }
 
     public BaseResponse<dynamic> GetVietnameseCalendar(DateTime solarDate, bool includeMonthDetail)

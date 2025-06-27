@@ -69,4 +69,5 @@ public enum Religion
 public enum TheologyKind : byte
 {
     Basic = 1,
+    TuTruBatTu = 2,
 }

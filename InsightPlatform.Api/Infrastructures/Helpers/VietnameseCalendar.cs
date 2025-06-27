@@ -1,22 +1,196 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
+
+public enum EnumCAN : short
+{
+    [Description("Giáp")]
+    Giap = 1,
+
+    [Description("Ất")]
+    At = 2,
+
+    [Description("Bính")]
+    Binh = 3,
+
+    [Description("Đinh")]
+    Dinh = 4,
+
+    [Description("Mậu")]
+    Mau = 5,
+
+    [Description("Kỹ")]
+    Ky = 6,
+
+    [Description("Canh")]
+    Canh = 7,
+
+    [Description("Tân")]
+    Tan = 8,
+
+    [Description("Nhâm")]
+    Nham = 9,
+
+    [Description("Quý")]
+    Quy = 10,
+}
+
+public enum EnumCHI : short
+{
+    [Description("Tý")]
+    Chuot = 1,
+
+    [Description("Sửu")]
+    Suu = 2,
+
+    [Description("Dần")]
+    Dan = 3,
+
+    [Description("Mão")]
+    Meo = 4,
+
+    [Description("Thìn")]
+    Thin = 5,
+
+    [Description("Tỵ")]
+    Ty = 6,
+
+    [Description("Ngọ")]
+    Ngo = 7,
+
+    [Description("Mùi")]
+    Mui = 8,
+
+    [Description("Thân")]
+    Than = 9,
+
+    [Description("Dậu")]
+    Dau = 10,
+
+    [Description("Tuất")]
+    Tuat = 11,
+
+    [Description("Hợi")]
+    Hoi = 12
+}
+
+public enum EnumNapAm : short
+{
+    // Kim (Thượng, Trung, Hạ nguồn theo logic của bạn)
+    [Description("Hải Trung Kim")]
+    HaiTrungKim,
+    [Description("Kiếm Phong Kim")]
+    KiemPhongKim,
+    [Description("Bạch Lạp Kim")]
+    BachLapKim,
+    [Description("Sa Trung Kim")] // Bảng Đại Thành: Giáp Ngọ, Ất Mùi
+    SaTrungKim,
+    [Description("Kim Bạch Kim")] // Bảng Đại Thành: Nhâm Dần, Quý Mão
+    KimBachKim,
+    [Description("Thoa Xuyến Kim")] // Bảng Đại Thành: Canh Tuất, Tân Hợi
+    ThoaXuyenKim,
+
+    // Hỏa (Thượng, Trung, Hạ nguồn theo logic của bạn)
+    [Description("Tích Lịch Hỏa")] // Bảng Tiểu Thành: Mậu Tý, Kỷ Sửu
+    TichLichHoa,
+    [Description("Sơn Hạ Hỏa")] // Bảng Tiểu Thành: Bính Thân, Đinh Dậu
+    SonHaHoa,
+    [Description("Phú Đăng Hỏa")] // Bảng Tiểu Thành: Giáp Thìn, Ất Tỵ
+    PhuDangHoa,
+    [Description("Thiên Thượng Hỏa")] // Bảng Đại Thành: Mậu Ngọ, Kỷ Mùi
+    ThienThuongHoa,
+    [Description("Lư Trung Hỏa")] // Bảng Đại Thành: Bính Dần, Đinh Mão
+    LuTrungHoa,
+    [Description("Sơn Đầu Hỏa")] // Bảng Đại Thành: Giáp Tuất, Ất Hợi
+    SonDauHoa,
+
+    // Mộc (Thượng, Trung, Hạ nguồn theo logic của bạn)
+    [Description("Tang Đố Mộc")] // Bảng Tiểu Thành: Nhâm Tý, Quý Sửu
+    TangDoMoc,
+    [Description("Thạch Lựu Mộc")] // Bảng Tiểu Thành: Canh Thân, Tân Dậu
+    ThachLuuMoc,
+    [Description("Đại Lâm Mộc")] // Bảng Tiểu Thành: Mậu Thìn, Kỷ Tỵ
+    DaiLamMoc,
+    [Description("Dương Liễu Mộc")] // Bảng Đại Thành: Nhâm Ngọ, Quý Mùi
+    DuongLieuMoc,
+    [Description("Tùng Bá Mộc")] // Bảng Đại Thành: Canh Dần, Tân Mão (bạn dùng "Tùng Bá Mộc")
+    TungBaMoc,
+    [Description("Bình Địa Mộc")] // Bảng Đại Thành: Mậu Tuất, Kỷ Hợi
+    BinhDiaMoc,
+
+    // Thủy (Thượng, Trung, Hạ nguồn theo logic của bạn)
+    [Description("Giang Hạ Thủy")] // Bảng Tiểu Thành: Bính Tý, Đinh Sửu (bạn dùng "Giang Hạ Thủy")
+    GiangHaThuy,
+    [Description("Tuyền Trung Thủy")] // Bảng Tiểu Thành: Giáp Thân, Ất Dậu
+    TuyenTrungThuy,
+    [Description("Trường Lưu Thủy")] // Bảng Tiểu Thành: Nhâm Thìn, Quý Tỵ
+    TruongLuuThuy,
+    [Description("Thiên Hà Thủy")] // Bảng Đại Thành: Bính Ngọ, Đinh Mùi
+    ThienHaThuy,
+    [Description("Đại Khê Thủy")] // Bảng Đại Thành: Giáp Dần, Ất Mão
+    DaiKheThuy,
+    [Description("Đại Hải Thủy")] // Bảng Đại Thành: Nhâm Tuất, Quý Hợi
+    DaiHaiThuy,
+
+    // Thổ (Thượng, Trung, Hạ nguồn theo logic của bạn)
+    [Description("Bích Thượng Thổ")] // Bảng Tiểu Thành: Canh Tý, Tân Sửu
+    BichThuongTho,
+    [Description("Đại Dịch Thổ")] // Bảng Tiểu Thành: Mậu Thân, Kỷ Dậu (bạn dùng "Đại Dịch Thổ")
+    DaiDichTho,
+    [Description("Sa Trung Thổ")] // Bảng Tiểu Thành: Bính Thìn, Đinh Tỵ
+    SaTrungTho,
+    [Description("Lộ Bàng Thổ")] // Bảng Đại Thành: Canh Ngọ, Tân Mùi
+    LoBangTho,
+    [Description("Thành Đầu Thổ")] // Bảng Đại Thành: Mậu Dần, Kỷ Mão
+    ThanhDauTho,
+    [Description("Ốc Thượng Thổ")] // Bảng Đại Thành: Bính Tuất, Đinh Hợi
+    OcThuongTho
+}
+
+public enum EnumYinYang : short
+{
+    [Description("Âm")]
+    Am = 1,
+
+    [Description("Dương")]
+    Duong = 2
+}
+
+public enum EnumNguHanhBanMenh : short
+{
+    [Description("Kim")]
+    Kim = 1,
+
+    [Description("Mộc")]
+    Moc = 2,
+
+    [Description("Thủy")]
+    Thuy = 3,
+
+    [Description("Hỏa")]
+    Hoa = 4,
+
+    [Description("Thổ")]
+    Tho = 5,
+}
 
 public class VietnameseCalendar
 {
     private const double PI = Math.PI;
 
-    private readonly static string[] CAN = { "Giáp", "Ất", "Bính", "Đinh", "Mậu", "Kỷ", "Canh", "Tân", "Nhâm", "Quý" };
-    private readonly static string[] CHI = { "Tý", "Sửu", "Dần", "Mẹo", "Thìn", "Tỵ", "Ngọ", "Mùi", "Thân", "Dậu", "Tuất", "Hợi" };
-    private readonly static string[] GIO_HD = { "110100101100", "001101001011", "110011010010", "101100110100", "001011001101", "010010110011" };
-    private readonly static string[] TIET_KHI = {
+    private readonly static EnumCAN[] CAN = [.. Enum.GetValues<EnumCAN>().OrderBy(o => (byte)o)];
+    private readonly static EnumCHI[] CHI = [.. Enum.GetValues<EnumCHI>().OrderBy(o => (byte)o)];
+
+    private readonly static string[] GIO_HD = ["110100101100", "001101001011", "110011010010", "101100110100", "001011001101", "010010110011"];
+    private readonly static string[] TIET_KHI = [
             "Xuân phân", "Thanh minh", "Cốc vũ", "Lập hạ", "Tiểu mãn", "Mang chủng",
             "Hạ chí", "Tiểu thử", "Đại thử", "Lập thu", "Xử thử", "Bạch lộ",
             "Thu phân", "Hàn lộ", "Sương giáng", "Lập đông", "Tiểu tuyết", "Đại tuyết",
             "Đông chí", "Tiểu hàn", "Đại hàn", "Lập xuân", "Vũ thủy", "Kinh trập"
-        };
+    ];
 
-    private readonly static int[] TK20 = {
+    private readonly static int[] TK20 = [
             0x3c4bd8, 0x624ae0, 0x4ca570, 0x3854d5, 0x5cd260, 0x44d950, 0x315554, 0x5656a0, 0x409ad0, 0x2a55d2,
             0x504ae0, 0x3aa5b6, 0x60a4d0, 0x48d250, 0x33d255, 0x58b540, 0x42d6a0, 0x2cada2, 0x5295b0, 0x3f4977,
             0x644970, 0x4ca4b0, 0x36b4b5, 0x5c6a50, 0x466d40, 0x2fab54, 0x562b60, 0x409570, 0x2c52f2, 0x504970,
@@ -27,9 +201,9 @@ public class VietnameseCalendar
             0x4896d0, 0x344dd5, 0x5a4ad0, 0x42a4d0, 0x2cd4b4, 0x52b250, 0x3cd558, 0x60b540, 0x4ab5a0, 0x3755a6,
             0x5c95b0, 0x4649b0, 0x30a974, 0x56a4b0, 0x40aa50, 0x29aa52, 0x4e6d20, 0x39ad47, 0x5eab60, 0x489370,
             0x344af5, 0x5a4970, 0x4464b0, 0x2c74a3, 0x50ea50, 0x3d6a58, 0x6256a0, 0x4aaad0, 0x3696d5, 0x5c92e0
-        };
+    ];
 
-    private readonly static int[] TK21 = {
+    private readonly static int[] TK21 = [
             0x46c960, 0x2ed954, 0x54d4a0, 0x3eda50, 0x2a7552, 0x4e56a0, 0x38a7a7, 0x5ea5d0, 0x4a92b0, 0x32aab5,
             0x58a950, 0x42b4a0, 0x2cbaa4, 0x50ad50, 0x3c55d9, 0x624ba0, 0x4ca5b0, 0x375176, 0x5c5270, 0x466930,
             0x307934, 0x546aa0, 0x3ead50, 0x2a5b52, 0x504b60, 0x38a6e6, 0x5ea4e0, 0x48d260, 0x32ea65, 0x56d520,
@@ -40,7 +214,7 @@ public class VietnameseCalendar
             0x5252b0, 0x3ca9b8, 0x62a930, 0x4ab490, 0x34b6a6, 0x5aad50, 0x4655a0, 0x2eab64, 0x54a570, 0x4052b0,
             0x2ab173, 0x4e6930, 0x386b37, 0x5e6aa0, 0x48ad50, 0x332ad5, 0x582b60, 0x42a570, 0x2e52e4, 0x50d160,
             0x3ae958, 0x60d520, 0x4ada90, 0x355aa6, 0x5a56d0, 0x462ae0, 0x30a9d4, 0x54a2d0, 0x3ed150, 0x28e952
-    };
+    ];
 
     private readonly static List<Holiday> SolarHolidays =
         [
@@ -67,8 +241,8 @@ public class VietnameseCalendar
             new Holiday(24, 12, "Ngày Lễ Giáng Sinh")
         ];
 
-    private readonly static List<Holiday> LunarHolidays = new List<Holiday>
-        {
+    private readonly static List<Holiday> LunarHolidays =
+        [
             new Holiday(1, 1, "Tết Nguyên Đán"),
             new Holiday(15, 1, "Tết Nguyên tiêu"),
             new Holiday(3, 3, "Tết Hàn thực"),
@@ -78,7 +252,7 @@ public class VietnameseCalendar
             new Holiday(15, 7, "Vu Lan"),
             new Holiday(15, 8, "Tết Trung thu"),
             new Holiday(23, 12, "Ông Táo chầu trời")
-        };
+        ];
 
     public static CalendarMeta GetLunarCalendarDetails(DateTime solarDate, bool includeMonthDetail = false)
     {
@@ -101,8 +275,12 @@ public class VietnameseCalendar
             DayOfWeek = new DoW(lunarDate.DayOfWeek)
         };
 
-        lunarDetails.CanChi = GetCanChi(lunarToday);
-        lunarDetails.CanHour0 = $"{GetCanHour0(lunarToday.JulianDay)} {CHI[0]}";
+        lunarDetails.TuTru = GetTuTru(lunarToday);
+        lunarDetails.CanHour0 = new
+        {
+            Can = GetCanHour0(lunarToday.JulianDay),
+            Chi = new EnumDetail<EnumCHI>(CHI[0])
+        };
         lunarDetails.SolarTerm = TIET_KHI[GetSunLongitude(lunarToday.JulianDay + 1, 7.0)];
         lunarDetails.BuddhistCalendar = GetPhatLich(lunarToday.Day, lunarToday.Month, lunarToday.Year);
 
@@ -140,31 +318,32 @@ public class VietnameseCalendar
 
     public static CanChi GetCanChiForHour(CanChi canChiDay, int hour)
     {
-        int canIndex = Array.IndexOf(CAN, canChiDay.Can);
-        int chiIndex = Array.IndexOf(CHI, canChiDay.Chi);
+        int canDayIndex = Array.IndexOf(CAN, canChiDay.Can.Value.Value);
 
-        int hourIndex = GetChiIndexByHour(hour);
+        int chiHourIndex = GetChiIndexByHour(hour);
 
-        string chiHour = CHI[hourIndex];
+        int canHourIndex = (canDayIndex * 12 + chiHourIndex) % 10;
 
-        string canHour = CAN[(canIndex + hourIndex) % 10];
+        var chiHour = CHI[chiHourIndex];
+
+        var canHour = CAN[canHourIndex];
 
         return new CanChi(canHour, chiHour);
     }
 
-    public static CanChiInfo GetCanChi(LunarDate lunar)
+    public static TuTru GetTuTru(LunarDate lunar)
     {
         var day = new CanChi(CAN[(lunar.JulianDay + 9) % 10], CHI[(lunar.JulianDay + 1) % 12]);
         var month = new CanChi(CAN[(lunar.Year * 12 + lunar.Month + 3) % 10], CHI[(lunar.Month + 1) % 12], lunar.IsLeapMonth);
         var year = new CanChi(CAN[(lunar.Year + 6) % 10], CHI[(lunar.Year + 8) % 12]);
         var hour = GetCanChiForHour(day, lunar.Hour);
 
-        return new CanChiInfo(day, month, year, hour);
+        return new TuTru(day, month, year, hour);
     }
 
-    public static string GetCanHour0(int jdn)
+    public static EnumDetail<EnumCAN> GetCanHour0(int jdn)
     {
-        return CAN[(jdn - 1) * 2 % 10];
+        return new(CAN[(jdn - 1) * 2 % 10]);
     }
 
     public static int GetPhatLich(int lunarDay, int lunarMonth, int lunarYear)
@@ -182,13 +361,12 @@ public class VietnameseCalendar
         {
             if (gioHD[i] == '1')
             {
-                result.Add($"{CHI[i]} ({(i * 2 + 23) % 24}-{(i * 2 + 1) % 24})");
+                result.Add($"{CHI[i].GetDescription()} ({(i * 2 + 23) % 24}-{(i * 2 + 1) % 24})");
             }
         }
 
         return string.Join(", ", result);
     }
-
 
     public static int GetSunLongitude(int dayNumber, double timeZone)
     {
@@ -284,7 +462,7 @@ public class VietnameseCalendar
         {
             yyyy = C - 4716;
         }
-        return new int[] { dd, mm, yyyy };
+        return [dd, mm, yyyy];
     }
 
     private static List<LunarDate> DecodeLunarYear(int year, int yearCode)
@@ -392,6 +570,119 @@ public class VietnameseCalendar
     }
 }
 
+public static class HoaGiapHelper
+{
+    public readonly static Dictionary<string, EnumNapAm> SixtyHoaGiap = new()
+    {
+        // --- BẢNG TIỂU THÀNH ---
+        // Kim
+        { $"{(short)EnumCAN.Giap}_{(short)EnumCHI.Chuot}", EnumNapAm.HaiTrungKim },      // Giáp Tý
+        { $"{(short)EnumCAN.At}_{(short)EnumCHI.Suu}", EnumNapAm.HaiTrungKim },       // Ất Sửu
+
+        { $"{(short)EnumCAN.Nham}_{(short)EnumCHI.Than}", EnumNapAm.KiemPhongKim }, // Nhâm Thân
+        { $"{(short)EnumCAN.Quy}_{(short)EnumCHI.Dau}", EnumNapAm.KiemPhongKim },// Quý Dậu
+
+        { $"{(short)EnumCAN.Canh}_{(short)EnumCHI.Thin}", EnumNapAm.BachLapKim },  // Canh Thìn
+        { $"{(short)EnumCAN.Tan}_{(short)EnumCHI.Ty}", EnumNapAm.BachLapKim },   // Tân Tỵ
+
+        // Hỏa
+        { $"{(short)EnumCAN.Mau}_{(short)EnumCHI.Chuot}", EnumNapAm.TichLichHoa },      // Mậu Tý
+        { $"{(short)EnumCAN.Ky}_{(short)EnumCHI.Suu}", EnumNapAm.TichLichHoa },       // Kỷ Sửu
+
+        { $"{(short)EnumCAN.Binh}_{(short)EnumCHI.Than}", EnumNapAm.SonHaHoa },   // Bính Thân
+        { $"{(short)EnumCAN.Dinh}_{(short)EnumCHI.Dau}", EnumNapAm.SonHaHoa },  // Đinh Dậu
+
+        { $"{(short)EnumCAN.Giap}_{(short)EnumCHI.Thin}", EnumNapAm.PhuDangHoa },   // Giáp Thìn
+        { $"{(short)EnumCAN.At}_{(short)EnumCHI.Ty}", EnumNapAm.PhuDangHoa },    // Ất Tỵ
+
+        // Mộc
+        { $"{(short)EnumCAN.Nham}_{(short)EnumCHI.Chuot}", EnumNapAm.TangDoMoc },       // Nhâm Tý
+        { $"{(short)EnumCAN.Quy}_{(short)EnumCHI.Suu}", EnumNapAm.TangDoMoc },        // Quý Sửu
+
+        { $"{(short)EnumCAN.Canh}_{(short)EnumCHI.Than}", EnumNapAm.ThachLuuMoc }, // Canh Thân
+        { $"{(short)EnumCAN.Tan}_{(short)EnumCHI.Dau}", EnumNapAm.ThachLuuMoc },// Tân Dậu
+
+        { $"{(short)EnumCAN.Mau}_{(short)EnumCHI.Thin}", EnumNapAm.DaiLamMoc },     // Mậu Thìn
+        { $"{(short)EnumCAN.Ky}_{(short)EnumCHI.Ty}", EnumNapAm.DaiLamMoc },      // Kỷ Tỵ
+
+        // Thủy
+        { $"{(short)EnumCAN.Binh}_{(short)EnumCHI.Chuot}", EnumNapAm.GiangHaThuy },    // Bính Tý
+        { $"{(short)EnumCAN.Dinh}_{(short)EnumCHI.Suu}", EnumNapAm.GiangHaThuy },     // Đinh Sửu
+
+        { $"{(short)EnumCAN.Giap}_{(short)EnumCHI.Than}", EnumNapAm.TuyenTrungThuy },// Giáp Thân
+        { $"{(short)EnumCAN.At}_{(short)EnumCHI.Dau}", EnumNapAm.TuyenTrungThuy },// Ất Dậu
+
+        { $"{(short)EnumCAN.Nham}_{(short)EnumCHI.Thin}", EnumNapAm.TruongLuuThuy },// Nhâm Thìn
+        { $"{(short)EnumCAN.Quy}_{(short)EnumCHI.Ty}", EnumNapAm.TruongLuuThuy }, // Quý Tỵ
+
+        // Thổ
+        { $"{(short)EnumCAN.Canh}_{(short)EnumCHI.Chuot}", EnumNapAm.BichThuongTho },  // Canh Tý
+        { $"{(short)EnumCAN.Tan}_{(short)EnumCHI.Suu}", EnumNapAm.BichThuongTho },    // Tân Sửu
+
+        { $"{(short)EnumCAN.Mau}_{(short)EnumCHI.Than}", EnumNapAm.DaiDichTho },    // Mậu Thân
+        { $"{(short)EnumCAN.Ky}_{(short)EnumCHI.Dau}", EnumNapAm.DaiDichTho },   // Kỷ Dậu
+
+        { $"{(short)EnumCAN.Binh}_{(short)EnumCHI.Thin}", EnumNapAm.SaTrungTho },  // Bính Thìn
+        { $"{(short)EnumCAN.Dinh}_{(short)EnumCHI.Ty}", EnumNapAm.SaTrungTho },   // Đinh Tỵ
+
+        // --- BẢNG ĐẠI THÀNH ---
+        // Kim
+        { $"{(short)EnumCAN.Giap}_{(short)EnumCHI.Ngo}", EnumNapAm.SaTrungKim },    // Giáp Ngọ
+        { $"{(short)EnumCAN.At}_{(short)EnumCHI.Mui}", EnumNapAm.SaTrungKim },      // Ất Mùi
+
+        { $"{(short)EnumCAN.Nham}_{(short)EnumCHI.Dan}", EnumNapAm.KimBachKim },    // Nhâm Dần
+        { $"{(short)EnumCAN.Quy}_{(short)EnumCHI.Meo}", EnumNapAm.KimBachKim },      // Quý Mão
+
+        { $"{(short)EnumCAN.Canh}_{(short)EnumCHI.Tuat}", EnumNapAm.ThoaXuyenKim },   // Canh Tuất
+        { $"{(short)EnumCAN.Tan}_{(short)EnumCHI.Hoi}", EnumNapAm.ThoaXuyenKim },    // Tân Hợi
+
+        // Hỏa
+        { $"{(short)EnumCAN.Mau}_{(short)EnumCHI.Ngo}", EnumNapAm.ThienThuongHoa }, // Mậu Ngọ
+        { $"{(short)EnumCAN.Ky}_{(short)EnumCHI.Mui}", EnumNapAm.ThienThuongHoa },  // Kỷ Mùi
+
+        { $"{(short)EnumCAN.Binh}_{(short)EnumCHI.Dan}", EnumNapAm.LuTrungHoa },   // Bính Dần
+        { $"{(short)EnumCAN.Dinh}_{(short)EnumCHI.Meo}", EnumNapAm.LuTrungHoa },     // Đinh Mão
+
+        { $"{(short)EnumCAN.Giap}_{(short)EnumCHI.Tuat}", EnumNapAm.SonDauHoa },       // Giáp Tuất
+        { $"{(short)EnumCAN.At}_{(short)EnumCHI.Hoi}", EnumNapAm.SonDauHoa },       // Ất Hợi
+
+        // Mộc
+        { $"{(short)EnumCAN.Nham}_{(short)EnumCHI.Ngo}", EnumNapAm.DuongLieuMoc },  // Nhâm Ngọ
+        { $"{(short)EnumCAN.Quy}_{(short)EnumCHI.Mui}", EnumNapAm.DuongLieuMoc },   // Quý Mùi
+
+        { $"{(short)EnumCAN.Canh}_{(short)EnumCHI.Dan}", EnumNapAm.TungBaMoc },    // Canh Dần
+        { $"{(short)EnumCAN.Tan}_{(short)EnumCHI.Meo}", EnumNapAm.TungBaMoc },       // Tân Mão
+
+        { $"{(short)EnumCAN.Mau}_{(short)EnumCHI.Tuat}", EnumNapAm.BinhDiaMoc },       // Mậu Tuất
+        { $"{(short)EnumCAN.Ky}_{(short)EnumCHI.Hoi}", EnumNapAm.BinhDiaMoc },       // Kỷ Hợi
+
+        // Thủy
+        { $"{(short)EnumCAN.Binh}_{(short)EnumCHI.Ngo}", EnumNapAm.ThienHaThuy },  // Bính Ngọ
+        { $"{(short)EnumCAN.Dinh}_{(short)EnumCHI.Mui}", EnumNapAm.ThienHaThuy },   // Đinh Mùi
+
+        { $"{(short)EnumCAN.Giap}_{(short)EnumCHI.Dan}", EnumNapAm.DaiKheThuy },    // Giáp Dần
+        { $"{(short)EnumCAN.At}_{(short)EnumCHI.Meo}", EnumNapAm.DaiKheThuy },       // Ất Mão
+
+        { $"{(short)EnumCAN.Nham}_{(short)EnumCHI.Tuat}", EnumNapAm.DaiHaiThuy },      // Nhâm Tuất
+        { $"{(short)EnumCAN.Quy}_{(short)EnumCHI.Hoi}", EnumNapAm.DaiHaiThuy },      // Quý Hợi
+
+        // Thổ
+        { $"{(short)EnumCAN.Canh}_{(short)EnumCHI.Ngo}", EnumNapAm.LoBangTho },    // Canh Ngọ
+        { $"{(short)EnumCAN.Tan}_{(short)EnumCHI.Mui}", EnumNapAm.LoBangTho },      // Tân Mùi
+
+        { $"{(short)EnumCAN.Mau}_{(short)EnumCHI.Dan}", EnumNapAm.ThanhDauTho },    // Mậu Dần
+        { $"{(short)EnumCAN.Ky}_{(short)EnumCHI.Meo}", EnumNapAm.ThanhDauTho },      // Kỷ Mão
+
+        { $"{(short)EnumCAN.Binh}_{(short)EnumCHI.Tuat}", EnumNapAm.OcThuongTho },    // Bính Tuất
+        { $"{(short)EnumCAN.Dinh}_{(short)EnumCHI.Hoi}", EnumNapAm.OcThuongTho }     // Đinh Hợi
+    };
+
+    public static EnumNapAm GetNapAm(EnumCAN can, EnumCHI chi)
+    {
+        return SixtyHoaGiap.TryGetValue($"{(short)can}_{(short)chi}", out var val) ? val : throw new Exception($"Nap am not found for: Can '{can}', Chi '{chi}'");
+    }
+}
+
 public class Holiday
 {
     public int Day { get; set; }
@@ -426,20 +717,109 @@ public class LunarDate
     }
 }
 
-public class CanChiInfo(CanChi day, CanChi month, CanChi year, CanChi hour)
+public class TuTru(CanChi day, CanChi month, CanChi year, CanChi hour)
 {
-    public CanChi CanChiDay { get; set; } = day;
-    public CanChi CanChiMonth { get; set; } = month;
-    public CanChi CanChiYear { get; set; } = year;
-    public CanChi CanChiHour { get; set; } = hour;
+    public CanChi Day { get; set; } = day;
+    public CanChi Month { get; set; } = month;
+    public CanChi Year { get; set; } = year;
+    public CanChi Hour { get; set; } = hour;
 }
 
-public class CanChi(string can, string chi, bool isLeap = false)
+public class CanChi(EnumCAN can, EnumCHI chi, bool? isLeap = null)
 {
-    public string Can { get; set; } = can;
-    public string Chi { get; set; } = chi;
-    public bool IsLeap { get; set; } = isLeap;
-    public string Display { get { return $"{Can} {Chi}{(IsLeap ? " (N)" : string.Empty)}"; } }
+    public CanChiDetail<EnumCAN> Can { get; set; } = new (can);
+    public CanChiDetail<EnumCHI> Chi { get; set; } = new (chi);
+    public CanChiDetail<EnumNapAm> NapAm { get; set; } = new (HoaGiapHelper.GetNapAm(can, chi));
+    public bool? IsLeap { get; set; } = isLeap;
+}
+
+public class CanChiDetail<TEnum> where TEnum : Enum
+{
+    public static readonly Dictionary<EnumCAN, EnumNguHanhBanMenh> CanToNguHanhBanMenh = new()
+    {
+        { EnumCAN.Giap, EnumNguHanhBanMenh.Moc },   // Giáp
+        { EnumCAN.At, EnumNguHanhBanMenh.Moc },    // Ất
+        { EnumCAN.Binh, EnumNguHanhBanMenh.Hoa },  // Bính
+        { EnumCAN.Dinh, EnumNguHanhBanMenh.Hoa },  // Đinh
+        { EnumCAN.Mau, EnumNguHanhBanMenh.Tho },   // Mậu
+        { EnumCAN.Ky, EnumNguHanhBanMenh.Tho },   // Kỷ
+        { EnumCAN.Canh, EnumNguHanhBanMenh.Kim }, // Canh
+        { EnumCAN.Tan, EnumNguHanhBanMenh.Kim },  // Tân
+        { EnumCAN.Nham, EnumNguHanhBanMenh.Thuy },  // Nhâm
+        { EnumCAN.Quy, EnumNguHanhBanMenh.Thuy }   // Quý
+    };
+
+    public static readonly Dictionary<EnumCHI, EnumNguHanhBanMenh> ChiToNguHanhBanMenh = new()
+    {
+        { EnumCHI.Dan, EnumNguHanhBanMenh.Moc },     // Dần
+        { EnumCHI.Meo, EnumNguHanhBanMenh.Moc },       // Mão
+        { EnumCHI.Ty, EnumNguHanhBanMenh.Hoa },     // Tỵ
+        { EnumCHI.Ngo, EnumNguHanhBanMenh.Hoa },     // Ngọ
+        { EnumCHI.Thin, EnumNguHanhBanMenh.Tho },   // Thìn
+        { EnumCHI.Tuat, EnumNguHanhBanMenh.Tho },      // Tuất
+        { EnumCHI.Suu, EnumNguHanhBanMenh.Tho },       // Sửu
+        { EnumCHI.Mui, EnumNguHanhBanMenh.Tho },     // Mùi
+        { EnumCHI.Than, EnumNguHanhBanMenh.Kim },   // Thân
+        { EnumCHI.Dau, EnumNguHanhBanMenh.Kim },  // Dậu
+        { EnumCHI.Hoi, EnumNguHanhBanMenh.Thuy },      // Hợi
+        { EnumCHI.Chuot, EnumNguHanhBanMenh.Thuy }       // Tý
+    };
+
+    public EnumDetail<TEnum> Value { get; set; }
+    public EnumDetail<EnumYinYang> AmDuong { get; set; }
+    public EnumDetail<EnumNguHanhBanMenh> NguHanhBanMenh { get; set; }
+    public string Display
+    {
+        get
+        {
+            var main = Value?.Display ?? string.Empty;
+            var extras = new List<string>();
+
+            if (AmDuong?.Display is { Length: > 0 } amDuong)
+                extras.Add(amDuong);
+
+            if (NguHanhBanMenh?.Display is { Length: > 0 } nguHanh)
+                extras.Add(nguHanh);
+
+            return extras.Count > 0
+                ? $"{main} ({string.Join(" ", extras)})"
+                : main;
+        }
+    }
+
+
+    public CanChiDetail(TEnum val)
+    {
+        if (val == null)
+            throw new ArgumentNullException(nameof(val));
+
+        Value = new(val);
+
+        AmDuong = new(((short)(object)val).IsEven() ? EnumYinYang.Am : EnumYinYang.Duong);
+
+        Type type = typeof(TEnum);
+
+        if (type == typeof(EnumCAN) && CanToNguHanhBanMenh.TryGetValue((EnumCAN)(object)val, out var canNguHanhBanMenh))
+        {
+            NguHanhBanMenh = new(canNguHanhBanMenh);
+        }
+        else if (type == typeof(EnumCHI) && ChiToNguHanhBanMenh.TryGetValue((EnumCHI)(object)val, out var chiNguHanhBanMenh))
+        {
+            NguHanhBanMenh = new(chiNguHanhBanMenh);
+        }
+        else
+        {
+            NguHanhBanMenh = null;
+            AmDuong = null;
+        }
+    }
+}
+
+public class EnumDetail<TEnum>(TEnum val) where TEnum : Enum
+{
+    public TEnum Value { get; set; } = val;
+    public short No { get; set; } = (short)(object)val;
+    public string Display { get { return Value.GetDescription(); } }
 }
 
 public class CalendarDay
@@ -482,8 +862,8 @@ public class LunarInfo
     public DateInfo SolarDate { get; set; }
     public DateInfo LunarDate { get; set; }
     public bool IsLeapMonth { get; set; }
-    public CanChiInfo CanChi { get; set; }
-    public string CanHour0 { get; set; }
+    public TuTru TuTru { get; set; }
+    public dynamic CanHour0 { get; set; }
     public string SolarTerm { get; set; }
     public int BuddhistCalendar { get; set; }
     public string Holidays { get; set; }
