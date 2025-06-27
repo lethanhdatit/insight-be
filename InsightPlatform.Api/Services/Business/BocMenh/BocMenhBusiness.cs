@@ -220,7 +220,7 @@ luận giải phải hấp dẫn, huyền bí, lôi cuốn người đọc, và 
 
             var baseData = VietnameseCalendar.GetLunarCalendarDetails(request.birthDateTime, false).LunarDetails;
 
-            string category = request.Category.GetDescription();
+            string category = request.category.GetDescription();
 
             var resTemplate = ClassStructureBuilder.BuildAsString(typeof(TuTruBatTuFromAI));
 
@@ -409,6 +409,7 @@ Sau đây là yêu cầu và thông tin của người dùng:
                     Result = JsonSerializer.Serialize(new TuTruBatTuDto
                     {
                         Original = processedInput,
+                        PreData = baseData,
                         MetaData = metaData,
                     }),
                     CreatedTs = DateTime.UtcNow,
