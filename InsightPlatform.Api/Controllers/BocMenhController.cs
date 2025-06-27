@@ -37,4 +37,18 @@ public class BocMenhController(IWebHostEnvironment env
         var res = _bocMenhBusiness.GetVietnameseCalendar(solarDate, includeMonthDetail);
         return HandleOk(res);
     }
+
+    [HttpPost("tuTruBatTu")]
+    public async Task<IActionResult> TuTruBatTu([FromBody] TuTruBatTuRequest request)
+    {
+        var res = await _bocMenhBusiness.TuTruBatTuAsync(request);
+        return HandleOk(res);
+    }
+
+    [HttpGet("tuTruBatTu/{id}")]
+    public async Task<IActionResult> TuTruBatTu([FromRoute] Guid id)
+    {
+        var res = await _bocMenhBusiness.GetTuTruBatTuAsync(id);
+        return HandleOk(res);
+    }
 }

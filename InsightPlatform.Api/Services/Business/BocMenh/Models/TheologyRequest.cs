@@ -2,7 +2,7 @@
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 
-public class TheologyRequest
+public class TheologyRequest : TheologyBase
 {
     [JsonPropertyName("firstName")]
     public string FirstName { get; set; }
@@ -52,20 +52,5 @@ public class TheologyRequest
              Normalize(Location),
              Normalize(Dreaming)
          ).ComputeSha256Hash();
-    }
-
-    private static string Normalize(string input)
-    {
-        if (input.IsMissing()) return "null";
-        return Regex.Replace(input.ToLowerInvariant(), @"[\s\W_]+", string.Empty);
-    }
-
-    private static string Normalize(DateOnly? input)
-    {
-        if (input == null) return "null";
-
-        var dateOnly = input.Value.ToString("yyyyMMdd");
-
-        return dateOnly;
     }
 }

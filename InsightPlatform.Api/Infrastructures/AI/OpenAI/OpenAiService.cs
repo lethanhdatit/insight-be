@@ -13,10 +13,10 @@ public interface IOpenAiService
 public class OpenAiService : IOpenAiService
 {
     private readonly IHttpClientService _httpClientService;
-    private readonly OpenAISettings _settings;
+    private readonly AISettings _settings;
     private const int HttpClientTimeOut = 300;
 
-    public OpenAiService(IOptions<OpenAISettings> settings, IHttpClientService httpClientService, IConfiguration config)
+    public OpenAiService(IOptions<AISettings> settings, IHttpClientService httpClientService, IConfiguration config)
     {
         _httpClientService = httpClientService;
         _settings = settings.Value;

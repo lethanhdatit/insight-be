@@ -27,6 +27,9 @@ public class ChatCompletionFailedResponseError
     [JsonPropertyName("type")]
     public string Type { get; set; }
 
+     [JsonPropertyName("status")]
+    public string Status { get; set; }
+
     [JsonPropertyName("code")]
     public string Code { get; set; }
 }
