@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System;
+using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 
@@ -12,6 +13,7 @@ public class BocMenhBusiness(ILogger<BocMenhBusiness> logger
     , IAccountBusiness accountBusiness
     , IOpenAiService openAiService
     , IGeminiAIService geminiAIService
+    , IPhongThuyNhanSinhService phongThuyNhanSinhService
     , IOptions<AppSettings> appOptions
     , PainPublisher publisher) : BaseHttpBusiness<BocMenhBusiness, ApplicationDbContext>(logger, contextFactory, contextAccessor), IBocMenhBusiness
 {
@@ -20,6 +22,7 @@ public class BocMenhBusiness(ILogger<BocMenhBusiness> logger
     private readonly IAccountBusiness _accountBusiness = accountBusiness;
     private readonly IOpenAiService _openAiService = openAiService;
     private readonly IGeminiAIService _geminiAIService = geminiAIService;
+    private readonly IPhongThuyNhanSinhService _phongThuyNhanSinhService = phongThuyNhanSinhService;
 
     public async Task<BaseResponse<dynamic>> TheologyAndNumbersAsync(TheologyRequest request)
     {
@@ -199,7 +202,13 @@ luận giải phải hấp dẫn, huyền bí, lôi cuốn người đọc, và 
 
         var res = JsonSerializer.Deserialize<TuTruBatTuDto>(existed.Result);
 
-        return new(res);
+        return new(new
+        {
+            Id = id,
+            Input = existed.Input.IsPresent() ? JsonSerializer.Deserialize<TuTruBatTuRequest>(existed.Input) : null,
+            PreData = res.PreData,
+            Result = res.Original
+        });
     }
 
     public async Task<BaseResponse<dynamic>> TuTruBatTuAsync(TuTruBatTuRequest request)
@@ -218,41 +227,58 @@ luận giải phải hấp dẫn, huyền bí, lôi cuốn người đọc, và 
                 throw new BusinessException("Unauthorized", "401 Unauthorized");
             }
 
-            var baseData = VietnameseCalendar.GetLunarCalendarDetails(request.birthDateTime, false).LunarDetails;
+            var lunarBase = VietnameseCalendar.GetLunarDate(request.birthDateTime.Day, request.birthDateTime.Month, request.birthDateTime.Year, request.birthDateTime.Hour);
+            var lunarBirthDateTime = new DateTime(lunarBase.Year, lunarBase.Month, lunarBase.Day, lunarBase.Hour, request.birthDateTime.Minute, 0, 0);
+
+            var laSoBatTu = (await _phongThuyNhanSinhService.BuildLaSoBatTuAsync(request.name
+                                , request.gender
+                                , request.birthDateTime
+                                , lunarBirthDateTime))
+                            .FirstOrDefault();
 
             string category = request.category.GetDescription();
 
             var resTemplate = ClassStructureBuilder.BuildAsString(typeof(TuTruBatTuFromAI));
 
+            var tutru = laSoBatTu.Tutru;
+
             string userPrompt = $@"
 Tôi muốn phân tích lá số Bát Tự theo hướng {category}.
 Thông tin như sau:
 
-- Nơi sinh: {request.birthPlace?.Trim() ?? string.Empty}, Việt Nam
+- Họ và tên: {request.name}
 - Giới tính: {request.gender.GetDescription()}
-- Ngày giờ sinh Dương lịch: {baseData.SolarDate.Date:dd/MM/yyyy HH:mm} ({baseData.SolarDate.DayOfWeek.Code})
-- Ngày giờ sinh Âm lịch: {baseData.LunarDate.Date:dd/MM/yyyy HH:mm} {(baseData.LunarDate.IsLeapMonth ? "(Nhuận)" : "")}
+- Ngày giờ sinh Dương lịch: {request.birthDateTime:dd/MM/yyyy HH:mm} ({request.birthDateTime.DayOfWeek})
+- Ngày giờ sinh Âm lịch: {lunarBirthDateTime:dd/MM/yyyy HH:mm} ({lunarBirthDateTime.DayOfWeek})
 - Tứ trụ:
-    + Trụ Giờ: 
-       - Can:{baseData.TuTru.Hour.Can.Display} 
-       - Chi: {baseData.TuTru.Hour.Chi.Display} 
-       - Nạp âm: {baseData.TuTru.Hour.NapAm.Display}
-    + Trụ Ngày:
-       - Can:{baseData.TuTru.Day.Can.Display} 
-       - Chi: {baseData.TuTru.Day.Chi.Display} 
-       - Nạp âm: {baseData.TuTru.Day.NapAm.Display}
-    + Trụ Tháng: 
-       - Can:{baseData.TuTru.Month.Can.Display} 
-       - Chi: {baseData.TuTru.Month.Chi.Display} 
-       - Nạp âm: {baseData.TuTru.Month.NapAm.Display}
-    + Trụ Năm:
-       - Can:{baseData.TuTru.Year.Can.Display} 
-       - Chi: {baseData.TuTru.Year.Chi.Display} 
-       - Nạp âm: {baseData.TuTru.Year.NapAm.Display}
-- Tiết khí: {baseData.SolarTerm}
-- Phật lịch: {baseData.BuddhistCalendar}
-- Giờ hoàng đạo: {baseData.AuspiciousHour}
-- Tháng nhuận: {(baseData.IsLeapMonth ? "Có" : "Không")}
+    + Trụ Giờ: {tutru.ThoiTru.HourCanChi}
+       - Can: {tutru.ThoiTru.HourCan} ({tutru.ThoiTru.HourCanNguHanh}). Thập thần: {tutru.ThoiTru.HourCanThapThan.Name}
+       - Chi: {tutru.ThoiTru.HourChi} ({tutru.ThoiTru.HourChiNguHanh})
+       - Nạp âm: {tutru.ThoiTru.NapAm.Name}
+       - Vòng trường sinh: {tutru.ThoiTru.VongTruongSinh.Info.Name}
+       - Thần sát: {string.Join(", ", tutru.ThoiTru.ThanSat.Select(s => s.Name).ToList())}
+       - Thập thần: {string.Join(", ", tutru.ThoiTru.HourThapThan.Select(s => s.Name).ToList())}
+    + Trụ Ngày: {tutru.NhatTru.DayCanChi}
+       - Can: {tutru.NhatTru.DayCan} ({tutru.NhatTru.DayCanNguHanh}). Thập thần: {tutru.NhatTru.DayCanThapThan.Name}
+       - Chi: {tutru.NhatTru.DayChi} ({tutru.NhatTru.DayChiNguHanh})
+       - Nạp âm: {tutru.NhatTru.NapAm.Name}
+       - Vòng trường sinh: {tutru.NhatTru.VongTruongSinh.Info.Name}
+       - Thần sát: {string.Join(", ", tutru.NhatTru.ThanSat.Select(s => s.Name).ToList())}
+       - Thập thần: {string.Join(", ", tutru.NhatTru.DayThapThan.Select(s => s.Name).ToList())}
+    + Trụ Tháng: {tutru.NguyetTru.MonthCanChi}
+       - Can: {tutru.NguyetTru.MonthCan} ({tutru.NguyetTru.MonthCanNguHanh}). Thập thần: {tutru.NguyetTru.MonthCanThapThan.Name}
+       - Chi: {tutru.NguyetTru.MonthChi} ({tutru.NguyetTru.MonthChiNguHanh})
+       - Nạp âm: {tutru.NguyetTru.NapAm.Name}
+       - Vòng trường sinh: {tutru.NguyetTru.VongTruongSinh.Info.Name}
+       - Thần sát: {string.Join(", ", tutru.NguyetTru.ThanSat.Select(s => s.Name).ToList())}
+       - Thập thần: {string.Join(", ", tutru.NguyetTru.MonthThapThan.Select(s => s.Name).ToList())}
+    + Trụ Năm: {tutru.ThienTru.YearCanChi}
+       - Can: {tutru.ThienTru.YearCan} ({tutru.ThienTru.YearCanNguHanh}). Thập thần: {tutru.ThienTru.YearCanThapThan.Name}
+       - Chi: {tutru.ThienTru.YearChi} ({tutru.ThienTru.YearChiNguHanh})
+       - Nạp âm: {tutru.ThienTru.NapAm.Name}
+       - Vòng trường sinh: {tutru.ThienTru.VongTruongSinh.Info.Name}
+       - Thần sát: {string.Join(", ", tutru.ThienTru.ThanSat.Select(s => s.Name).ToList())}
+       - Thập thần: {string.Join(", ", tutru.ThienTru.YearThapThan.Select(s => s.Name).ToList())}
 ";
 
             string systemPrompt = $@"Bạn là một chuyên gia Bát Tự chuyên phân tích {category}. Hãy trả lời theo format cố định bên dưới để mọi kết quả luôn nhất quán, dù cùng một thông tin được hỏi nhiều lần. Mục tiêu là đưa ra luận giải mạch lạc, dễ hiểu nhưng đầy đủ chiều sâu huyền học.
@@ -409,7 +435,6 @@ Sau đây là yêu cầu và thông tin của người dùng:
                     Result = JsonSerializer.Serialize(new TuTruBatTuDto
                     {
                         Original = processedInput,
-                        PreData = baseData,
                         MetaData = metaData,
                     }),
                     CreatedTs = DateTime.UtcNow,

@@ -18,6 +18,7 @@ services.Configure<AppSettings>(configuration.GetSection(AppSettings.Path));
 services.Configure<TokenSettings>(configuration.GetSection(TokenSettings.Path));
 services.Configure<CorsWhiteListSettings>(configuration.GetSection(CorsWhiteListSettings.Path));
 services.Configure<ExternalLoginSettings>(configuration.GetSection(ExternalLoginSettings.Path));
+services.Configure<ExternalResourceSettings>(configuration.GetSection(ExternalResourceSettings.Path));
 services.Configure<QueueMessagingSettings>(configuration.GetSection(QueueMessagingSettings.Path));
 services.Configure<LocalizationSettings>(configuration.GetSection(LocalizationSettings.Path));
 services.Configure<AISettings>(configuration.GetSection(AISettings.Path));
@@ -59,6 +60,7 @@ services.AddHostedService<ConsumerInitializer>();
 // === Business logic ===
 services.AddSingleton<IOpenAiService, OpenAiService>();
 services.AddSingleton<IGeminiAIService, GeminiAIService>();
+services.AddSingleton<IPhongThuyNhanSinhService, PhongThuyNhanSinhService>();
 services.AddScoped<IPainBusiness, PainBusiness>();
 services.AddScoped<ILuckyNumberBusiness, LuckyNumberBusiness>();
 services.AddScoped<IBocMenhBusiness, BocMenhBusiness>();
