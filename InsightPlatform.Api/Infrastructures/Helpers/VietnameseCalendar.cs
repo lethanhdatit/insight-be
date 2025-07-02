@@ -254,10 +254,49 @@ public class VietnameseCalendar
             new Holiday(23, 12, "Ông Táo chầu trời")
         ];
 
+    // Dictionary để tra cứu Ngũ Hợp Can.
+    private readonly static Dictionary<EnumCAN, EnumCAN> NguHopCan = new()
+    {
+        { EnumCAN.Giap, EnumCAN.Ky }, { EnumCAN.Ky, EnumCAN.Giap },
+        { EnumCAN.At, EnumCAN.Canh }, { EnumCAN.Canh, EnumCAN.At },
+        { EnumCAN.Binh, EnumCAN.Tan }, { EnumCAN.Tan, EnumCAN.Binh },
+        { EnumCAN.Dinh, EnumCAN.Nham }, { EnumCAN.Nham, EnumCAN.Dinh },
+        { EnumCAN.Mau, EnumCAN.Quy }, { EnumCAN.Quy, EnumCAN.Mau }
+    };
+
+    // Dictionary để tra cứu Lục Hợp Chi.
+    private readonly static Dictionary<EnumCHI, EnumCHI> LucHopChi = new()
+    {
+        { EnumCHI.Chuot, EnumCHI.Suu }, { EnumCHI.Suu, EnumCHI.Chuot },
+        { EnumCHI.Dan, EnumCHI.Hoi }, { EnumCHI.Hoi, EnumCHI.Dan },
+        { EnumCHI.Meo, EnumCHI.Tuat }, { EnumCHI.Tuat, EnumCHI.Meo },
+        { EnumCHI.Thin, EnumCHI.Dau }, { EnumCHI.Dau, EnumCHI.Thin },
+        { EnumCHI.Ty, EnumCHI.Than }, { EnumCHI.Than, EnumCHI.Ty },
+        { EnumCHI.Ngo, EnumCHI.Mui }, { EnumCHI.Mui, EnumCHI.Ngo }
+    };
+
+    private static readonly Dictionary<EnumCHI, int> CHI_TO_CUNG_MENH_ORDER = new()
+    {
+        { EnumCHI.Dan, 1 },
+        { EnumCHI.Meo, 2 },
+        { EnumCHI.Thin, 3 },
+        { EnumCHI.Ty, 4 },
+        { EnumCHI.Ngo, 5 },
+        { EnumCHI.Mui, 6 },
+        { EnumCHI.Than, 7 },
+        { EnumCHI.Dau, 8 },
+        { EnumCHI.Tuat, 9 },
+        { EnumCHI.Hoi, 10 },
+        { EnumCHI.Chuot, 11 },
+        { EnumCHI.Suu, 12 },
+    };
+
+
     public static CalendarMeta GetLunarCalendarDetails(DateTime solarDate, bool includeMonthDetail = false)
     {
         var lunarDetails = new LunarInfo();
         var lunarToday = GetLunarDate(solarDate.Day, solarDate.Month, solarDate.Year, solarDate.Hour);
+        var lunarFirstMonth = GetLunarDate(solarDate.Day, 1, solarDate.Year, solarDate.Hour);
 
         lunarDetails.SolarDate = new DateInfo
         {
@@ -275,7 +314,7 @@ public class VietnameseCalendar
             DayOfWeek = new DoW(lunarDate.DayOfWeek)
         };
 
-        lunarDetails.TuTru = GetTuTru(lunarToday);
+        lunarDetails.TuTru = GetTuTru(lunarToday, lunarFirstMonth);
         lunarDetails.CanHour0 = new
         {
             Can = GetCanHour0(lunarToday.JulianDay),
@@ -299,7 +338,7 @@ public class VietnameseCalendar
     }
 
     public static LunarDate GetLunarDate(int day, int month, int year, int hour = 0)
-    {
+     {
         if (year < 1900 || year > 2099)
         {
             return new LunarDate(0, 0, 0, false, 0);
@@ -331,14 +370,103 @@ public class VietnameseCalendar
         return new CanChi(canHour, chiHour);
     }
 
-    public static TuTru GetTuTru(LunarDate lunar)
+    public static CanChi GetThaiNguyen(EnumCAN canThang, EnumCHI chiThang)
     {
-        var day = new CanChi(CAN[(lunar.JulianDay + 9) % 10], CHI[(lunar.JulianDay + 1) % 12]);
-        var month = new CanChi(CAN[(lunar.Year * 12 + lunar.Month + 3) % 10], CHI[(lunar.Month + 1) % 12], lunar.IsLeapMonth);
-        var year = new CanChi(CAN[(lunar.Year + 6) % 10], CHI[(lunar.Year + 8) % 12]);
-        var hour = GetCanChiForHour(day, lunar.Hour);
+        int canIndex = Array.IndexOf(CAN, canThang);
+        int chiIndex = Array.IndexOf(CHI, chiThang);
+
+        if (canIndex == -1 || chiIndex == -1)
+        {
+            return null;
+        }
+
+        int newCanIndex = (canIndex + 1) % CAN.Length;
+        int newChiIndex = (chiIndex + 3) % CHI.Length;
+
+        var canThaiNguyen = CAN[newCanIndex];
+        var chiThaiNguyen = CHI[newChiIndex];
+
+        return new CanChi(canThaiNguyen, chiThaiNguyen);
+    }
+
+    public static CanChi GetThaiTuc(EnumCAN canNgay, EnumCHI chiNgay)
+    {
+        if (!NguHopCan.TryGetValue(canNgay, out var canThaiTuc))
+        {
+            return null;
+        }
+
+        if (!LucHopChi.TryGetValue(chiNgay, out var chiThaiTuc))
+        {
+            return null;
+        }
+
+        return new CanChi(canThaiTuc, chiThaiTuc);
+    }
+
+    public static TuTru GetTuTru(LunarDate lunar, LunarDate lunarFirstMonth)
+    {
+        GetCanChiTuTru(lunar, out CanChi day, out CanChi month, out CanChi year, out CanChi hour);
+
+        var canChiThangGieng = GetCanThangGieng(year.Can.Value.Value);
+
+        var thaiNguyen = GetThaiNguyen(month.Can.Value.Value, month.Chi.Value.Value);
+        var thaiTuc = GetThaiTuc(day.Can.Value.Value, day.Chi.Value.Value);
+        var cungMenh = GetCungMenh(canChiThangGieng, month.Chi.Value.Value, hour.Chi.Value.Value);
 
         return new TuTru(day, month, year, hour);
+    }
+
+    public static EnumCAN GetCanThangGieng(EnumCAN canNam)
+    {
+        return canNam switch
+        {
+            EnumCAN.Giap or EnumCAN.Ky => EnumCAN.Binh,
+            EnumCAN.At or EnumCAN.Canh => EnumCAN.Mau,
+            EnumCAN.Binh or EnumCAN.Tan => EnumCAN.Canh,
+            EnumCAN.Dinh or EnumCAN.Nham => EnumCAN.Nham,
+            EnumCAN.Mau or EnumCAN.Quy => EnumCAN.Giap,
+            _ => throw new ArgumentOutOfRangeException(nameof(canNam), $"Không xác định được can tháng giêng cho can năm: {canNam}")
+        };
+    }
+
+    private static void GetCanChiTuTru(LunarDate lunar, out CanChi day, out CanChi month, out CanChi year, out CanChi hour)
+    {
+        day = new CanChi(CAN[(lunar.JulianDay + 9) % 10], CHI[(lunar.JulianDay + 1) % 12]);
+        month = new CanChi(CAN[(lunar.Year * 12 + lunar.Month + 3) % 10], CHI[(lunar.Month + 1) % 12], lunar.IsLeapMonth);
+        year = new CanChi(CAN[(lunar.Year + 6) % 10], CHI[(lunar.Year + 8) % 12]);
+        hour = GetCanChiForHour(day, lunar.Hour);
+    }
+
+    public static CanChi GetCungMenh(EnumCAN canThangGieng, EnumCHI chiThang, EnumCHI chiGio)
+    {
+        var cungChi = CalculateCungMenhChi(chiThang, chiGio);
+        var cungCan = CalculateCungMenhCan(canThangGieng, cungChi);
+        return new(cungCan, cungChi);
+    }
+
+    public static EnumCAN CalculateCungMenhCan(EnumCAN canThangGieng, EnumCHI cungChi)
+    {
+        int indexCanThangGieng = (int)canThangGieng; // 1-based index
+        int indexCungChi = CHI_TO_CUNG_MENH_ORDER[cungChi];
+
+        // CAN = (indexCanThangGieng + indexCungChi - 2) % 10
+        int canIndex = (indexCanThangGieng + indexCungChi - 1) % 10;
+        canIndex = canIndex == 0 ? 10 : canIndex;
+
+        return (EnumCAN)canIndex;
+    }
+
+    public static EnumCHI CalculateCungMenhChi(EnumCHI chiThang, EnumCHI chiGio)
+    {
+        int monthValue = CHI_TO_CUNG_MENH_ORDER[chiThang];
+        int hourValue = CHI_TO_CUNG_MENH_ORDER[chiGio];
+
+        int A = 26 - (monthValue + hourValue);
+        int cungValue = A <= 12 ? A : A - 12;
+
+        var result = CHI_TO_CUNG_MENH_ORDER.FirstOrDefault(x => x.Value == cungValue).Key;
+        return result;
     }
 
     public static EnumDetail<EnumCAN> GetCanHour0(int jdn)
@@ -717,20 +845,40 @@ public class LunarDate
     }
 }
 
-public class TuTru(CanChi day, CanChi month, CanChi year, CanChi hour)
+public class TuTru
 {
-    public CanChi Day { get; set; } = day;
-    public CanChi Month { get; set; } = month;
-    public CanChi Year { get; set; } = year;
-    public CanChi Hour { get; set; } = hour;
+    public CanChi Day { get; set; }
+    public CanChi Month { get; set; }
+    public CanChi Year { get; set; }
+    public CanChi Hour { get; set; }
+
+    public TuTru(){}
+
+    public TuTru(CanChi day, CanChi month, CanChi year, CanChi hour)
+    {
+        Day = day;
+        Month = month;
+        Year = year;
+        Hour = hour;
+    }
 }
 
-public class CanChi(EnumCAN can, EnumCHI chi, bool? isLeap = null)
+public class CanChi
 {
-    public CanChiDetail<EnumCAN> Can { get; set; } = new (can);
-    public CanChiDetail<EnumCHI> Chi { get; set; } = new (chi);
-    public CanChiDetail<EnumNapAm> NapAm { get; set; } = new (HoaGiapHelper.GetNapAm(can, chi));
-    public bool? IsLeap { get; set; } = isLeap;
+    public CanChi() { }
+
+    public CanChi(EnumCAN can, EnumCHI chi, bool? isLeap = null)
+    {
+        Can = new(can);
+        Chi = new(chi);
+        NapAm = new(HoaGiapHelper.GetNapAm(can, chi));
+        IsLeap = isLeap;
+    }
+
+    public CanChiDetail<EnumCAN> Can { get; set; }
+    public CanChiDetail<EnumCHI> Chi { get; set; }
+    public CanChiDetail<EnumNapAm> NapAm { get; set; }
+    public bool? IsLeap { get; set; }
 }
 
 public class CanChiDetail<TEnum> where TEnum : Enum
@@ -787,6 +935,7 @@ public class CanChiDetail<TEnum> where TEnum : Enum
         }
     }
 
+    public CanChiDetail() { }
 
     public CanChiDetail(TEnum val)
     {
@@ -815,11 +964,21 @@ public class CanChiDetail<TEnum> where TEnum : Enum
     }
 }
 
-public class EnumDetail<TEnum>(TEnum val) where TEnum : Enum
+public class EnumDetail<TEnum> where TEnum : Enum
 {
-    public TEnum Value { get; set; } = val;
-    public short No { get; set; } = (short)(object)val;
+    public TEnum Value { get; set; }
+    public short No { get; set; }
     public string Display { get { return Value.GetDescription(); } }
+
+    public EnumDetail()
+    {
+    }
+
+    public EnumDetail(TEnum val)
+    {
+        Value = val;
+        No = (short)(object)val;
+    }
 }
 
 public class CalendarDay

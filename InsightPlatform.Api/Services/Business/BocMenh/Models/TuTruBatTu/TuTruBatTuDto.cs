@@ -7,7 +7,7 @@ public class TuTruBatTuDto
     public string Original { get; set; }
     
     [JsonPropertyName("preData")]
-    public LunarInfo PreData { get; set; }
+    public List<LaSoBatTuResponse> PreData { get; set; }
 
     [JsonPropertyName("metaData")]
     public List<MetadataEntry> MetaData { get; set; }

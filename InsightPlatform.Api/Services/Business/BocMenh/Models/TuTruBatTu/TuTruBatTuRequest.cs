@@ -2,6 +2,8 @@
 
 public class TuTruBatTuRequest : TheologyBase
 {
+    public string name { get; set; }
+
     public DateTime birthDateTime { get; set; }
 
     public string birthPlace { get; set; }
@@ -13,11 +15,13 @@ public class TuTruBatTuRequest : TheologyBase
     public void Standardize()
     {
         birthPlace = birthPlace?.Trim();
+        name = name?.Trim();
     }
 
     public string InitUniqueKey(TheologyKind kind, string sysPrompt = null, string userPrompt = null)
     {
         return string.Join("|",
+             Normalize(name),
              Normalize(birthPlace),
              Normalize(birthDateTime, "dd/MM/yyyy HH:mm"),
              Normalize(((short?)gender)?.ToString()),
