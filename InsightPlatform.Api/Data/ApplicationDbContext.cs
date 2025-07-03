@@ -35,6 +35,7 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<TheologyRecord>(entity =>
         {
             entity.Property(e => e.Input).HasColumnType("jsonb");
+            entity.Property(e => e.PreData).HasColumnType("jsonb");
             entity.Property(e => e.Result).HasColumnType("jsonb");
 
             entity.HasOne(p => p.User)

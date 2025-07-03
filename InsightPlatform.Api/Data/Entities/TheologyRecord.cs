@@ -8,7 +8,11 @@ public class TheologyRecord
 
     public byte Kind { get; set; }
 
+    public byte Status { get; set; }
+
     public string Input { get; set; }
+
+    public string PreData { get; set; }
 
     public string SystemPrompt { get; set; }
 

@@ -71,3 +71,10 @@ public enum TheologyKind : byte
     Basic = 1,
     TuTruBatTu = 2,
 }
+
+public enum TheologyStatus : byte
+{
+    Created = 1,
+    Analyzing = 2,
+    Analyzed = 3,
+}
