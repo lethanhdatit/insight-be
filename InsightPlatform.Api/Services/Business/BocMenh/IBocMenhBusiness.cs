@@ -9,6 +9,8 @@ public interface IBocMenhBusiness
 
     Task<BaseResponse<dynamic>> TuTruBatTuAsync(TuTruBatTuRequest request);
 
+    Task<BaseResponse<dynamic>> ExplainTuTruBatTuAsync(Guid id, int retry);
+
     Task<BaseResponse<dynamic>> GetTuTruBatTuAsync(Guid id);
 
     BaseResponse<dynamic> GetVietnameseCalendar(DateTime solarDate, bool includeMonthDetail);

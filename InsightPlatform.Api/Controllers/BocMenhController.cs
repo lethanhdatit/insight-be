@@ -51,4 +51,11 @@ public class BocMenhController(IWebHostEnvironment env
         var res = await _bocMenhBusiness.GetTuTruBatTuAsync(id);
         return HandleOk(res);
     }
+    
+    [HttpPost("tuTruBatTu/{id}")]
+    public async Task<IActionResult> ExplainTuTruBatTu([FromRoute] Guid id)
+    {
+        var res = await _bocMenhBusiness.ExplainTuTruBatTuAsync(id, 5);
+        return HandleOk(res);
+    }
 }
