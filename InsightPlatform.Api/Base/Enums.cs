@@ -68,7 +68,10 @@ public enum Religion
 
 public enum TheologyKind : byte
 {
+    [Description("Cơ bản")]
     Basic = 1,
+
+    [Description("Luận giải bát tự tứ trụ")]
     TuTruBatTu = 2,
 }
 
@@ -77,4 +80,47 @@ public enum TheologyStatus : byte
     Created = 1,
     Analyzing = 2,
     Analyzed = 3,
+}
+
+public enum TopUpPackageKind : byte
+{
+    [Description("Hữu Duyên")]
+    HuuDuyen = 1,
+
+    [Description("Thời Duyên")]
+    ThoiDuyen = 2,
+
+    [Description("Nhật Duyên")]
+    NhatDuyen = 3,
+
+    [Description("Nguyệt Duyên")]
+    NguyetDuyen = 4,
+
+    [Description("Thiên Duyên")]
+    ThienDuyen = 5,
+
+    [Description("Vũ Duyên")]
+    VuDuyen = 6,
+}
+
+public enum TopupPackageStatus : byte
+{
+    Actived = 1,
+    Inactived = 2,
+    Deleted = 3,
+}
+
+public enum TransactionProvider : byte
+{
+    VietQR = 1,
+    Paypal = 2,
+}
+
+public enum TransactionStatus : byte
+{
+    New = 1,
+    Processing = 2,
+    PartiallyPaid = 3,
+    Paid = 4,
+    Cancelled = 5,
 }

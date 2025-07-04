@@ -58,4 +58,11 @@ public class BocMenhController(IWebHostEnvironment env
         var res = await _bocMenhBusiness.ExplainTuTruBatTuAsync(id, 5);
         return HandleOk(res);
     }
+    
+    [HttpPost("{id}/paid")]
+    public async Task<IActionResult> PaidTheologyRecord([FromRoute] Guid id)
+    {
+        var res = await _bocMenhBusiness.PaidTheologyRecordAsync(id);
+        return HandleOk(res);
+    }
 }

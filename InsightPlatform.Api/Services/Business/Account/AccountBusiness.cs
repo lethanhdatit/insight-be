@@ -383,6 +383,15 @@ public class AccountBusiness(ILogger<AccountBusiness> logger
 
         return userInfoResponse;
     }
+    public (string token, DateTime? expiration) GenerateAccessTokenForPaymentGate(TimeSpan exp, string gateName)
+    {
+        List<Claim> claims = [
+            new Claim(Microsoft.IdentityModel.JsonWebTokens.JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            new Claim(Microsoft.IdentityModel.JsonWebTokens.JwtRegisteredClaimNames.Sub, gateName)
+        ];
+
+        return TokenHelper.GetToken(_tokenSettings, claims, exp);
+    }
 
     private (string token, DateTime? expiration) GenerateAccessTokenFromUser(User user, bool isRememberMe)
     {

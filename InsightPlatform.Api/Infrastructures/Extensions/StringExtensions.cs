@@ -365,41 +365,26 @@ public static partial class StringExtensions
         return string.Join($" {condition} ", formattedTerms).ToLower();
     }
 
-    public static string RemoveDiacritics(this string text, bool removeSpace = false, bool removeSpecialCharacters = true)
+    public static string RemoveVietnameseDiacritics(this string input)
     {
-        var stringBuilder = new StringBuilder();
-        foreach (var c in text)
-        {
-            if (SpecialReplacements.TryGetValue(c, out var replacement))
-            {
-                stringBuilder.Append(replacement);
-            }
-            else
-            {
-                stringBuilder.Append(c);
-            }
-        }
+        if (string.IsNullOrWhiteSpace(input))
+            return input;
 
-        var normalizedString = stringBuilder.ToString().Normalize(NormalizationForm.FormD);
-        stringBuilder.Clear();
+        var normalized = input.Normalize(NormalizationForm.FormD);
 
-        foreach (var c in normalizedString)
+        var sb = new StringBuilder();
+        foreach (var c in normalized)
         {
             var unicodeCategory = CharUnicodeInfo.GetUnicodeCategory(c);
             if (unicodeCategory != UnicodeCategory.NonSpacingMark)
-            {
-                stringBuilder.Append(c);
-            }
+                sb.Append(c);
         }
 
-        var result = stringBuilder.ToString().Normalize(NormalizationForm.FormC);
+        var result = sb.ToString().Normalize(NormalizationForm.FormC);
 
-        if (removeSpecialCharacters)
-        {
-            result = result.StandardizeString(removeSpace);
-        }
+        result = Regex.Replace(result, @"[^a-zA-Z0-9\s]", string.Empty);
 
-        return removeSpace ? result.Replace(" ", "_") : result;
+        return result;
     }
 
     public static string StandardizeString(this string input, bool removeSpace = false)

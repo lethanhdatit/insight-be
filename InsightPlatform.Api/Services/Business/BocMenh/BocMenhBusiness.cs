@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 public class BocMenhBusiness(ILogger<BocMenhBusiness> logger
     , IDbContextFactory<ApplicationDbContext> contextFactory
     , IHttpContextAccessor contextAccessor
-    , IAccountBusiness accountBusiness
+    , ITransactionBusiness transactionBusiness
     , IOpenAiService openAiService
     , IGeminiAIService geminiAIService
     , IPhongThuyNhanSinhService phongThuyNhanSinhService
@@ -19,7 +19,7 @@ public class BocMenhBusiness(ILogger<BocMenhBusiness> logger
 {
     private readonly PainPublisher _publisher = publisher;
     private readonly AppSettings _appSettings = appOptions.Value;
-    private readonly IAccountBusiness _accountBusiness = accountBusiness;
+    private readonly ITransactionBusiness _transactionBusiness = transactionBusiness;
     private readonly IOpenAiService _openAiService = openAiService;
     private readonly IGeminiAIService _geminiAIService = geminiAIService;
     private readonly IPhongThuyNhanSinhService _phongThuyNhanSinhService = phongThuyNhanSinhService;
@@ -199,7 +199,7 @@ luận giải phải hấp dẫn, huyền bí, lôi cuốn người đọc, và 
         if (existed == null)
             throw new BusinessException("TuTruBatTuNotFound", "TuTruBatTu not found");
 
-        var res = existed.Result.IsPresent() ? JsonSerializer.Deserialize<TuTruBatTuDto>(existed.Result) : null;
+        var res = await GetTuTruBatTuWithPaymentStatus(existed.Id, context);
 
         return new(new
         {
@@ -207,7 +207,7 @@ luận giải phải hấp dẫn, huyền bí, lôi cuốn người đọc, và 
             Status = (TheologyStatus)existed.Status,
             Input = existed.Input.IsPresent() ? JsonSerializer.Deserialize<TuTruBatTuRequest>(existed.Input) : null,
             PreData = existed.PreData.IsPresent() ? JsonSerializer.Deserialize<LaSoBatTuResponse>(existed.PreData) : null,
-            Result = res?.Original
+            Result = res.Data,
         });
     }
 
@@ -227,9 +227,16 @@ luận giải phải hấp dẫn, huyền bí, lôi cuốn người đọc, và 
                 throw new BusinessException("Unauthorized", "401 Unauthorized");
             }
 
+            var servicePrice = await GetServicePriceByTheologyKind(kind, context);
+
+            if (servicePrice == null)
+            {
+                throw new BusinessException("InvalidSystemData", $"Service price not found for kind '{kind}'");
+            }
+
             var key = request.InitUniqueKey(kind, null, null);
 
-            var existed = await context.TheologyRecords.FirstOrDefaultAsync(f => f.UniqueKey == key);
+            var existed = await context.TheologyRecords.FirstOrDefaultAsync(f => f.UniqueKey == key);            
 
             if (existed != null)
             {
@@ -247,6 +254,7 @@ luận giải phải hấp dẫn, huyền bí, lôi cuốn người đọc, và 
                         UserPrompt = existed.UserPrompt,
                         Result = existed.Result,
                         CreatedTs = DateTime.UtcNow,
+                        ServicePrice = servicePrice,
                     };
 
                     await context.TheologyRecords.AddAsync(cloned);
@@ -275,6 +283,7 @@ luận giải phải hấp dẫn, huyền bí, lôi cuốn người đọc, và 
                     Input = JsonSerializer.Serialize(request),
                     PreData = JsonSerializer.Serialize(laSoBatTu),
                     CreatedTs = DateTime.UtcNow,
+                    ServicePrice = servicePrice,
                 };
 
                 await context.TheologyRecords.AddAsync(existed);
@@ -298,9 +307,9 @@ luận giải phải hấp dẫn, huyền bí, lôi cuốn người đọc, và 
         {
             await context.DisposeAsync();
         }
-    }
+    }    
 
-    public async Task<BaseResponse<dynamic>> ExplainTuTruBatTuAsync(Guid id, int retry)
+    public async Task<BaseResponse<TheologyBaseResult<string, string>>> ExplainTuTruBatTuAsync(Guid id, int retry)
     {
         await using var context = await _contextFactory.CreateDbContextAsync();
 
@@ -318,8 +327,8 @@ luận giải phải hấp dẫn, huyền bí, lôi cuốn người đọc, và 
             if (existed.Status == (byte)TheologyStatus.Analyzing)
             {
                 var res = await WaitAndGetTuTruBatTuAsync(existed.Id, context, 60);
-                if (res.IsPresent())
-                    return new(res);
+                if (res)
+                    return await GetTuTruBatTuWithPaymentStatus(existed.Id, context);
                 else
                 {
                     await Task.Delay(1000);
@@ -333,8 +342,7 @@ luận giải phải hấp dẫn, huyền bí, lôi cuốn người đọc, và 
 
             if (existed.Result.IsPresent())
             {
-                var res = JsonSerializer.Deserialize<TuTruBatTuDto>(existed.Result);
-                return new(res.Original);
+                return await GetTuTruBatTuWithPaymentStatus(existed.Id, context);
             }
 
             existed.Status = (byte)TheologyStatus.Analyzing;
@@ -523,7 +531,7 @@ Sau đây là yêu cầu và thông tin của người dùng:
 
             if (_existed != null)
             {
-                existed.Result = _existed.Result;                
+                existed.Result = _existed.Result;
             }
             else
             {
@@ -556,8 +564,7 @@ Sau đây là yêu cầu và thông tin của người dùng:
             context.TheologyRecords.Update(existed);
             await context.SaveChangesAsync();
 
-            var result = existed.Result.IsPresent() ? JsonSerializer.Deserialize<TuTruBatTuDto>(existed.Result) : null;
-            return new(result.Original);
+            return await GetTuTruBatTuWithPaymentStatus(existed.Id, context);
         }
         catch (Exception e)
         {
@@ -574,6 +581,87 @@ Sau đây là yêu cầu và thông tin của người dùng:
             await context.DisposeAsync();
         }
     }
+    
+    public async Task<BaseResponse<int>> PaidTheologyRecordAsync(Guid id)
+    {
+        await using var context = await _contextFactory.CreateDbContextAsync();
+        await using var transaction = await context.Database.BeginTransactionAsync();
+
+        var userId = Current.UserId;
+
+        var service = await context.TheologyRecords.Include(i => i.FatePointTransactions)
+                                                   .Include(i => i.ServicePrice)
+                                                   .FirstOrDefaultAsync(f => f.Id == id
+                                                                          && f.UserId == userId);
+
+        try
+        {
+            if (service == null)
+                throw new BusinessException("NotFound", "Id not found");
+
+            if (service.FatePointTransactions.Count != 0)
+                throw new BusinessException("Paid", "This service paid");
+
+            var fates = await _transactionBusiness.RecalculateUserFates(userId.Value);
+
+            var serviceFates = service.ServicePrice.GetFinalFates();
+
+            if (fates < serviceFates)
+                throw new BusinessException("FatesNotEnough", "Fates are not enough to proceed");
+
+            service.FatePointTransactions.Add(new FatePointTransaction
+            {
+                UserId = userId.Value,
+                Fates = -serviceFates,
+                CreatedTs = DateTime.UtcNow,
+            });
+
+            context.TheologyRecords.Update(service);
+            await context.SaveChangesAsync();
+            await transaction.CommitAsync();
+
+            fates = await _transactionBusiness.RecalculateUserFates(userId.Value);
+            return new(fates);
+        }
+        catch
+        {
+            await transaction.RollbackAsync();
+            throw;
+        }
+        finally
+        {
+            await transaction.DisposeAsync();
+            await context.DisposeAsync();
+        }
+    }
+
+    private static async Task<BaseResponse<TheologyBaseResult<string, string>>> GetTuTruBatTuWithPaymentStatus(Guid theologyRecordId
+        , ApplicationDbContext context)
+    {
+        var result = new TheologyBaseResult<string, string>();
+
+        var existed = await context.TheologyRecords.Include(i => i.FatePointTransactions)
+                                                   .FirstOrDefaultAsync(f => f.Id == theologyRecordId);
+
+        if (existed.FatePointTransactions.Count != 0)
+        {
+            if (existed.Result.IsPresent())
+            {
+                var res = JsonSerializer.Deserialize<TuTruBatTuDto>(existed.Result);
+                result.PResult = res.Original;
+            }
+            else
+            {
+                result.PResult = "Error occurred! Please try again later or contact the admin for assistance";
+            }
+        }
+        else
+        {
+            result.FResult = string.Empty;
+        }
+
+        return new BaseResponse<TheologyBaseResult<string, string>>(result);
+    }
 
     public BaseResponse<dynamic> GetVietnameseCalendar(DateTime solarDate, bool includeMonthDetail)
     {
@@ -581,7 +669,7 @@ Sau đây là yêu cầu và thông tin của người dùng:
         return new(cal);
     }
 
-    private async Task<string> WaitAndGetTuTruBatTuAsync(Guid id, ApplicationDbContext context, int seconds)
+    private async Task<bool> WaitAndGetTuTruBatTuAsync(Guid id, ApplicationDbContext context, int seconds)
     {
         while (seconds > 0)
         {
@@ -591,16 +679,19 @@ Sau đây là yêu cầu và thông tin của người dùng:
 
             if (existed.Status != (byte)TheologyStatus.Analyzing)
             {
-                var res = existed.Result.IsPresent() ? JsonSerializer.Deserialize<TuTruBatTuDto>(existed.Result) : null;
-
-                return res?.Original;
+                return existed.Result?.IsPresent() == true;
             }
 
             seconds--;
             await Task.Delay(1000);
         }
 
-        return null;
+        return false;
+    }
+
+    private static async Task<ServicePrice> GetServicePriceByTheologyKind(TheologyKind topUpKind, ApplicationDbContext context)
+    {
+        return await context.ServicePrices.FirstOrDefaultAsync(f => f.ServiceKind == (byte)topUpKind);
     }
 
     private static string RemoveStringFromMarkerToNextNewline(string input, string marker)

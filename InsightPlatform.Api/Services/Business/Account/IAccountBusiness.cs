@@ -12,4 +12,6 @@ public interface IAccountBusiness
     Task<BaseResponse<dynamic>> RegisterAsync(RegisterRequest payload);
 
     Task<BaseResponse<dynamic>> LoginAsync(LoginRequest payload);
+
+    (string token, DateTime? expiration) GenerateAccessTokenForPaymentGate(TimeSpan exp, string gateName);
 }

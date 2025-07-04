@@ -28,6 +28,26 @@ public static class TokenHelper
         return (token, expiration);
     }
 
+    public static (string token, DateTime? expiration) GetToken(TokenSettings appSettings, List<Claim> userClaims, TimeSpan exp)
+    {
+        var secretKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(appSettings.SecretKey));
+        var signInCredentials = new SigningCredentials(secretKey, SecurityAlgorithms.HmacSha256);
+
+        var expiration = DateTime.UtcNow.Add(exp);
+
+        var tokenOptions = new JwtSecurityToken(
+            issuer: appSettings.Issuer,
+            audience: appSettings.Audience,
+            claims: userClaims,
+            expires: expiration,
+            signingCredentials: signInCredentials
+        );
+
+        var token = new JwtSecurityTokenHandler().WriteToken(tokenOptions);
+
+        return (token, expiration);
+    }
+
     public static ClaimsPrincipal GetPrincipalFromExpiredToken(TokenSettings appSettings, string token)
     {
         try

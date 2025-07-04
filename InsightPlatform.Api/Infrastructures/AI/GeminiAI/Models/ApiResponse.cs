@@ -86,6 +86,6 @@ public class GeminiAIApiError
     public string Status { get; set; }
 
     [JsonPropertyName("code")]
-    public string Code { get; set; }
+    public int Code { get; set; }
 }
 
