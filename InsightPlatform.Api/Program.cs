@@ -22,6 +22,7 @@ services.Configure<ExternalResourceSettings>(configuration.GetSection(ExternalRe
 services.Configure<QueueMessagingSettings>(configuration.GetSection(QueueMessagingSettings.Path));
 services.Configure<LocalizationSettings>(configuration.GetSection(LocalizationSettings.Path));
 services.Configure<AISettings>(configuration.GetSection(AISettings.Path));
+services.Configure<PaymentGateOptions>(configuration.GetSection(PaymentGateOptions.Path));
 
 // === Infrastructure ===
 services.AddHttpContextAccessor();
@@ -65,6 +66,9 @@ services.AddScoped<IPainBusiness, PainBusiness>();
 services.AddScoped<ILuckyNumberBusiness, LuckyNumberBusiness>();
 services.AddScoped<IBocMenhBusiness, BocMenhBusiness>();
 services.AddScoped<IAccountBusiness, AccountBusiness>();
+services.AddScoped<IInitBusiness, InitBusiness>();
+services.AddScoped<ITransactionBusiness, TransactionBusiness>();
+services.AddScoped<IVietQRService, VietQRService>();
 
 // === Controller & Swagger ===
 services.AddControllers(options =>
@@ -145,6 +149,10 @@ using (var scope = app.Services.CreateScope())
     var dbContextFactory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<ApplicationDbContext>>();
     using var dbContext = dbContextFactory.CreateDbContext();
     dbContext.Database.Migrate();
+
+    var initBusiness = scope.ServiceProvider.GetRequiredService<IInitBusiness>();
+    await initBusiness.InitServicePrices();
+    await initBusiness.InitTopUpPackages();
 }
 
 app.Run();

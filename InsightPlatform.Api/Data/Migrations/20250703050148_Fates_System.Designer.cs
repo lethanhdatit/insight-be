@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace InsightPlatform.Api.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250703050148_Fates_System")]
+    partial class Fates_System
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -34,7 +37,7 @@ namespace InsightPlatform.Api.Data.Migrations
                     b.Property<int>("Fates")
                         .HasColumnType("integer");
 
-                    b.Property<Guid?>("TheologyRecordId")
+                    b.Property<Guid?>("ServicePriceId")
                         .HasColumnType("uuid");
 
                     b.Property<Guid?>("TransactionId")
@@ -45,13 +48,13 @@ namespace InsightPlatform.Api.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("TheologyRecordId");
+                    b.HasIndex("ServicePriceId");
 
                     b.HasIndex("TransactionId");
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("FatePointTransactions");
+                    b.ToTable("FatePointTransaction");
                 });
 
             modelBuilder.Entity("LuckyNumberProvider", b =>
@@ -209,7 +212,7 @@ namespace InsightPlatform.Api.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("ServicePrices");
+                    b.ToTable("ServicePrice");
                 });
 
             modelBuilder.Entity("TheologyRecord", b =>
@@ -233,9 +236,6 @@ namespace InsightPlatform.Api.Data.Migrations
                     b.Property<string>("Result")
                         .HasColumnType("jsonb");
 
-                    b.Property<Guid>("ServicePriceId")
-                        .HasColumnType("uuid");
-
                     b.Property<byte>("Status")
                         .HasColumnType("smallint");
 
@@ -252,8 +252,6 @@ namespace InsightPlatform.Api.Data.Migrations
                         .HasColumnType("text");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("ServicePriceId");
 
                     b.HasIndex("UserId");
 
@@ -281,27 +279,21 @@ namespace InsightPlatform.Api.Data.Migrations
                     b.Property<string>("Description")
                         .HasColumnType("text");
 
+                    b.Property<int>("Fate")
+                        .HasColumnType("integer");
+
                     b.Property<int?>("FateBonus")
                         .HasColumnType("integer");
 
                     b.Property<double?>("FateBonusRate")
                         .HasColumnType("double precision");
 
-                    b.Property<int>("Fates")
-                        .HasColumnType("integer");
-
-                    b.Property<byte>("Kind")
-                        .HasColumnType("smallint");
-
                     b.Property<string>("Name")
                         .HasColumnType("text");
 
-                    b.Property<byte>("Status")
-                        .HasColumnType("smallint");
-
                     b.HasKey("Id");
 
-                    b.ToTable("TopUpPackages");
+                    b.ToTable("TopUpPackage");
                 });
 
             modelBuilder.Entity("Transaction", b =>
@@ -309,6 +301,9 @@ namespace InsightPlatform.Api.Data.Migrations
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("numeric");
 
                     b.Property<DateTime>("CreatedTs")
                         .HasColumnType("timestamp with time zone");
@@ -328,14 +323,8 @@ namespace InsightPlatform.Api.Data.Migrations
                     b.Property<byte>("Status")
                         .HasColumnType("smallint");
 
-                    b.Property<decimal>("SubTotal")
-                        .HasColumnType("numeric");
-
                     b.Property<Guid>("TopUpPackageId")
                         .HasColumnType("uuid");
-
-                    b.Property<decimal>("Total")
-                        .HasColumnType("numeric");
 
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid");
@@ -346,7 +335,7 @@ namespace InsightPlatform.Api.Data.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Transactions");
+                    b.ToTable("Transaction");
                 });
 
             modelBuilder.Entity("User", b =>
@@ -404,12 +393,12 @@ namespace InsightPlatform.Api.Data.Migrations
 
             modelBuilder.Entity("FatePointTransaction", b =>
                 {
-                    b.HasOne("TheologyRecord", "TheologyRecord")
-                        .WithMany("FatePointTransactions")
-                        .HasForeignKey("TheologyRecordId");
+                    b.HasOne("ServicePrice", "ServicePrice")
+                        .WithMany()
+                        .HasForeignKey("ServicePriceId");
 
                     b.HasOne("Transaction", "Transaction")
-                        .WithMany("FatePointTransactions")
+                        .WithMany()
                         .HasForeignKey("TransactionId");
 
                     b.HasOne("User", "User")
@@ -418,7 +407,7 @@ namespace InsightPlatform.Api.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("TheologyRecord");
+                    b.Navigation("ServicePrice");
 
                     b.Navigation("Transaction");
 
@@ -448,19 +437,11 @@ namespace InsightPlatform.Api.Data.Migrations
 
             modelBuilder.Entity("TheologyRecord", b =>
                 {
-                    b.HasOne("ServicePrice", "ServicePrice")
-                        .WithMany()
-                        .HasForeignKey("ServicePriceId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.HasOne("User", "User")
                         .WithMany("TheologyRecords")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.SetNull)
                         .IsRequired();
-
-                    b.Navigation("ServicePrice");
 
                     b.Navigation("User");
                 });
@@ -489,19 +470,9 @@ namespace InsightPlatform.Api.Data.Migrations
                     b.Navigation("Records");
                 });
 
-            modelBuilder.Entity("TheologyRecord", b =>
-                {
-                    b.Navigation("FatePointTransactions");
-                });
-
             modelBuilder.Entity("TopUpPackage", b =>
                 {
                     b.Navigation("Transactions");
-                });
-
-            modelBuilder.Entity("Transaction", b =>
-                {
-                    b.Navigation("FatePointTransactions");
                 });
 
             modelBuilder.Entity("User", b =>

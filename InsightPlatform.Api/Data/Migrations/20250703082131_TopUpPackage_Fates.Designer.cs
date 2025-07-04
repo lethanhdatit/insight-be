@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace InsightPlatform.Api.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250703082131_TopUpPackage_Fates")]
+    partial class TopUpPackage_Fates
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -290,14 +293,8 @@ namespace InsightPlatform.Api.Data.Migrations
                     b.Property<int>("Fates")
                         .HasColumnType("integer");
 
-                    b.Property<byte>("Kind")
-                        .HasColumnType("smallint");
-
                     b.Property<string>("Name")
                         .HasColumnType("text");
-
-                    b.Property<byte>("Status")
-                        .HasColumnType("smallint");
 
                     b.HasKey("Id");
 
@@ -309,6 +306,9 @@ namespace InsightPlatform.Api.Data.Migrations
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("numeric");
 
                     b.Property<DateTime>("CreatedTs")
                         .HasColumnType("timestamp with time zone");
@@ -328,14 +328,8 @@ namespace InsightPlatform.Api.Data.Migrations
                     b.Property<byte>("Status")
                         .HasColumnType("smallint");
 
-                    b.Property<decimal>("SubTotal")
-                        .HasColumnType("numeric");
-
                     b.Property<Guid>("TopUpPackageId")
                         .HasColumnType("uuid");
-
-                    b.Property<decimal>("Total")
-                        .HasColumnType("numeric");
 
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid");

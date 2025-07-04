@@ -1,10 +1,13 @@
 ﻿using System;
+using System.Collections.Generic;
 
 public class TheologyRecord
 {
     public Guid Id { get; set; }
 
     public Guid UserId { get; set; }
+
+    public Guid ServicePriceId { get; set; }
 
     public byte Kind { get; set; }
 
@@ -25,4 +28,8 @@ public class TheologyRecord
     public DateTime CreatedTs { get; set; }
 
     public User User { get; set; }
+
+    public ServicePrice ServicePrice { get; set; }
+
+    public ICollection<FatePointTransaction> FatePointTransactions { get; set; }
 }

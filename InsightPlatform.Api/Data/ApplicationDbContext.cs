@@ -11,6 +11,10 @@ public class ApplicationDbContext : DbContext
     public DbSet<LuckyNumberRecord> LuckyNumberRecords { get; set; }
     public DbSet<LuckyNumberRecordByKind> LuckyNumberRecordByKinds { get; set; }
     public DbSet<TheologyRecord> TheologyRecords { get; set; }
+    public DbSet<FatePointTransaction> FatePointTransactions { get; set; }
+    public DbSet<ServicePrice> ServicePrices { get; set; }
+    public DbSet<TopUpPackage> TopUpPackages { get; set; }
+    public DbSet<Transaction> Transactions { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -43,5 +47,34 @@ public class ApplicationDbContext : DbContext
                     .HasForeignKey(p => p.UserId)
                     .OnDelete(DeleteBehavior.SetNull);
         });
+
+        modelBuilder.Entity<Transaction>(entity =>
+        {
+            entity.Property(e => e.ProviderTransaction).HasColumnType("jsonb");
+            entity.Property(e => e.MetaData).HasColumnType("jsonb");
+
+            entity.HasOne(t => t.User)
+                  .WithMany(u => u.Transactions)
+                  .HasForeignKey(t => t.UserId);
+
+            entity.HasOne(t => t.TopUpPackage)
+                 .WithMany(u => u.Transactions)
+                 .HasForeignKey(t => t.TopUpPackageId);
+        });
+
+        modelBuilder.Entity<FatePointTransaction>()
+            .HasOne(f => f.User)
+            .WithMany(u => u.FatePointTransactions)
+            .HasForeignKey(f => f.UserId);
+
+        modelBuilder.Entity<FatePointTransaction>()
+            .HasOne(f => f.Transaction)
+            .WithMany(u => u.FatePointTransactions)
+            .HasForeignKey(f => f.TransactionId);
+
+        modelBuilder.Entity<FatePointTransaction>()
+            .HasOne(f => f.TheologyRecord)
+            .WithMany(u => u.FatePointTransactions)
+            .HasForeignKey(f => f.TheologyRecordId);
     }
 }
