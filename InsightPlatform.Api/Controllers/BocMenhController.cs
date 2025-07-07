@@ -14,39 +14,18 @@ public class BocMenhController(IWebHostEnvironment env
     ) : BaseController(env, logger)
 {
     private readonly IBocMenhBusiness _bocMenhBusiness = bocMenhBusiness;
-
-
-    [HttpPost("theology")]
-    public async Task<IActionResult> Theology([FromBody] TheologyRequest request)
-    {
-        var res = await _bocMenhBusiness.TheologyAndNumbersAsync(request);
-        return HandleOk(res);
-    }
-
-    [HttpGet("theology/{id}")]
-    public async Task<IActionResult> Theology([FromRoute] Guid id)
-    {
-        var res = await _bocMenhBusiness.GetTheologyAndNumbersAsync(id);
-        return HandleOk(res);
-    }
-
-    [AllowAnonymous]
-    [HttpPost("calendar")]
-    public IActionResult GetLunarCalendar([FromBody] DateTime solarDate, [FromQuery] bool includeMonthDetail = false)
-    {
-        var res = _bocMenhBusiness.GetVietnameseCalendar(solarDate, includeMonthDetail);
-        return HandleOk(res);
-    }
+    
+    #region BatTuTuTru
 
     [HttpPost("tuTruBatTu")]
-    public async Task<IActionResult> TuTruBatTu([FromBody] TuTruBatTuRequest request)
+    public async Task<IActionResult> InitTuTruBatTu([FromBody] TuTruBatTuRequest request)
     {
-        var res = await _bocMenhBusiness.TuTruBatTuAsync(request);
+        var res = await _bocMenhBusiness.InitTuTruBatTuAsync(request);
         return HandleOk(res);
     }
 
     [HttpGet("tuTruBatTu/{id}")]
-    public async Task<IActionResult> TuTruBatTu([FromRoute] Guid id)
+    public async Task<IActionResult> GetTuTruBatTu([FromRoute] Guid id)
     {
         var res = await _bocMenhBusiness.GetTuTruBatTuAsync(id);
         return HandleOk(res);
@@ -58,7 +37,9 @@ public class BocMenhController(IWebHostEnvironment env
         var res = await _bocMenhBusiness.ExplainTuTruBatTuAsync(id, 5);
         return HandleOk(res);
     }
-    
+
+    #endregion BatTuTuTru
+
     [HttpPost("{id}/paid")]
     public async Task<IActionResult> PaidTheologyRecord([FromRoute] Guid id)
     {

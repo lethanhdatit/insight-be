@@ -24,168 +24,6 @@ public class BocMenhBusiness(ILogger<BocMenhBusiness> logger
     private readonly IGeminiAIService _geminiAIService = geminiAIService;
     private readonly IPhongThuyNhanSinhService _phongThuyNhanSinhService = phongThuyNhanSinhService;
 
-    public async Task<BaseResponse<dynamic>> TheologyAndNumbersAsync(TheologyRequest request)
-    {
-        await using var context = await _contextFactory.CreateDbContextAsync();
-
-        try
-        {
-            request.Standardize();
-
-            var userId = Current.UserId;
-            var kind = TheologyKind.Basic;
-
-            if (userId == null || !await context.Users.AnyAsync(a => a.Id == userId))
-            {
-                throw new BusinessException("Unauthorized", "401 Unauthorized");
-            }
-
-            var currentDate = DateOnly.FromDateTime(DateTime.Now).ToLongDateString();
-
-            string gender = request.Gender == null ? string.Empty : $"**Giới tính**: {request.Gender.GetDescription()}\n";
-            string religion = request.Religion == null ? string.Empty : $"**Tôn giáo**: {request.Religion.GetDescription()}\n";
-            string location = request.Location.IsMissing() ? string.Empty : $"**Nơi ở hiện tại**: {request.Location}\n";
-            string dreaming = request.Dreaming.IsMissing() ? string.Empty : $"**Mô tả giấc mơ (có thể từ nhiều giấc mơ)**: {request.Dreaming}\n";
-            string lastName = request.LastName.IsMissing() ? string.Empty : $"**Họ**: {request.LastName}\n";
-            string middleName = request.MiddleName.IsMissing() ? string.Empty : $"**Tên lót**: {request.MiddleName}\n";
-            string firstName = request.FirstName.IsMissing() ? string.Empty : $"**Tên**: {request.FirstName}\n";
-            string dob = request.DoB == null ? string.Empty : $"**Ngày sinh**: {DateOnly.FromDateTime(request.DoB.Value.Date).ToLongDateString()}\n";
-
-            string sysPrompt = @"
-Bạn là một mô hình AI chuyên phân tích các đặc điểm sau để tạo ra các con số may mắn với 60 năm kinh nghiệm:
-**Họ**, **Tên lót**, **Tên**, **Ngày sinh**, **Giới tính**, **Tôn giáo**, **Nơi ở hiện tại**, **Thời gian hiện tại**, **Mô tả giấc mơ (có thể từ nhiều giấc mơ)**.
-
-Các con số phải liên quan đến các yếu tố nêu trên và được giải thích chuyên sâu, có sự liên kết giữa các yếu tố dựa trên nền tảng kiến thức và kinh nghiệm lâu đời của các hệ thống sau:
-
-1. **Thần học**: 50 năm kinh nghiệm nghiên cứu và ứng dụng lý luận Thần học để tạo ra các con số.
-2. **Chiêm Tinh học**: 50 năm kinh nghiệm nghiên cứu và ứng dụng lý luận Chiêm Tinh học để tạo ra các con số.
-3. **Tử Vi**: 50 năm kinh nghiệm nghiên cứu và ứng dụng lý luận Tử Vi để tạo ra các con số.
-4. **Phong Thuỷ**: 50 năm kinh nghiệm nghiên cứu và ứng dụng lý luận Phong Thuỷ để tạo ra các con số.
-5. **Thần Số học**: 50 năm kinh nghiệm nghiên cứu và ứng dụng lý luận Thần Số học để tạo ra các con số.
-6. **Tâm lý học**: 50 năm kinh nghiệm nghiên cứu và ứng dụng lý luận Tâm lý học để tạo ra các con số.
-
-Dựa trên các thông tin này, bạn sẽ cung cấp một danh sách các con số và luận giải chi tiết về mỗi hệ thống. 
-Hãy trả lời theo định dạng JSON với các trường:
-- **numbers**: Danh sách các con số may mắn liên quan đến các yếu tố trên (dưới dạng mảng các chuỗi).
-- **explanation**: Một đối tượng bao gồm các trường sau:
-  - **detail**: Danh sách các luận giải chi tiết cho các con số may mắn liên quan đến các yếu tố dựa trên 6 các hệ thống (dưới dạng mảng các đối tượng, mỗi đối tượng có thuộc tính `title` và `content`, ít nhất 2 đối tượng với nội dung ít nhất 200 từ và **không được sử dụng HTML và CSS**).
-  - **warning**: Các cảnh báo (nếu có) liên quan đến các con số hoặc các yếu tố dựa trên 6 các hệ thống. (dưới dạng mảng các đối tượng, mỗi đối tượng có thuộc tính `title` và `content`, ít nhất 2 đối tượng với nội dung ít nhất 200 từ và **không được sử dụng HTML và CSS**).
-  - **advice**: Các lời khuyên (nếu có) về việc sử dụng các con số này cũng như lời khuyên trong cuộc sống dựa trên sự liên quan các yếu tố dựa trên 6 các hệ thống. (dưới dạng mảng các đối tượng, mỗi đối tượng có thuộc tính `title` và `content`, ít nhất 2 đối tượng với nội dung ít nhất 200 từ và **không được sử dụng HTML và CSS**).
-  - **summary**: Tóm tắt các thông tin về các con số và luận giải với **Thời gian hiện tại** và **Nơi ở hiện tại** . (dưới dạng mảng các đối tượng, mỗi đối tượng có thuộc tính `title` và `content`, ít nhất 2 đối tượng với nội dung ít nhất 200 từ và **không được sử dụng HTML và CSS**).
-
-Hãy đảm bảo rằng kết quả trả về là đúng định dạng JSON và không có các ký tự lạ, chỉ có các trường hợp cần thiết như trên để có thể deserialize đúng. Hãy phân tích các yếu tố một cách hấp dẫn, huyền bí và lôi cuốn, tạo sự tò mò cho người đọc, và luôn nhớ liên kết các yếu tố này lại với nhau để làm rõ sự tương quan giữa chúng trong việc tạo ra các con số may mắn.
-
-**Lưu ý quan trọng**: Đảm bảo rằng kết quả trả về đúng với cấu trúc JSON, bao gồm tất cả các trường như `numbers`, `explanation`, và các mục con trong `explanation` như `detail`, `warning`, `advice`, `summary` theo định dạng đã mô tả. **không được sử dụng HTML và CSS**
-";
-
-            var userPrompt = $@"
-   - Các yếu tố cá nhân hoá:
-    {lastName}
-    {middleName}
-    {firstName}
-    {dob}
-    {gender}
-    {religion}
-    {location}
-    {dreaming}
-   - Các yếu tố chung:
-    **Thời gian hiện tại**: {currentDate}
-
-    Dựa trên các thông tin trên, Hãy chọn ra chuỗi con số may mắn và cung cấp các luận giải cho nó về đầy đủ các hệ thống: **Thần học**, **Chiêm Tinh học**, **Tử Vi**, **Phong Thuỷ**, **Thần Số học** và **Tâm lý học**.
-luận giải phải hấp dẫn, huyền bí, lôi cuốn người đọc, và gợi sự tò mò. Phải luôn liên kết các yếu tố với nhau và luôn đề cập đến **Thời gian hiện tại**, vì yếu tố này rất quan trọng trong việc thay đổi kết quả con số nếu như **Thời gian hiện tại** thay đổi, mặc dù các yếu tố khác không thay đổi.";
-            
-            var key = request.InitUniqueKey(kind, sysPrompt, RemoveStringFromMarkerToNextNewline(userPrompt, "**Thời gian hiện tại**"));
-
-            var existed = await context.TheologyRecords.FirstOrDefaultAsync(f => f.UniqueKey == key && f.Result != null);
-
-            if (existed != null)
-            {
-                if (existed.UserId != userId)
-                {
-                    var cloned = new TheologyRecord
-                    {
-                        UserId = userId.Value,
-                        UniqueKey = existed.UniqueKey,
-                        Kind = existed.Kind,
-                        Input = existed.Input,
-                        SystemPrompt = existed.SystemPrompt,
-                        UserPrompt = existed.UserPrompt,
-                        Result = existed.Result,
-                        CreatedTs = DateTime.UtcNow,
-                    };
-
-                    await context.TheologyRecords.AddAsync(cloned);
-                    await context.SaveChangesAsync();
-
-                    existed = cloned;
-                }
-
-                return new(new
-                {
-                    Id = existed.Id
-                });
-            }
-            else
-            {
-                var res = await _openAiService.SendChatAsync(sysPrompt, userPrompt);
-
-                if (res.IsPresent())
-                {
-                    res = res.Replace("```json", string.Empty);
-                }
-
-                var theologyResult = JsonSerializer.Deserialize<TheologyDto>(res);
-
-                existed = new TheologyRecord
-                {
-                    UserId = userId.Value,
-                    UniqueKey = key,
-                    Kind = (byte)kind,
-                    Input = JsonSerializer.Serialize(request),
-                    SystemPrompt = sysPrompt,
-                    UserPrompt = userPrompt,
-                    Result = JsonSerializer.Serialize(theologyResult),
-                    CreatedTs = DateTime.UtcNow,
-                };
-
-                await context.TheologyRecords.AddAsync(existed);
-                await context.SaveChangesAsync();
-            }
-
-            return new(new
-            {
-                Id = existed.Id
-            });
-        }
-        catch (Exception e)
-        {
-            throw new BusinessException("UnavailableToCreateNumbers", "Unavailable to create numbers.", e);
-        }
-        finally
-        {
-            await context.DisposeAsync();
-        }
-    }
-
-    public async Task<BaseResponse<dynamic>> GetTheologyAndNumbersAsync(Guid id)
-    {
-        await using var context = await _contextFactory.CreateDbContextAsync();
-
-        var currentUserId = Current.UserId;
-
-        var existed = await context.TheologyRecords.FirstOrDefaultAsync(f => f.Id == id 
-                                                                          && f.UserId == currentUserId
-                                                                          && f.Kind == (short)TheologyKind.Basic
-                                                                          && f.Result != null);
-
-        if(existed == null)
-            throw new BusinessException("TheologyNotFound", "Theology not found");
-
-        var res = JsonSerializer.Deserialize<TheologyDto>(existed.Result);
-
-        return new(res);
-    }
-
     public async Task<BaseResponse<dynamic>> GetTuTruBatTuAsync(Guid id)
     {
         await using var context = await _contextFactory.CreateDbContextAsync();
@@ -211,7 +49,7 @@ luận giải phải hấp dẫn, huyền bí, lôi cuốn người đọc, và 
         });
     }
 
-    public async Task<BaseResponse<dynamic>> TuTruBatTuAsync(TuTruBatTuRequest request)
+    public async Task<BaseResponse<dynamic>> InitTuTruBatTuAsync(TuTruBatTuRequest request)
     {
         await using var context = await _contextFactory.CreateDbContextAsync();
 
@@ -663,12 +501,6 @@ Sau đây là yêu cầu và thông tin của người dùng:
         return new BaseResponse<TheologyBaseResult<string, string>>(result);
     }
 
-    public BaseResponse<dynamic> GetVietnameseCalendar(DateTime solarDate, bool includeMonthDetail)
-    {
-        var cal = VietnameseCalendar.GetLunarCalendarDetails(solarDate, includeMonthDetail);
-        return new(cal);
-    }
-
     private async Task<bool> WaitAndGetTuTruBatTuAsync(Guid id, ApplicationDbContext context, int seconds)
     {
         while (seconds > 0)
@@ -692,18 +524,5 @@ Sau đây là yêu cầu và thông tin của người dùng:
     private static async Task<ServicePrice> GetServicePriceByTheologyKind(TheologyKind topUpKind, ApplicationDbContext context)
     {
         return await context.ServicePrices.FirstOrDefaultAsync(f => f.ServiceKind == (byte)topUpKind);
-    }
-
-    private static string RemoveStringFromMarkerToNextNewline(string input, string marker)
-    {
-        int startIndex = input.IndexOf(marker);
-        if (startIndex == -1)
-            return input;
-
-        int endIndex = input.IndexOf('\n', startIndex);
-        if (endIndex == -1)
-            endIndex = input.Length;
-
-        return input.Remove(startIndex, endIndex - startIndex + 1);
     }
 }

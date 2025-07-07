@@ -85,6 +85,11 @@ public class TransactionBusiness(ILogger<TransactionBusiness> logger
             await context.Transactions.AddAsync(trans);
             await context.SaveChangesAsync();
 
+            request.CallbackUrl = request.CallbackUrl?.WithQuery(new
+            {
+                transId = trans.Id
+            });
+
             string ipnUrl = null;
 
             switch (request.Provider)
@@ -329,15 +334,14 @@ public class TransactionBusiness(ILogger<TransactionBusiness> logger
 
         try
         {
-            var user = await context.Users.Include(i => i.FatePointTransactions)
-                                          .FirstOrDefaultAsync(f => f.Id == userId);
+            var user = await context.Users.FirstOrDefaultAsync(f => f.Id == userId)
+                    ?? throw new BusinessException("UserNotFound", $"User not found, id = {userId}");
 
-            if (user == null)
-            {
-                throw new BusinessException("UserNotFound", $"User not found, id = {userId}");
-            }
+            var fatesSum = await context.FatePointTransactions
+                                .Where(t => t.UserId == user.Id)
+                                .SumAsync(f => f.Fates);
 
-            user.Fates = user.FatePointTransactions.Sum(f => f.Fates);
+            user.Fates = fatesSum;
             context.Users.Update(user);
             await context.SaveChangesAsync();
 
