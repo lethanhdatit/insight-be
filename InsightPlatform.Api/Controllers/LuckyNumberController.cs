@@ -48,4 +48,26 @@ public class LuckyNumberController(IWebHostEnvironment env
         var res = await _luckyNumberBusiness.GetHistoricalPrizetypeFlatAsync(fromDate);
         return HandleOk(res);
     }
+
+    [HttpPost("theology")]
+    public async Task<IActionResult> Theology([FromBody] TheologyRequest request)
+    {
+        var res = await _luckyNumberBusiness.TheologyAndNumbersAsync(request);
+        return HandleOk(res);
+    }
+
+    [HttpGet("theology/{id}")]
+    public async Task<IActionResult> Theology([FromRoute] Guid id)
+    {
+        var res = await _luckyNumberBusiness.GetTheologyAndNumbersAsync(id);
+        return HandleOk(res);
+    }
+
+    [AllowAnonymous]
+    [HttpPost("calendar")]
+    public IActionResult GetLunarCalendar([FromBody] DateTime solarDate, [FromQuery] bool includeMonthDetail = false)
+    {
+        var res = _luckyNumberBusiness.GetVietnameseCalendar(solarDate, includeMonthDetail);
+        return HandleOk(res);
+    }
 }

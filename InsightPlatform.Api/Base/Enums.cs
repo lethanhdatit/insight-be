@@ -110,9 +110,13 @@ public enum TopupPackageStatus : byte
     Deleted = 3,
 }
 
+//Description|Icon|IsActive
 public enum TransactionProvider : byte
 {
+    [Description("Các phương thức thanh toán nội địa|vietqr.png|true")]
     VietQR = 1,
+
+    [Description("Các phương thức thanh toán quốc tế|paypal.png|true")]
     Paypal = 2,
 }
 

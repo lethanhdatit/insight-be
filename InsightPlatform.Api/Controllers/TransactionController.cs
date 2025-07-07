@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System;
+using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -34,6 +35,30 @@ public class TransactionController(IWebHostEnvironment env
     {
         var res = await _transactionBusiness.GetTopupsAsync();
         return HandleOk(res);
+    }
+
+    [AllowAnonymous]
+    [HttpGet("paymentGates")]
+    public IActionResult PaymentGates()
+    {
+        var res = Enum.GetValues<TransactionProvider>().Select(s =>
+        {
+            var parts = s.GetDescription()?.Split('|') ?? [];
+            var description = parts.ElementAtOrDefault(0);
+            var icon = parts.ElementAtOrDefault(1);
+            var active = parts.ElementAtOrDefault(2);
+
+            return new
+            {
+                Id = (byte)s,
+                Name = s.ToString(),
+                Description = description,
+                Icon = icon,
+                Active = !active.IsMissing() && bool.TryParse(active, out var _active) && _active,
+            };
+        }).ToList();
+
+        return HandleOk(new BaseResponse<dynamic>(res));
     }
 
     [HttpPost("topups")]
