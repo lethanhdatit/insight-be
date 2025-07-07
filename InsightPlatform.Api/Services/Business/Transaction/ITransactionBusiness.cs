@@ -15,5 +15,7 @@ public interface ITransactionBusiness
 
     Task<int> RecalculateUserFates(Guid userId);
 
-    Task<BaseResponse<Guid>> VietQrCallbackAsync(TransactionCallback request);
+    Task<BaseResponse<Guid>> HandleVietQrCallbackAsync(TransactionCallback data);
+
+    Task<BaseResponse<Guid>> HandlePaypalCallbackAsync(PayPalWebhookEvent data);
 }

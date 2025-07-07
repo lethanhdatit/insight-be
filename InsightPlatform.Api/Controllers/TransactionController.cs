@@ -15,12 +15,14 @@ public class TransactionController(IWebHostEnvironment env
         , ILogger<TransactionController> logger
         , ITransactionBusiness transactionBusiness
         , IAccountBusiness accountBusiness
+        , IPayPalService payPalService
         , IOptions<PaymentGateOptions> paymentSettings
     ) : BaseController(env, logger)
 {
     private readonly PaymentGateOptions _paymentSettings = paymentSettings.Value;
     private readonly ITransactionBusiness _transactionBusiness = transactionBusiness;
     private readonly IAccountBusiness _accountBusiness = accountBusiness;
+    private readonly IPayPalService _payPalService = payPalService;
 
     [HttpGet("topups/me")]
     public async Task<IActionResult> GetUserFates()
@@ -129,7 +131,7 @@ public class TransactionController(IWebHostEnvironment env
     {
         try
         {
-            var res = await _transactionBusiness.VietQrCallbackAsync(transactionCallback);
+            var res = await _transactionBusiness.HandleVietQrCallbackAsync(transactionCallback);
             string refTransactionId = res.Data.ToString();
 
             return Ok(new SuccessResponse
@@ -156,4 +158,24 @@ public class TransactionController(IWebHostEnvironment env
     }
 
     #endregion VietQR IPN
+
+    #region Paypal IPN
+
+    [AllowAnonymous]
+    [HttpPost("paypal/webhook")]
+    public async Task<IActionResult> PaypalWebhook()
+    {
+        var (verify, data) = await _payPalService.VerifyHookRequestAsync(Request);
+
+        if (!verify)
+        {
+            return Unauthorized("Webhook signature invalid");
+        }
+
+        await _transactionBusiness.HandlePaypalCallbackAsync(data);
+
+        return Ok();
+    }
+
+    #endregion Paypal IPN
 }
