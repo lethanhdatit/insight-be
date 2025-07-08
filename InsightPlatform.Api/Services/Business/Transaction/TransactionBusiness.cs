@@ -166,7 +166,7 @@ public class TransactionBusiness(ILogger<TransactionBusiness> logger
                 IpnUrl = ipnUrl
             });
         }
-        catch
+        catch(Exception ex)
         {
             await transaction.RollbackAsync();
             throw;

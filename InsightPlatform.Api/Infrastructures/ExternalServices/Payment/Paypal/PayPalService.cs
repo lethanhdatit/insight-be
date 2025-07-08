@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
@@ -71,7 +72,7 @@ public class PayPalService : IPayPalService
     }
 
     public async Task<string> CreateOrderAsync(
-        decimal amount,
+        decimal amountUSD,
         string returnUrl,
         string cancelUrl,
         string orderId,
@@ -96,7 +97,7 @@ public class PayPalService : IPayPalService
                 return_url = returnUrl,
                 cancel_url = cancelUrl,
                 user_action = "PAY_NOW",
-                note_to_payer = noteToPayer // tùy chọn
+                note_to_payer = noteToPayer
             },
             purchase_units = new[]
             {
@@ -109,7 +110,7 @@ public class PayPalService : IPayPalService
                 amount = new
                 {
                     currency_code = "USD",
-                    value = amount.ToString("F2")
+                    value = amountUSD.ToString("F2", CultureInfo.InvariantCulture)
                 }
             }
         }
