@@ -9,6 +9,17 @@ public class Transaction
     public byte Status { get; set; }
     public decimal Total { get; set; }
     public decimal SubTotal { get; set; }
+    public decimal FinalTotal { get; set; }
+    public decimal FeeRate { get; set; }
+    public decimal FeeTotal { get; set; }
+    public bool BuyerPaysFee { get; set; }
+
+    public decimal VATaxRate { get; set; }
+    public decimal VATaxTotal { get; set; }
+    public bool VATaxIncluded { get; set; }
+
+    public decimal? ExchangeRate { get; set; }
+    
     public byte Provider { get; set; }
     public string ProviderTransaction { get; set; }
     public string MetaData { get; set; }

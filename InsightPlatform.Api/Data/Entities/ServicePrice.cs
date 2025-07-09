@@ -8,7 +8,7 @@ public class ServicePrice
     public byte ServiceKind { get; set; }
     public int Fates { get; set; }
     public int? FatesDiscount { get; set; }
-    public double? FatesDiscountRate { get; set; }
+    public decimal? FatesDiscountRate { get; set; }
         
     public int GetFinalFates()
     {

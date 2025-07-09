@@ -37,8 +37,17 @@ public class PayPalCheckoutOrderResource
     [JsonPropertyName("id")]
     public string Id { get; set; }
 
+    [JsonPropertyName("custom_id")]
+    public string CustomId { get; set; }
+
+    [JsonPropertyName("invoice_id")]
+    public string InvoiceId { get; set; }
+
     [JsonPropertyName("status")]
     public string Status { get; set; }
+
+     [JsonPropertyName("final_capture")]
+    public bool? FinalCapture { get; set; }
 
     [JsonPropertyName("intent")]
     public string Intent { get; set; }
@@ -46,8 +55,14 @@ public class PayPalCheckoutOrderResource
     [JsonPropertyName("create_time")]
     public DateTime CreateTime { get; set; }
 
+    [JsonPropertyName("update_time")]
+    public DateTime? UpdateTime { get; set; }
+
     [JsonPropertyName("payer")]
     public PayPalPayer Payer { get; set; }
+
+    [JsonPropertyName("supplementary_data")]
+    public PayPalSupplementaryData SupplementaryData { get; set; }
 
     [JsonPropertyName("purchase_units")]
     public List<PayPalPurchaseUnit> PurchaseUnits { get; set; }
@@ -57,6 +72,15 @@ public class PayPalCheckoutOrderResource
 
     [JsonPropertyName("links")]
     public List<PayPalWebhookLink> Links { get; set; }
+
+    [JsonPropertyName("amount")]
+    public PayPalAmount Amount { get; set; }
+
+    [JsonPropertyName("seller_protection")]
+    public PayPalSellerProtection SellerProtection { get; set; }
+
+    [JsonPropertyName("seller_receivable_breakdown")]
+    public PayPalSellerReceivableBreakdown SellerReceivableBreakdown { get; set; }
 }
 
 public class PayPalPurchaseUnit
@@ -77,7 +101,7 @@ public class PayPalPurchaseUnit
     public string NoteToPayer { get; set; }
 
     [JsonPropertyName("amount")]
-    public PayPalAmountWithBreakdown Amount { get; set; }
+    public PayPalAmount Amount { get; set; }
 
     [JsonPropertyName("payee")]
     public PayPalPayee Payee { get; set; }
@@ -86,16 +110,16 @@ public class PayPalPurchaseUnit
     public PayPalShipping Shipping { get; set; }
 }
 
-public class PayPalAmountWithBreakdown
+public class PayPalSupplementaryData
 {
-    [JsonPropertyName("currency_code")]
-    public string CurrencyCode { get; set; }
+    [JsonPropertyName("related_ids")]
+    public PayPalSupplementaryRelatedIds RelatedIds { get; set; }
+}
 
-    [JsonPropertyName("value")]
-    public string Value { get; set; }
-
-    [JsonPropertyName("breakdown")]
-    public object Breakdown { get; set; } // chưa có detail trong JSON nên để object
+public class PayPalSupplementaryRelatedIds
+{
+    [JsonPropertyName("order_id")]
+    public string OrderId { get; set; }
 }
 
 public class PayPalPayee
@@ -197,40 +221,6 @@ public class PayPalWebhookLink
     public string Method { get; set; }
 }
 
-
-public class PayPalWebhookResource
-{
-    [JsonPropertyName("id")]
-    public string Id { get; set; }
-
-    [JsonPropertyName("status")]
-    public string Status { get; set; }
-
-    [JsonPropertyName("amount")]
-    public PayPalAmount Amount { get; set; }
-
-    [JsonPropertyName("final_capture")]
-    public bool FinalCapture { get; set; }
-
-    [JsonPropertyName("seller_protection")]
-    public PayPalSellerProtection SellerProtection { get; set; }
-
-    [JsonPropertyName("seller_receivable_breakdown")]
-    public PayPalSellerReceivableBreakdown SellerReceivableBreakdown { get; set; }
-
-    [JsonPropertyName("create_time")]
-    public DateTime CreateTime { get; set; }
-
-    [JsonPropertyName("update_time")]
-    public DateTime UpdateTime { get; set; }
-
-    [JsonPropertyName("links")]
-    public List<PayPalWebhookLink> Links { get; set; }
-
-    [JsonPropertyName("payer")]
-    public PayPalPayer Payer { get; set; }
-}
-
 public class PayPalAmount
 {
     [JsonPropertyName("currency_code")]
@@ -238,6 +228,9 @@ public class PayPalAmount
 
     [JsonPropertyName("value")]
     public string Value { get; set; }
+
+    [JsonPropertyName("breakdown")]
+    public object Breakdown { get; set; }
 }
 
 public class PayPalSellerProtection
