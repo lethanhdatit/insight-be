@@ -40,6 +40,14 @@ public class TransactionController(IWebHostEnvironment env
     }
 
     [AllowAnonymous]
+    [HttpGet("topups/memoCheckout")]
+    public async Task<IActionResult> Topups([FromQuery] Guid topupPackageId, [FromQuery] TransactionProvider provider)
+    {
+        var res = await _transactionBusiness.MemoCheckoutAsync(topupPackageId, provider);
+        return HandleOk(res);
+    }
+
+    [AllowAnonymous]
     [HttpGet("paymentGates")]
     public IActionResult PaymentGates()
     {

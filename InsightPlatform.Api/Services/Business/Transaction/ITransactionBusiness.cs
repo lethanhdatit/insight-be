@@ -5,6 +5,8 @@ public interface ITransactionBusiness
 {
     Task<BaseResponse<dynamic>> GetTopupsAsync();
 
+    Task<BaseResponse<dynamic>> MemoCheckoutAsync(Guid topupPackageId, TransactionProvider provider);
+
     Task<BaseResponse<dynamic>> BuyTopupAsync(BuyTopupRequest request);
 
     Task<BaseResponse<dynamic>> CheckStatusAsync(Guid id);

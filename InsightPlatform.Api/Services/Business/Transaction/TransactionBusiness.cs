@@ -30,7 +30,7 @@ public class TransactionBusiness(ILogger<TransactionBusiness> logger
     {
         await using var context = await _contextFactory.CreateDbContextAsync();
 
-        var topups = (await context.TopUpPackages.ToListAsync())
+        var topups = (await context.TopUpPackages.Where(f => f.Status == (short)TopupPackageStatus.Actived).ToListAsync())
                     .Select(s => new
                     {
                         s.Id,
@@ -39,14 +39,14 @@ public class TransactionBusiness(ILogger<TransactionBusiness> logger
                         Kind = (TopUpPackageKind)s.Kind,
                         s.Fates,
                         s.FateBonus,
-                        s.FateBonusRate,
+                        FateBonusRate = (s.FateBonusRate ?? 0) * 100,
                         FinalFates = s.GetFinalFates(),
                         s.Amount,
                         s.AmountDiscount,
-                        s.AmountDiscountRate,
-                        FinalAmount = s.GetFinalAmount(),
+                        AmountDiscountRate = (s.AmountDiscountRate ?? 0) * 100,
+                        FinalAmount = s.GetAmountAfterDiscount(),
+                        VATaxIncluded = !_paymentSettings.VATaxIncluded,
                         s.CreatedTs,
-                        Rate = s.GetFinalAmount() / s.GetFinalFates()
                     })
                     .OrderBy(o => o.Fates)
                     .ToList();
@@ -71,15 +71,26 @@ public class TransactionBusiness(ILogger<TransactionBusiness> logger
                 throw new BusinessException("TopupPackageNotFound", "Topup package not found or unavailable");
             }
 
+            var amountAfterDiscount = package.GetAmountAfterDiscount();
+
             var trans = new Transaction
             {
                 UserId = userId.Value,
                 TopUpPackageId = package.Id,
                 Status = (byte)TransactionStatus.New,
                 Provider = (byte)request.Provider,
-                SubTotal = package.Amount,
-                Total = package.GetFinalAmount(),
-                CreatedTs = DateTime.UtcNow
+                Total = package.Amount,
+                SubTotal = amountAfterDiscount,
+                FinalTotal = amountAfterDiscount,
+                VATaxIncluded = _paymentSettings.VATaxIncluded,
+                VATaxRate = _paymentSettings.VATaxRate,
+                CreatedTs = DateTime.UtcNow,
+                MetaData = JsonSerializer.Serialize(new TransactionMetaData
+                {
+                    TopUpPackageSnap = new(package),
+                    TransactionHictories = [],
+                    Events = []
+                })
             };
 
             await context.Transactions.AddAsync(trans);
@@ -97,11 +108,32 @@ public class TransactionBusiness(ILogger<TransactionBusiness> logger
                 case TransactionProvider.VietQR:
                     {
                         var vietQrToken = await _vietQRService.GenerateTokenAsync();
-                        var content = $"Mua gói '{((TopUpPackageKind)package.Kind).GetDescription()}'";
+                        var content = $"Thanh toán '{((TopUpPackageKind)package.Kind).GetDescription()}'";
+
+                        var total = trans.Total;
+                        var subTotal = trans.SubTotal;
+
+                        PaymentUtils.CalculateFeeAndTax(
+                          total
+                        , subTotal
+                        , _paymentSettings.VietQR.FeeRate
+                        , _paymentSettings.VietQR.BuyerPaysFee
+                        , trans.VATaxIncluded
+                        , trans.VATaxRate
+                        , trans.Id.ToString()
+                        , content
+                        , out decimal feeAmount, out decimal discount, out decimal vatAmount, out decimal finalAmount, out string effectiveDescription);
+
+                        total = Math.Ceiling(total);
+                        subTotal = Math.Ceiling(subTotal);
+                        vatAmount = Math.Ceiling(vatAmount);
+                        feeAmount = Math.Ceiling(feeAmount);
+                        discount = Math.Ceiling(discount);
+                        finalAmount = Math.Ceiling(total + vatAmount + feeAmount - discount);
 
                         var vietQrRequest = new VietQrPaymentRequest
                         {
-                            Amount = (long)trans.Total,
+                            Amount = (long)finalAmount,
                             Content = content.RemoveVietnameseDiacritics(),
                             BankAccount = _paymentSettings.VietQR.PlatformConnection.BankAccount,
                             BankCode = _paymentSettings.VietQR.PlatformConnection.BankCode,
@@ -110,13 +142,20 @@ public class TransactionBusiness(ILogger<TransactionBusiness> logger
                             OrderId = trans.Id.ToString(),
                             ServiceCode = package.Id.ToString(),
                             QrType = 0,
-                            UrlLink = request.CallbackUrl
+                            UrlLink = request.CallbackUrl,
+                            Note = effectiveDescription
                         };
 
                         var vietQr = await _vietQRService.NewPaymentAsync(vietQrToken, vietQrRequest);
                         ipnUrl = vietQr.QrLink;
 
-                        trans.Note = content;
+                        trans.BuyerPaysFee = _paymentSettings.VietQR.BuyerPaysFee;
+                        trans.FeeRate = _paymentSettings.VietQR.FeeRate;
+                        trans.FeeTotal = feeAmount;
+                        trans.VATaxTotal = vatAmount;
+                        trans.FinalTotal = finalAmount;
+
+                        trans.Note = effectiveDescription;
                         trans.Status = (byte)TransactionStatus.Processing;
                         trans.ProviderTransaction = JsonSerializer.Serialize(new VietQrPaymentMetaData
                         {
@@ -131,18 +170,36 @@ public class TransactionBusiness(ILogger<TransactionBusiness> logger
                     }                   
                 case TransactionProvider.Paypal:
                     {
-                        var amoutUSD = Math.Round(_currencyService.ConvertFromVND(trans.Total, "USD"), 2);
-                        var content = $"Mua gói '{((TopUpPackageKind)package.Kind).GetDescription()}'";
+                        var totalUSD = Math.Round(_currencyService.ConvertFromVND(trans.Total, "USD", out decimal rate), 2);
+                        var subTotalUSD = Math.Round(_currencyService.ConvertFromVND(trans.SubTotal, "USD", out rate), 2);
 
-                        ipnUrl = await _payPalService.CreateOrderAsync(
-                              amoutUSD
+                        var content = $"Thanh toán '{((TopUpPackageKind)package.Kind).GetDescription()}'";
+
+                        (ipnUrl, var feeTotal, var vatTotal, var finalTotal, var note) = await _payPalService.CreateOrderAsync(
+                              totalUSD,
+                              subTotalUSD
                             , request.CallbackUrl
                             , $"{request.CallbackUrl}&cancel=1"
                             , trans.Id.ToString()
+                            , _paymentSettings.Paypal.BrandName
+                            , "vi-VN"
                             , content
-                            , trans.Id.ToString());
+                            , trans.Id.ToString()
+                            , null
+                            , _paymentSettings.Paypal.FeeRate
+                            , _paymentSettings.Paypal.BuyerPaysFee
+                            , trans.VATaxIncluded
+                            , trans.VATaxRate
+                        );
 
-                        trans.Note = content;
+                        trans.BuyerPaysFee = _paymentSettings.Paypal.BuyerPaysFee;
+                        trans.FeeRate = _paymentSettings.Paypal.FeeRate;
+                        trans.FeeTotal = _currencyService.ConvertToVND(feeTotal, "USD", out rate);
+                        trans.VATaxTotal = _currencyService.ConvertToVND(vatTotal, "USD", out rate);
+                        trans.FinalTotal = _currencyService.ConvertToVND(finalTotal, "USD", out rate);
+                        trans.ExchangeRate = rate;
+
+                        trans.Note = note;
                         trans.Status = (byte)TransactionStatus.Processing;
                         trans.ProviderTransaction = JsonSerializer.Serialize(new PaypalPaymentMetaData
                         {
@@ -174,6 +231,105 @@ public class TransactionBusiness(ILogger<TransactionBusiness> logger
         finally
         {
             await transaction.DisposeAsync();
+            await context.DisposeAsync();
+        }
+    }
+
+    public async Task<BaseResponse<dynamic>> MemoCheckoutAsync(Guid topupPackageId, TransactionProvider provider)
+    {
+        await using var context = await _contextFactory.CreateDbContextAsync();
+
+        var userId = Current.UserId;
+
+        try
+        {
+            var package = await context.TopUpPackages.FirstOrDefaultAsync(f => f.Id == topupPackageId
+                                                                            && f.Status == (short)TopupPackageStatus.Actived);
+
+            if (package == null)
+            {
+                throw new BusinessException("TopupPackageNotFound", "Topup package not found or unavailable");
+            }
+
+            var buyerPaysFee = provider switch
+            {
+                TransactionProvider.Paypal => _paymentSettings.Paypal.BuyerPaysFee,
+                TransactionProvider.VietQR => _paymentSettings.VietQR.BuyerPaysFee,
+                _ => true
+            };
+            var feeRate = provider switch
+            {
+                TransactionProvider.Paypal => _paymentSettings.Paypal.FeeRate,
+                TransactionProvider.VietQR => _paymentSettings.VietQR.FeeRate,
+                _ => 0
+            };
+            var includeVAT = _paymentSettings.VATaxIncluded;
+            var VATaxRate = _paymentSettings.VATaxRate;
+
+            var total = package.Amount;
+            var subtotal = package.GetAmountAfterDiscount();
+
+            PaymentUtils.CalculateFeeAndTax(
+                  total
+                , subtotal
+                , feeRate
+                , buyerPaysFee
+                , includeVAT
+                , VATaxRate
+                , string.Empty
+                , string.Empty
+                , out decimal feeAmount, out decimal discount, out decimal vatAmount, out decimal finalAmount, out string effectiveDescription);
+
+            decimal rate = 1;
+            string currency = "VND";
+
+            total = CalculateAmountByGateProvider(provider, total, ref rate, ref currency);
+
+            subtotal = CalculateAmountByGateProvider(provider, subtotal, ref rate, ref currency);
+
+            discount = CalculateAmountByGateProvider(provider, discount, ref rate, ref currency);
+
+            feeAmount = CalculateAmountByGateProvider(provider, feeAmount, ref rate, ref currency);
+
+            vatAmount = CalculateAmountByGateProvider(provider, vatAmount, ref rate, ref currency);
+
+            finalAmount = CalculateAmountByGateProvider(provider, finalAmount, ref rate, ref currency);
+
+            return new(new
+            {
+                package.Id,
+                package.Name,
+                package.Description,
+                Kind = (TopUpPackageKind)package.Kind,
+                package.Fates,
+                package.FateBonus,
+                FateBonusRate = (package.FateBonusRate ?? 0) * 100,
+                FinalFates = package.GetFinalFates(),
+                package.Amount,
+                package.AmountDiscount,
+                AmountDiscountRate = (package.AmountDiscountRate ?? 0) * 100,
+                FinalAmount = package.GetAmountAfterDiscount(),
+                Currency = "VND",
+                MemoCheckout = new
+                {
+                    Total = total,
+                    Subtotal = subtotal,
+                    Discount = discount,
+                    Fee = feeAmount,
+                    VAT = vatAmount,
+                    FinalTotal = finalAmount,
+                    Rate = rate,
+                    Currency = currency,
+                    Note = effectiveDescription
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            throw;
+        }
+        finally
+        {
             await context.DisposeAsync();
         }
     }
@@ -213,19 +369,48 @@ public class TransactionBusiness(ILogger<TransactionBusiness> logger
                 }
             }
 
+            var exchangeRate = trans.ExchangeRate ?? 1;
+
             var meta = trans.MetaData.IsPresent() ? JsonSerializer.Deserialize<TransactionMetaData>(trans.MetaData) : null;
+
+            string currency = "VND";
+
+            var total = CalculateAmountByGateProvider(provider, trans.Total, ref exchangeRate, ref currency);
+
+            var subTotal = CalculateAmountByGateProvider(provider, trans.SubTotal, ref exchangeRate, ref currency);            
+
+            var feeTotal = CalculateAmountByGateProvider(provider, trans.FeeTotal, ref exchangeRate, ref currency);
+
+            var vatTotal = CalculateAmountByGateProvider(provider, trans.VATaxTotal, ref exchangeRate, ref currency);
+
+            var finalTotal = CalculateAmountByGateProvider(provider, trans.FinalTotal, ref exchangeRate, ref currency);
+
+            var realPaid = meta?.TransactionHictories.Sum(s => s.Amount) ?? 0;
 
             return new(new
             {
                 Id = id,
                 Status = (TransactionStatus)trans.Status,
-                Total = provider == TransactionProvider.Paypal ? Math.Round(_currencyService.ConvertFromVND(trans.Total, "USD"), 2) : trans.Total,
-                SubTotal = provider == TransactionProvider.Paypal ? Math.Round(_currencyService.ConvertFromVND(trans.SubTotal, "USD"), 2) : trans.SubTotal,
-                Paid = meta?.TransactionHictories.Sum(s => s.Amount) ?? 0,
                 Provider = provider,
-                Currency = provider == TransactionProvider.Paypal ? "USD" : "VND",
-                Content = trans.Note,
-                Fates = trans.TopUpPackage.GetFinalFates(),
+                Currency = currency,
+                ExchangeRate = exchangeRate,
+                Total = total,
+                SubTotal = subTotal,
+                DiscountTotal = Math.Max(total - subTotal, 0),
+                FinalTotal = finalTotal,
+                Paid = realPaid,
+                trans.BuyerPaysFee,
+                FeeRate = trans.FeeRate * 100,
+                FeeTotal = feeTotal,
+                trans.VATaxIncluded,
+                VATaxRate = trans.VATaxRate * 100,
+                VATaxTotal = vatTotal,
+                Note = trans.Note,
+                PackageName = meta?.TopUpPackageSnap?.Name,
+                Fates = meta?.TopUpPackageSnap?.Fates ?? 0,
+                FinalFates = meta?.TopUpPackageSnap?.FinalFates ?? 0,
+                FateBonus = meta?.TopUpPackageSnap?.FateBonus ?? 0,
+                FateBonusRate = (meta?.TopUpPackageSnap?.FateBonusRate ?? 0) * 100,
                 ProviderMeta = providerMeta,
                 Meta = meta,
             });
@@ -318,7 +503,7 @@ public class TransactionBusiness(ILogger<TransactionBusiness> logger
 
             trans.MetaData = JsonSerializer.Serialize(metaData);
 
-            if (paidTotal < trans.Total)
+            if (paidTotal < trans.FinalTotal)
                 trans.Status = (byte)TransactionStatus.PartiallyPaid;
             else
             {
@@ -364,58 +549,63 @@ public class TransactionBusiness(ILogger<TransactionBusiness> logger
         {
             var eventType = data.EventType;
             var order = data.Resource?.PurchaseUnits?.FirstOrDefault();
-            var orderId = Guid.TryParse(order?.ReferenceId ?? order?.CustomId ?? order?.InvoiceId, out var oId) ? oId : (Guid?)null;
+            var orderId = Guid.TryParse(data.Resource?.InvoiceId ?? data.Resource?.CustomId ?? order?.ReferenceId ?? order?.CustomId ?? order?.InvoiceId, out var oId) ? oId : (Guid?)null;
             var paypalResourceId = data.Resource?.Id;
+            var amount = order?.Amount ?? data.Resource?.Amount;
 
             Transaction trans = null;
 
-            if (orderId.HasValue)
+            if (!orderId.HasValue)
             {
-                trans = await context.Transactions.Include(i => i.FatePointTransactions)
-                                                  .Include(i => i.TopUpPackage)
-                                                  .FirstOrDefaultAsync(x => x.Id == orderId.Value);
-
-                if (trans == null)
-                    throw new BusinessException("TransactionNotFound", $"Transaction not found, id = {orderId.Value}");
-
-                if (trans.Status == (byte)TransactionStatus.Paid
-                    || trans.Status == (byte)TransactionStatus.Cancelled)
-                    throw new BusinessException("NoPermission", $"Transaction status is '{(TransactionStatus)trans.Status}', id = {orderId.Value}");
-
+                throw new BusinessException("TransactionNotFound", $"Transaction not found, id = ''");
             }
+
+            trans = await context.Transactions.Include(i => i.FatePointTransactions)
+                                              .Include(i => i.TopUpPackage)
+                                              .FirstOrDefaultAsync(x => x.Id == orderId.Value);
+
+            if (trans == null)
+                throw new BusinessException("TransactionNotFound", $"Transaction not found, id = '{orderId.Value}'");
+
+            if (trans.Status == (byte)TransactionStatus.Paid
+                || trans.Status == (byte)TransactionStatus.Cancelled)
+                throw new BusinessException("NoPermission", $"Transaction status is '{(TransactionStatus)trans.Status}', id = {orderId.Value}");
+
+            var metaData = trans.MetaData.IsPresent() ? 
+                           JsonSerializer.Deserialize<TransactionMetaData>(trans.MetaData) : 
+                           new TransactionMetaData();
+
+            metaData.Events.Add(data.SerializeTransactionEvent());
 
             switch (eventType)
             {
                 case "CHECKOUT.ORDER.APPROVED":
                     {
-                        var amount = order.Amount;
-
-                        if (amount == null || amount.Value.IsMissing())
-                            throw new BusinessException("InvalidPaypalHookRequest", $"amount is empty");
-
                         if (paypalResourceId.IsMissing())
                             throw new BusinessException("InvalidPaypalHookRequest", $"paypalResourceId is empty");
 
                         await _payPalService.CaptureOrderAsync(paypalResourceId);
+                        break;
+                    }
+                case "PAYMENT.CAPTURE.COMPLETED":
+                    {
+                        if (amount == null || amount.Value.IsMissing())
+                            throw new BusinessException("InvalidPaypalHookRequest", $"amount is empty");
 
                         var hookAmountUSD = decimal.Parse(amount.Value);
-                        var transAmoutUSD = Math.Round(_currencyService.ConvertFromVND(trans.Total, "USD"), 2);
-
-                        var metaData = trans.MetaData.IsPresent() ? JsonSerializer.Deserialize<TransactionMetaData>(trans.MetaData) : new TransactionMetaData();
+                        var transAmoutUSD = Math.Round(_currencyService.ConvertFromVND(trans.FinalTotal, trans.ExchangeRate ?? 1), 2);
 
                         metaData.TransactionHictories.Add(new TransactionHictory
                         {
                             TransactionId = data.Resource.Id,
                             ReferenceNumber = data.Id,
-                            OrderId = orderId?.ToString(),
+                            OrderId = orderId.ToString(),
                             Amount = hookAmountUSD,
-                            Content = order.Description,
+                            Content = order?.Description ?? data.Summary,
                             TransactionTime = data.CreateTime.ToUnixTimestamp(),
                         });
 
-                        var paidTotalUSD = metaData.TransactionHictories.Sum(s => s.Amount);
-
-                        trans.MetaData = JsonSerializer.Serialize(metaData);
+                        var paidTotalUSD = metaData.TransactionHictories.Sum(s => s.Amount);                        
 
                         if (paidTotalUSD < transAmoutUSD)
                             trans.Status = (byte)TransactionStatus.PartiallyPaid;
@@ -434,13 +624,13 @@ public class TransactionBusiness(ILogger<TransactionBusiness> logger
                             }
                         }
 
-                        context.Transactions.Update(trans);
-                        await context.SaveChangesAsync();
-                        await transaction.CommitAsync();
                         break;
-                    }
+                    }               
                 case "CHECKOUT.ORDER.DENIED":
                 case "CHECKOUT.ORDER.DECLINED":
+                case "PAYMENT.ORDER.CANCELLED":
+                case "PAYMENT.CAPTURE.DENIED":
+                case "PAYMENT.CAPTURE.DECLINED":
                     {
                         if (!orderId.HasValue)
                             throw new BusinessException("InvalidPaypalHookRequest", $"orderId is empty");
@@ -450,11 +640,16 @@ public class TransactionBusiness(ILogger<TransactionBusiness> logger
                     }
             }
 
+            trans.MetaData = JsonSerializer.Serialize(metaData);
+            context.Transactions.Update(trans);
+            await context.SaveChangesAsync();
+            await transaction.CommitAsync();
+
             FuncTaskHelper.FireAndForget(() => RecalculateUserFates(trans.UserId));
 
             return new(trans.Id);
         }
-        catch
+        catch(Exception e)
         {
             await transaction.RollbackAsync();
             throw;
@@ -526,4 +721,24 @@ public class TransactionBusiness(ILogger<TransactionBusiness> logger
             await context.DisposeAsync();
         }
     }
+
+    private decimal CalculateAmountByGateProvider(TransactionProvider provider, decimal amountVND, ref decimal rate, ref string currency)
+    {
+        rate = 1;
+        currency = "VND";
+
+        switch (provider)
+        {
+            case TransactionProvider.Paypal:
+                currency = "USD";
+                return Math.Round(_currencyService.ConvertFromVND(amountVND, currency, out rate), 2);
+
+            case TransactionProvider.VietQR:
+                return amountVND;
+
+            default:
+                return amountVND;
+        }
+    }
+
 }

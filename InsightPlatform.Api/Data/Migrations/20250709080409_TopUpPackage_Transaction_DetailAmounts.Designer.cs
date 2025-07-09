@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace InsightPlatform.Api.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250709080409_TopUpPackage_Transaction_DetailAmounts")]
+    partial class TopUpPackage_Transaction_DetailAmounts
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -198,8 +201,8 @@ namespace InsightPlatform.Api.Data.Migrations
                     b.Property<int?>("FatesDiscount")
                         .HasColumnType("integer");
 
-                    b.Property<decimal?>("FatesDiscountRate")
-                        .HasColumnType("numeric");
+                    b.Property<double?>("FatesDiscountRate")
+                        .HasColumnType("double precision");
 
                     b.Property<string>("Name")
                         .HasColumnType("text");
@@ -272,8 +275,8 @@ namespace InsightPlatform.Api.Data.Migrations
                     b.Property<decimal?>("AmountDiscount")
                         .HasColumnType("numeric");
 
-                    b.Property<decimal?>("AmountDiscountRate")
-                        .HasColumnType("numeric");
+                    b.Property<double?>("AmountDiscountRate")
+                        .HasColumnType("double precision");
 
                     b.Property<DateTime>("CreatedTs")
                         .HasColumnType("timestamp with time zone");
@@ -284,8 +287,8 @@ namespace InsightPlatform.Api.Data.Migrations
                     b.Property<int?>("FateBonus")
                         .HasColumnType("integer");
 
-                    b.Property<decimal?>("FateBonusRate")
-                        .HasColumnType("numeric");
+                    b.Property<double?>("FateBonusRate")
+                        .HasColumnType("double precision");
 
                     b.Property<int>("Fates")
                         .HasColumnType("integer");

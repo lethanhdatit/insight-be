@@ -11,13 +11,15 @@ public class TopUpPackage
 
     public decimal Amount { get; set; }
     public decimal? AmountDiscount { get; set; }
-    public double? AmountDiscountRate { get; set; }
+    public decimal? AmountDiscountRate { get; set; }
 
     public int Fates { get; set; }
     public int? FateBonus { get; set; }
-    public double? FateBonusRate { get; set; }
+    public decimal? FateBonusRate { get; set; }
 
     public DateTime CreatedTs { get; set; }
+
+    public DateTime? LastUpdatedTs { get; set; }
 
     public ICollection<Transaction> Transactions { get; set; }
 
@@ -29,12 +31,12 @@ public class TopUpPackage
             finalFates += FateBonus.Value;
 
         if (FateBonusRate != null)
-            finalFates = (int)Math.Ceiling(finalFates + (Fates * FateBonusRate.Value / 100));
+            finalFates = (int)Math.Ceiling(finalFates + (Fates * FateBonusRate.Value));
 
         return Math.Max(finalFates, 0);
     }
 
-    public decimal GetFinalAmount()
+    public decimal GetAmountAfterDiscount()
     {
         var finalAmount = Amount;
 
@@ -42,7 +44,7 @@ public class TopUpPackage
             finalAmount -= AmountDiscount.Value;
 
         if (AmountDiscountRate != null)
-            finalAmount = Math.Ceiling(finalAmount - (Amount * (decimal)AmountDiscountRate.Value / 100));
+            finalAmount = Math.Ceiling(finalAmount - (Amount * AmountDiscountRate.Value));
 
         return Math.Max(finalAmount, 0);
     }

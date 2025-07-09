@@ -39,7 +39,7 @@ public class InitBusiness(ILogger<BocMenhBusiness> logger
                 ServiceKind = (byte)TheologyKind.TuTruBatTu,
                 Fates = 109,
                 FatesDiscount = 10,
-                FatesDiscountRate = 10.0,
+                FatesDiscountRate = 0.10m,
             });
         }
 
@@ -61,10 +61,10 @@ public class InitBusiness(ILogger<BocMenhBusiness> logger
                 Status = (byte)TopupPackageStatus.Actived,
                 Amount = 29000,
                 AmountDiscount = 2000,
-                AmountDiscountRate = 3.0,
+                AmountDiscountRate = 0.03m,
                 Fates = 190,
                 FateBonus = 5,
-                FateBonusRate = 4.0,
+                FateBonusRate = 0.04m,
                 CreatedTs = DateTime.UtcNow,
             });
 
@@ -77,10 +77,10 @@ public class InitBusiness(ILogger<BocMenhBusiness> logger
                 Status = (byte)TopupPackageStatus.Actived,
                 Amount = 49000, // Mức giá nhỉnh hơn Hữu Duyên
                 AmountDiscount = 4500,
-                AmountDiscountRate = 6.5,
+                AmountDiscountRate = 0.065m,
                 Fates = 290, // Số Fates cũng cao hơn
                 FateBonus = 8,
-                FateBonusRate = 6.0,
+                FateBonusRate = 0.06m,
                 CreatedTs = DateTime.UtcNow,
             });
 
@@ -93,10 +93,10 @@ public class InitBusiness(ILogger<BocMenhBusiness> logger
                 Status = (byte)TopupPackageStatus.Actived,
                 Amount = 99000, // Mức giá cao hơn đáng kể
                 AmountDiscount = 7900,
-                AmountDiscountRate = 8.5,
+                AmountDiscountRate = 0.085m,
                 Fates = 580, // Số Fates tăng mạnh
                 FateBonus = 20,
-                FateBonusRate = 9.5,
+                FateBonusRate = 0.095m,
                 CreatedTs = DateTime.UtcNow,
             });
 
@@ -109,10 +109,10 @@ public class InitBusiness(ILogger<BocMenhBusiness> logger
                 Status = (byte)TopupPackageStatus.Actived,
                 Amount = 199000, // Gói cao hơn với mức giá hấp dẫn
                 AmountDiscount = 14500,
-                AmountDiscountRate = 10.5,
+                AmountDiscountRate = 0.105m,
                 Fates = 1160, // Số điểm Fates tăng tiếp
                 FateBonus = 45,
-                FateBonusRate = 11.5,
+                FateBonusRate = 0.115m,
                 CreatedTs = DateTime.UtcNow,
             });
 
@@ -125,10 +125,10 @@ public class InitBusiness(ILogger<BocMenhBusiness> logger
                 Status = (byte)TopupPackageStatus.Actived,
                 Amount = 340000, // Mức giá lớn
                 AmountDiscount = 32000,
-                AmountDiscountRate = 12.5,
+                AmountDiscountRate = 0.125m,
                 Fates = 1988, // Số Fates cao
                 FateBonus = 80,
-                FateBonusRate = 13.5,
+                FateBonusRate = 0.135m,
                 CreatedTs = DateTime.UtcNow,
             });
 
@@ -141,10 +141,10 @@ public class InitBusiness(ILogger<BocMenhBusiness> logger
                 Status = (byte)TopupPackageStatus.Actived,
                 Amount = 580000, // Gói cao cấp nhất
                 AmountDiscount = 55000,
-                AmountDiscountRate = 14.5,
+                AmountDiscountRate = 0.145m,
                 Fates = 3391, // Số điểm Fates cao nhất
                 FateBonus = 120,
-                FateBonusRate = 15.5,
+                FateBonusRate = 0.155m,
                 CreatedTs = DateTime.UtcNow,
             });
         }

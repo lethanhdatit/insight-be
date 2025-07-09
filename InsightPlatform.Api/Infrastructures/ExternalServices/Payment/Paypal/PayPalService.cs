@@ -14,17 +14,24 @@ public interface IPayPalService
 {
     Task<string> GenerateTokenAsync();
 
-    Task<string> CreateOrderAsync(
-        decimal amount,
+    Task<(string approveLink, decimal feeAmount, decimal vatAmount, decimal finalAmount, string note)> CreateOrderAsync(
+        decimal total,                         // Giá gốc chưa giảm, chưa VAT, chưa phí
+        decimal subtotal,                      // Giá sau giảm, chưa VAT, chưa phí
         string returnUrl,
         string cancelUrl,
         string orderId,
+        string brandName,
+        string locale = "vi-VN",
         string description = null,
         string invoiceId = null,
-        string noteToPayer = null
+        string noteToPayer = null,
+        decimal? feeRate = null,              // e.g. 0.044m = 4.4%
+        bool buyerPaysFee = false,
+        bool includeVAT = false,
+        decimal? VATaxRate = null             // e.g. 0.1m = 10%
 );
 
-    Task<JsonElement> CaptureOrderAsync(string orderId);
+    Task<bool> CaptureOrderAsync(string orderId);
 
     Task<(bool verify, PayPalWebhookEvent data)> VerifyHookRequestAsync(HttpRequest request);
 }
@@ -71,32 +78,55 @@ public class PayPalService : IPayPalService
         return response.GetProperty("access_token").GetString()!;
     }
 
-    public async Task<string> CreateOrderAsync(
-        decimal amountUSD,
+    public async Task<(string approveLink, decimal feeAmount, decimal vatAmount, decimal finalAmount, string note)> CreateOrderAsync(
+        decimal total,                         // Giá gốc chưa giảm, chưa VAT, chưa phí
+        decimal subtotal,                      // Giá sau giảm, chưa VAT, chưa phí
         string returnUrl,
         string cancelUrl,
         string orderId,
+        string brandName,
+        string locale = "vi-VN",
         string description = null,
         string invoiceId = null,
-        string noteToPayer = null
+        string noteToPayer = null,
+        decimal? feeRate = null,              // e.g. 0.044m = 4.4%
+        bool buyerPaysFee = false,
+        bool includeVAT = false,
+        decimal? VATaxRate = null             // e.g. 0.1m = 10%
 )
     {
-        var accessToken = await GenerateTokenAsync();
+        buyerPaysFee = buyerPaysFee && feeRate.HasValue;
+        includeVAT = includeVAT && VATaxRate.HasValue;
 
-        var headers = new Dictionary<string, string>
-    {
-        { "Authorization", $"Bearer {accessToken}" },
-        { "Content-Type", "application/json" }
-    };
+        PaymentUtils.CalculateFeeAndTax(total
+            , subtotal
+            , feeRate
+            , buyerPaysFee
+            , includeVAT
+            , VATaxRate
+            , orderId
+            , description
+            , out decimal feeAmount, out decimal discount, out decimal vatAmount, out decimal finalAmount, out string effectiveDescription);
+
+        total = Math.Round(total, 2);
+        subtotal = Math.Round(subtotal, 2);
+        vatAmount = Math.Round(vatAmount, 2);
+        feeAmount = Math.Round(feeAmount, 2);
+        discount = Math.Round(discount, 2);
+        finalAmount = Math.Round(total + vatAmount + feeAmount - discount, 2);
 
         var body = new
         {
             intent = "CAPTURE",
             application_context = new
             {
+                brand_name = brandName,
+                locale = locale,
+                landing_page = "LOGIN",
+                shipping_preference = "NO_SHIPPING",
+                user_action = "PAY_NOW",
                 return_url = returnUrl,
                 cancel_url = cancelUrl,
-                user_action = "PAY_NOW",
                 note_to_payer = noteToPayer
             },
             purchase_units = new[]
@@ -104,16 +134,48 @@ public class PayPalService : IPayPalService
             new
             {
                 reference_id = orderId,
-                description = description,
+                description = effectiveDescription,
                 custom_id = orderId,
-                invoice_id = invoiceId ?? orderId,
+                invoice_id = invoiceId ?? $"{orderId}-{(buyerPaysFee ? "FEE" : "NOFEE")}",
                 amount = new
                 {
                     currency_code = "USD",
-                    value = amountUSD.ToString("F2", CultureInfo.InvariantCulture)
+                    // item_total + tax_total + shipping + handling + insurance - shipping_discount - discount
+                    value = finalAmount.ToString("F2", CultureInfo.InvariantCulture),
+                    breakdown = new
+                    {
+                        item_total = new
+                        {
+                            currency_code = "USD",
+                            value = total.ToString("F2", CultureInfo.InvariantCulture)
+                        },
+                        tax_total = new
+                        {
+                            currency_code = "USD",
+                            value = vatAmount.ToString("F2", CultureInfo.InvariantCulture)
+                        },                        
+                        handling = new
+                        {
+                            currency_code = "USD",
+                            value = feeAmount.ToString("F2", CultureInfo.InvariantCulture)
+                        },
+                        discount = new
+                        {
+                            currency_code = "USD",
+                            value = discount.ToString("F2", CultureInfo.InvariantCulture)
+                        }
+                    }
                 }
             }
         }
+        };
+
+        var accessToken = await GenerateTokenAsync();
+
+        var headers = new Dictionary<string, string>
+        {
+            { "Authorization", $"Bearer {accessToken}" },
+            { "Content-Type", "application/json" }
         };
 
         var response = await _httpClientService.PostAsync<JsonElement>(
@@ -126,12 +188,12 @@ public class PayPalService : IPayPalService
             .EnumerateArray()
             .FirstOrDefault(l => l.GetProperty("rel").GetString() == "approve")
             .GetProperty("href")
-            .GetString();
+            .ToString();
 
-        return approveLink;
-    }
+        return (approveLink, feeAmount, vatAmount, finalAmount, effectiveDescription);
+    }    
 
-    public async Task<JsonElement> CaptureOrderAsync(string orderId)
+    public async Task<bool> CaptureOrderAsync(string orderId)
     {
         var accessToken = await GenerateTokenAsync();
 
@@ -141,15 +203,13 @@ public class PayPalService : IPayPalService
             { "Content-Type", "application/json" }
         };
 
-        var body = new { };
-
         var response = await _httpClientService.PostAsync<JsonElement>(
             $"{BaseUrl}/v2/checkout/orders/{orderId}/capture",
-            body,
-            headers
-        );
+            new { }, headers);
 
-        return response;
+        var status = response.GetProperty("status").GetString();
+
+        return status == "COMPLETED";
     }
 
     public async Task<(bool verify, PayPalWebhookEvent data)> VerifyHookRequestAsync(HttpRequest request)
