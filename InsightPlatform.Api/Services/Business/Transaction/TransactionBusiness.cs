@@ -31,22 +31,23 @@ public class TransactionBusiness(ILogger<TransactionBusiness> logger
         await using var context = await _contextFactory.CreateDbContextAsync();
 
         var topups = (await context.TopUpPackages.Where(f => f.Status == (short)TopupPackageStatus.Actived).ToListAsync())
-                    .Select(s => new
+                    .Select(s => new TopupPackageDto
                     {
-                        s.Id,
-                        s.Name,
-                        s.Description,
+                        Id = s.Id,
+                        Name = s.Name,
+                        Description = s.Description,
                         Kind = (TopUpPackageKind)s.Kind,
-                        s.Fates,
-                        s.FateBonus,
+                        Fates = s.Fates,
+                        FateBonus = s.FateBonus,
                         FateBonusRate = (s.FateBonusRate ?? 0) * 100,
                         FinalFates = s.GetFinalFates(),
-                        s.Amount,
-                        s.AmountDiscount,
+                        Amount = s.Amount,
+                        AmountDiscount = s.AmountDiscount,
                         AmountDiscountRate = (s.AmountDiscountRate ?? 0) * 100,
                         FinalAmount = s.GetAmountAfterDiscount(),
                         VATaxIncluded = !_paymentSettings.VATaxIncluded,
-                        s.CreatedTs,
+                        VATaxRate = _paymentSettings.VATaxRate * 100,
+                        CreatedTs = s.CreatedTs,
                     })
                     .OrderBy(o => o.Fates)
                     .ToList();
@@ -113,7 +114,7 @@ public class TransactionBusiness(ILogger<TransactionBusiness> logger
                         var total = trans.Total;
                         var subTotal = trans.SubTotal;
 
-                        PaymentUtils.CalculateFeeAndTax(
+                        PaymentUtils.CalculateFeeAndTaxV1(
                           total
                         , subTotal
                         , _paymentSettings.VietQR.FeeRate
@@ -124,12 +125,12 @@ public class TransactionBusiness(ILogger<TransactionBusiness> logger
                         , content
                         , out decimal feeAmount, out decimal discount, out decimal vatAmount, out decimal finalAmount, out string effectiveDescription);
 
-                        total = Math.Ceiling(total);
-                        subTotal = Math.Ceiling(subTotal);
-                        vatAmount = Math.Ceiling(vatAmount);
-                        feeAmount = Math.Ceiling(feeAmount);
-                        discount = Math.Ceiling(discount);
-                        finalAmount = Math.Ceiling(total + vatAmount + feeAmount - discount);
+                        total = PaymentUtils.RoundAmountByGateProvider(request.Provider, total);
+                        subTotal = PaymentUtils.RoundAmountByGateProvider(request.Provider, subTotal);
+                        vatAmount = PaymentUtils.RoundAmountByGateProvider(request.Provider, vatAmount);
+                        feeAmount = PaymentUtils.RoundAmountByGateProvider(request.Provider, feeAmount);
+                        discount = PaymentUtils.RoundAmountByGateProvider(request.Provider, discount);
+                        finalAmount = total + vatAmount + feeAmount - discount;
 
                         var vietQrRequest = new VietQrPaymentRequest
                         {
@@ -170,8 +171,8 @@ public class TransactionBusiness(ILogger<TransactionBusiness> logger
                     }                   
                 case TransactionProvider.Paypal:
                     {
-                        var totalUSD = Math.Round(_currencyService.ConvertFromVND(trans.Total, "USD", out decimal rate), 2);
-                        var subTotalUSD = Math.Round(_currencyService.ConvertFromVND(trans.SubTotal, "USD", out rate), 2);
+                        var totalUSD = PaymentUtils.RoundAmountByGateProvider(request.Provider, _currencyService.ConvertFromVND(trans.Total, "USD", out decimal rate));
+                        var subTotalUSD = PaymentUtils.RoundAmountByGateProvider(request.Provider, _currencyService.ConvertFromVND(trans.SubTotal, "USD", out rate));
 
                         var content = $"Thanh toán '{((TopUpPackageKind)package.Kind).GetDescription()}'";
 
@@ -223,7 +224,7 @@ public class TransactionBusiness(ILogger<TransactionBusiness> logger
                 IpnUrl = ipnUrl
             });
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
             await transaction.RollbackAsync();
             throw;
@@ -235,7 +236,7 @@ public class TransactionBusiness(ILogger<TransactionBusiness> logger
         }
     }
 
-    public async Task<BaseResponse<dynamic>> MemoCheckoutAsync(Guid topupPackageId, TransactionProvider provider)
+    public async Task<BaseResponse<dynamic>> GetMemoCheckoutAsync(Guid topupPackageId, TransactionProvider provider)
     {
         await using var context = await _contextFactory.CreateDbContextAsync();
 
@@ -266,10 +267,16 @@ public class TransactionBusiness(ILogger<TransactionBusiness> logger
             var includeVAT = _paymentSettings.VATaxIncluded;
             var VATaxRate = _paymentSettings.VATaxRate;
 
+            decimal rate = 1;
+            string currency = "VND";
+
             var total = package.Amount;
             var subtotal = package.GetAmountAfterDiscount();
 
-            PaymentUtils.CalculateFeeAndTax(
+            total = CalculateAmountByGateProvider(provider, total, ref rate, ref currency);
+            subtotal = CalculateAmountByGateProvider(provider, subtotal, ref rate, ref currency);
+
+            PaymentUtils.CalculateFeeAndTaxV1(
                   total
                 , subtotal
                 , feeRate
@@ -280,46 +287,45 @@ public class TransactionBusiness(ILogger<TransactionBusiness> logger
                 , string.Empty
                 , out decimal feeAmount, out decimal discount, out decimal vatAmount, out decimal finalAmount, out string effectiveDescription);
 
-            decimal rate = 1;
-            string currency = "VND";
+            total = PaymentUtils.RoundAmountByGateProvider(provider, total);
+            subtotal = PaymentUtils.RoundAmountByGateProvider(provider, subtotal);
+            discount = PaymentUtils.RoundAmountByGateProvider(provider, discount);
+            feeAmount = PaymentUtils.RoundAmountByGateProvider(provider, feeAmount);
+            vatAmount = PaymentUtils.RoundAmountByGateProvider(provider, vatAmount);
+            finalAmount = total + vatAmount + feeAmount - discount;
 
-            total = CalculateAmountByGateProvider(provider, total, ref rate, ref currency);
-
-            subtotal = CalculateAmountByGateProvider(provider, subtotal, ref rate, ref currency);
-
-            discount = CalculateAmountByGateProvider(provider, discount, ref rate, ref currency);
-
-            feeAmount = CalculateAmountByGateProvider(provider, feeAmount, ref rate, ref currency);
-
-            vatAmount = CalculateAmountByGateProvider(provider, vatAmount, ref rate, ref currency);
-
-            finalAmount = CalculateAmountByGateProvider(provider, finalAmount, ref rate, ref currency);
-
-            return new(new
+            return new(new MemoCheckoutDto
             {
-                package.Id,
-                package.Name,
-                package.Description,
+                Id = package.Id,
+                Name = package.Name,
+                Description = package.Description,
                 Kind = (TopUpPackageKind)package.Kind,
-                package.Fates,
-                package.FateBonus,
+                Fates = package.Fates,
+                FateBonus = package.FateBonus,
                 FateBonusRate = (package.FateBonusRate ?? 0) * 100,
                 FinalFates = package.GetFinalFates(),
-                package.Amount,
-                package.AmountDiscount,
+                Amount = package.Amount,
+                AmountDiscount = package.AmountDiscount,
                 AmountDiscountRate = (package.AmountDiscountRate ?? 0) * 100,
                 FinalAmount = package.GetAmountAfterDiscount(),
+                VATaxIncluded = !_paymentSettings.VATaxIncluded,
+                VATaxRate = _paymentSettings.VATaxRate * 100,
                 Currency = "VND",
-                MemoCheckout = new
+                MemoCheckout = new TransactionCheckoutDto
                 {
-                    Total = total,
-                    Subtotal = subtotal,
-                    Discount = discount,
-                    Fee = feeAmount,
-                    VAT = vatAmount,
-                    FinalTotal = finalAmount,
-                    Rate = rate,
+                    Provider = provider,
                     Currency = currency,
+                    ExchangeRate = rate,
+                    Total = total,
+                    SubTotal = subtotal,
+                    DiscountTotal = discount,
+                    FinalTotal = finalAmount,
+                    BuyerPaysFee = buyerPaysFee,
+                    FeeRate = feeRate * 100,
+                    FeeTotal = feeAmount,
+                    VATaxIncluded = includeVAT,
+                    VATaxRate = VATaxRate * 100,
+                    VATaxTotal = vatAmount,
                     Note = effectiveDescription
                 }
             });
@@ -377,7 +383,7 @@ public class TransactionBusiness(ILogger<TransactionBusiness> logger
 
             var total = CalculateAmountByGateProvider(provider, trans.Total, ref exchangeRate, ref currency);
 
-            var subTotal = CalculateAmountByGateProvider(provider, trans.SubTotal, ref exchangeRate, ref currency);            
+            var subTotal = CalculateAmountByGateProvider(provider, trans.SubTotal, ref exchangeRate, ref currency);
 
             var feeTotal = CalculateAmountByGateProvider(provider, trans.FeeTotal, ref exchangeRate, ref currency);
 
@@ -387,7 +393,7 @@ public class TransactionBusiness(ILogger<TransactionBusiness> logger
 
             var realPaid = meta?.TransactionHictories.Sum(s => s.Amount) ?? 0;
 
-            return new(new
+            return new(new TransactionCheckoutDto
             {
                 Id = id,
                 Status = (TransactionStatus)trans.Status,
@@ -399,10 +405,10 @@ public class TransactionBusiness(ILogger<TransactionBusiness> logger
                 DiscountTotal = Math.Max(total - subTotal, 0),
                 FinalTotal = finalTotal,
                 Paid = realPaid,
-                trans.BuyerPaysFee,
+                BuyerPaysFee = trans.BuyerPaysFee,
                 FeeRate = trans.FeeRate * 100,
                 FeeTotal = feeTotal,
-                trans.VATaxIncluded,
+                VATaxIncluded = trans.VATaxIncluded,
                 VATaxRate = trans.VATaxRate * 100,
                 VATaxTotal = vatTotal,
                 Note = trans.Note,
@@ -593,7 +599,7 @@ public class TransactionBusiness(ILogger<TransactionBusiness> logger
                             throw new BusinessException("InvalidPaypalHookRequest", $"amount is empty");
 
                         var hookAmountUSD = decimal.Parse(amount.Value);
-                        var transAmoutUSD = Math.Round(_currencyService.ConvertFromVND(trans.FinalTotal, trans.ExchangeRate ?? 1), 2);
+                        var transAmoutUSD = PaymentUtils.RoundAmountByGateProvider(TransactionProvider.Paypal, _currencyService.ConvertFromVND(trans.FinalTotal, trans.ExchangeRate ?? 1));
 
                         metaData.TransactionHictories.Add(new TransactionHictory
                         {
@@ -731,14 +737,15 @@ public class TransactionBusiness(ILogger<TransactionBusiness> logger
         {
             case TransactionProvider.Paypal:
                 currency = "USD";
-                return Math.Round(_currencyService.ConvertFromVND(amountVND, currency, out rate), 2);
+                return PaymentUtils.RoundAmountByGateProvider(provider, _currencyService.ConvertFromVND(amountVND, currency, out rate));
 
             case TransactionProvider.VietQR:
-                return amountVND;
+                return PaymentUtils.RoundAmountByGateProvider(provider, amountVND);
 
             default:
-                return amountVND;
+                return PaymentUtils.RoundAmountByGateProvider(provider, amountVND);
         }
     }
 
+    
 }
