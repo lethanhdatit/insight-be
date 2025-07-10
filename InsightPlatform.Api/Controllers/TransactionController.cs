@@ -25,7 +25,7 @@ public class TransactionController(IWebHostEnvironment env
     private readonly IPayPalService _payPalService = payPalService;
 
     [HttpGet("topups/me")]
-    public async Task<IActionResult> GetUserFates()
+    public async Task<IActionResult> GetMyFates()
     {
         var res = await _transactionBusiness.GetUserFates();
         return HandleOk(res);
@@ -33,7 +33,7 @@ public class TransactionController(IWebHostEnvironment env
 
     [AllowAnonymous]
     [HttpGet("topups")]
-    public async Task<IActionResult> Topups()
+    public async Task<IActionResult> GetTopups()
     {
         var res = await _transactionBusiness.GetTopupsAsync();
         return HandleOk(res);
@@ -41,15 +41,15 @@ public class TransactionController(IWebHostEnvironment env
 
     [AllowAnonymous]
     [HttpGet("topups/memoCheckout")]
-    public async Task<IActionResult> Topups([FromQuery] Guid topupPackageId, [FromQuery] TransactionProvider provider)
+    public async Task<IActionResult> GetMemoCheckout([FromQuery] Guid topupPackageId, [FromQuery] TransactionProvider provider)
     {
-        var res = await _transactionBusiness.MemoCheckoutAsync(topupPackageId, provider);
+        var res = await _transactionBusiness.GetMemoCheckoutAsync(topupPackageId, provider);
         return HandleOk(res);
     }
 
     [AllowAnonymous]
     [HttpGet("paymentGates")]
-    public IActionResult PaymentGates()
+    public IActionResult GetPaymentGates()
     {
         var res = Enum.GetValues<TransactionProvider>().Select(s =>
         {

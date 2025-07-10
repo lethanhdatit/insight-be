@@ -98,7 +98,7 @@ public class PayPalService : IPayPalService
         buyerPaysFee = buyerPaysFee && feeRate.HasValue;
         includeVAT = includeVAT && VATaxRate.HasValue;
 
-        PaymentUtils.CalculateFeeAndTax(total
+        PaymentUtils.CalculateFeeAndTaxV1(total
             , subtotal
             , feeRate
             , buyerPaysFee
@@ -108,12 +108,12 @@ public class PayPalService : IPayPalService
             , description
             , out decimal feeAmount, out decimal discount, out decimal vatAmount, out decimal finalAmount, out string effectiveDescription);
 
-        total = Math.Round(total, 2);
-        subtotal = Math.Round(subtotal, 2);
-        vatAmount = Math.Round(vatAmount, 2);
-        feeAmount = Math.Round(feeAmount, 2);
-        discount = Math.Round(discount, 2);
-        finalAmount = Math.Round(total + vatAmount + feeAmount - discount, 2);
+        total = PaymentUtils.RoundAmountByGateProvider(TransactionProvider.Paypal, total);
+        subtotal = PaymentUtils.RoundAmountByGateProvider(TransactionProvider.Paypal, subtotal);
+        vatAmount = PaymentUtils.RoundAmountByGateProvider(TransactionProvider.Paypal, vatAmount);
+        feeAmount = PaymentUtils.RoundAmountByGateProvider(TransactionProvider.Paypal, feeAmount);
+        discount = PaymentUtils.RoundAmountByGateProvider(TransactionProvider.Paypal, discount);
+        finalAmount = total + vatAmount + feeAmount - discount;
 
         var body = new
         {
@@ -131,43 +131,43 @@ public class PayPalService : IPayPalService
             },
             purchase_units = new[]
             {
-            new
-            {
-                reference_id = orderId,
-                description = effectiveDescription,
-                custom_id = orderId,
-                invoice_id = invoiceId ?? $"{orderId}-{(buyerPaysFee ? "FEE" : "NOFEE")}",
-                amount = new
+                new
                 {
-                    currency_code = "USD",
-                    // item_total + tax_total + shipping + handling + insurance - shipping_discount - discount
-                    value = finalAmount.ToString("F2", CultureInfo.InvariantCulture),
-                    breakdown = new
+                    reference_id = orderId,
+                    description = effectiveDescription,
+                    custom_id = orderId,
+                    invoice_id = invoiceId ?? $"{orderId}-{(buyerPaysFee ? "FEE" : "NOFEE")}",
+                    amount = new
                     {
-                        item_total = new
+                        currency_code = "USD",
+                        // item_total + tax_total + shipping + handling + insurance - shipping_discount - discount
+                        value = finalAmount.ToString("F2", CultureInfo.InvariantCulture),
+                        breakdown = new
                         {
-                            currency_code = "USD",
-                            value = total.ToString("F2", CultureInfo.InvariantCulture)
-                        },
-                        tax_total = new
-                        {
-                            currency_code = "USD",
-                            value = vatAmount.ToString("F2", CultureInfo.InvariantCulture)
-                        },                        
-                        handling = new
-                        {
-                            currency_code = "USD",
-                            value = feeAmount.ToString("F2", CultureInfo.InvariantCulture)
-                        },
-                        discount = new
-                        {
-                            currency_code = "USD",
-                            value = discount.ToString("F2", CultureInfo.InvariantCulture)
+                            item_total = new
+                            {
+                                currency_code = "USD",
+                                value = total.ToString("F2", CultureInfo.InvariantCulture)
+                            },
+                            tax_total = new
+                            {
+                                currency_code = "USD",
+                                value = vatAmount.ToString("F2", CultureInfo.InvariantCulture)
+                            },                        
+                            handling = new
+                            {
+                                currency_code = "USD",
+                                value = feeAmount.ToString("F2", CultureInfo.InvariantCulture)
+                            },
+                            discount = new
+                            {
+                                currency_code = "USD",
+                                value = discount.ToString("F2", CultureInfo.InvariantCulture)
+                            }
                         }
                     }
                 }
             }
-        }
         };
 
         var accessToken = await GenerateTokenAsync();
