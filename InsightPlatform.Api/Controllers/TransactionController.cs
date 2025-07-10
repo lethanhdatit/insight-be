@@ -139,8 +139,8 @@ public class TransactionController(IWebHostEnvironment env
     {
         try
         {
-            var res = await _transactionBusiness.HandleVietQrCallbackAsync(transactionCallback);
-            string refTransactionId = res.Data.ToString();
+            //var res = await _transactionBusiness.HandleVietQrCallbackAsync(transactionCallback);
+            //string refTransactionId = res.Data.ToString();
 
             return Ok(new SuccessResponse
             {
@@ -149,7 +149,8 @@ public class TransactionController(IWebHostEnvironment env
                 ToastMessage = "Transaction processed successfully",
                 Object = new TransactionResponseObject
                 {
-                    RefTransactionId = refTransactionId
+                    //RefTransactionId = refTransactionId
+                    RefTransactionId = Guid.NewGuid().ToString(),
                 }
             });
         }
