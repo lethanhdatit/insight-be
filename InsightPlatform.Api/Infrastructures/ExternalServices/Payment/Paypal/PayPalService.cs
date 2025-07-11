@@ -36,25 +36,19 @@ public interface IPayPalService
     Task<(bool verify, PayPalWebhookEvent data)> VerifyHookRequestAsync(HttpRequest request);
 }
 
-public class PayPalService : IPayPalService
+public class PayPalService(IOptions<PaymentOptions> settings, IHttpClientService httpClientService) : IPayPalService
 {
-    private readonly IHttpClientService _httpClientService;
-    private readonly PaypalOptions _config;
+    private readonly IHttpClientService _httpClientService = httpClientService;
+    private readonly GateConnectionOptions _config = settings.Value.Gates[TransactionProvider.Paypal].GateConnection;
     private static readonly string LiveBaseUrl = "https://api-m.paypal.com";
     private static readonly string SandboxBaseUrl = "https://api-m.sandbox.paypal.com";
-
-    public PayPalService(IOptions<PaymentGateOptions> settings, IHttpClientService httpClientService)
-    {
-        _httpClientService = httpClientService;
-        _config = settings.Value.Paypal;
-    }
 
     private string BaseUrl => _config.UseSandbox ? SandboxBaseUrl : LiveBaseUrl;
 
     public async Task<string> GenerateTokenAsync()
     {
-        var clientId = _config.ClientId;
-        var secret = _config.Secret;
+        var clientId = _config.Username;
+        var secret = _config.Password;
 
         var authHeader = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{clientId}:{secret}"));
 

@@ -22,7 +22,7 @@ services.Configure<ExternalResourceSettings>(configuration.GetSection(ExternalRe
 services.Configure<QueueMessagingSettings>(configuration.GetSection(QueueMessagingSettings.Path));
 services.Configure<LocalizationSettings>(configuration.GetSection(LocalizationSettings.Path));
 services.Configure<AISettings>(configuration.GetSection(AISettings.Path));
-services.Configure<PaymentGateOptions>(configuration.GetSection(PaymentGateOptions.Path));
+services.Configure<PaymentOptions>(configuration.GetSection(PaymentOptions.Path));
 
 // === Infrastructure ===
 services.AddHttpContextAccessor();

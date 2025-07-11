@@ -10,18 +10,12 @@ using System.Threading.Tasks;
 public class TransactionBusiness(ILogger<TransactionBusiness> logger
     , IDbContextFactory<ApplicationDbContext> contextFactory
     , IHttpContextAccessor contextAccessor
-    , IAccountBusiness accountBusiness
     , IPayPalService payPalService
     , IVietQRService vietQRService
     , ICurrencyService currencyService
-    , IOptions<AppSettings> appOptions
-    , IOptions<PaymentGateOptions> paymentSettings
-    , PainPublisher publisher) : BaseHttpBusiness<TransactionBusiness, ApplicationDbContext>(logger, contextFactory, contextAccessor), ITransactionBusiness
+    , IOptions<PaymentOptions> paymentSettings) : BaseHttpBusiness<TransactionBusiness, ApplicationDbContext>(logger, contextFactory, contextAccessor), ITransactionBusiness
 {
-    private readonly PainPublisher _publisher = publisher;
-    private readonly AppSettings _appSettings = appOptions.Value;
-    private readonly PaymentGateOptions _paymentSettings = paymentSettings.Value;
-    private readonly IAccountBusiness _accountBusiness = accountBusiness;
+    private readonly PaymentOptions _paymentSettings = paymentSettings.Value;
     private readonly IVietQRService _vietQRService = vietQRService;
     private readonly IPayPalService _payPalService = payPalService;
     private readonly ICurrencyService _currencyService = currencyService;
@@ -104,6 +98,8 @@ public class TransactionBusiness(ILogger<TransactionBusiness> logger
 
             string ipnUrl = null;
 
+            var settings = _paymentSettings.Gates[request.Provider];
+
             switch (request.Provider)
             {
                 case TransactionProvider.VietQR:
@@ -117,8 +113,8 @@ public class TransactionBusiness(ILogger<TransactionBusiness> logger
                         PaymentUtils.CalculateFeeAndTaxV1(
                           total
                         , subTotal
-                        , _paymentSettings.VietQR.FeeRate
-                        , _paymentSettings.VietQR.BuyerPaysFee
+                        , settings.FeeRate
+                        , settings.BuyerPaysFee
                         , trans.VATaxIncluded
                         , trans.VATaxRate
                         , trans.Id.ToString()
@@ -136,9 +132,9 @@ public class TransactionBusiness(ILogger<TransactionBusiness> logger
                         {
                             Amount = (long)finalAmount,
                             Content = content.RemoveVietnameseDiacritics(),
-                            BankAccount = _paymentSettings.VietQR.PlatformConnection.BankAccount,
-                            BankCode = _paymentSettings.VietQR.PlatformConnection.BankCode,
-                            UserBankName = _paymentSettings.VietQR.PlatformConnection.UserBankName,
+                            BankAccount = settings.PlatformConnection.BankAccount,
+                            BankCode = settings.PlatformConnection.BankCode,
+                            UserBankName = settings.PlatformConnection.UserBankName,
                             TransType = "C",
                             OrderId = trans.Id.ToString(),
                             ServiceCode = package.Id.ToString(),
@@ -150,8 +146,8 @@ public class TransactionBusiness(ILogger<TransactionBusiness> logger
                         var vietQr = await _vietQRService.NewPaymentAsync(vietQrToken, vietQrRequest);
                         ipnUrl = vietQr.QrLink;
 
-                        trans.BuyerPaysFee = _paymentSettings.VietQR.BuyerPaysFee;
-                        trans.FeeRate = _paymentSettings.VietQR.FeeRate;
+                        trans.BuyerPaysFee = settings.BuyerPaysFee;
+                        trans.FeeRate = settings.FeeRate;
                         trans.FeeTotal = feeAmount;
                         trans.VATaxTotal = vatAmount;
                         trans.FinalTotal = finalAmount;
@@ -182,19 +178,19 @@ public class TransactionBusiness(ILogger<TransactionBusiness> logger
                             , request.CallbackUrl
                             , $"{request.CallbackUrl}&cancel=1"
                             , trans.Id.ToString()
-                            , _paymentSettings.Paypal.BrandName
+                            , settings.PlatformConnection.BrandName
                             , "vi-VN"
                             , content
                             , trans.Id.ToString()
                             , null
-                            , _paymentSettings.Paypal.FeeRate
-                            , _paymentSettings.Paypal.BuyerPaysFee
+                            , settings.FeeRate
+                            , settings.BuyerPaysFee
                             , trans.VATaxIncluded
                             , trans.VATaxRate
                         );
 
-                        trans.BuyerPaysFee = _paymentSettings.Paypal.BuyerPaysFee;
-                        trans.FeeRate = _paymentSettings.Paypal.FeeRate;
+                        trans.BuyerPaysFee = settings.BuyerPaysFee;
+                        trans.FeeRate = settings.FeeRate;
                         trans.FeeTotal = _currencyService.ConvertToVND(feeTotal, "USD", out rate);
                         trans.VATaxTotal = _currencyService.ConvertToVND(vatTotal, "USD", out rate);
                         trans.FinalTotal = _currencyService.ConvertToVND(finalTotal, "USD", out rate);
@@ -247,23 +243,16 @@ public class TransactionBusiness(ILogger<TransactionBusiness> logger
             var package = await context.TopUpPackages.FirstOrDefaultAsync(f => f.Id == topupPackageId
                                                                             && f.Status == (short)TopupPackageStatus.Actived);
 
+            var settings = _paymentSettings.Gates[provider];
+
             if (package == null)
             {
                 throw new BusinessException("TopupPackageNotFound", "Topup package not found or unavailable");
             }
 
-            var buyerPaysFee = provider switch
-            {
-                TransactionProvider.Paypal => _paymentSettings.Paypal.BuyerPaysFee,
-                TransactionProvider.VietQR => _paymentSettings.VietQR.BuyerPaysFee,
-                _ => true
-            };
-            var feeRate = provider switch
-            {
-                TransactionProvider.Paypal => _paymentSettings.Paypal.FeeRate,
-                TransactionProvider.VietQR => _paymentSettings.VietQR.FeeRate,
-                _ => 0
-            };
+            var buyerPaysFee = settings.BuyerPaysFee;
+            var feeRate = settings.FeeRate;
+
             var includeVAT = _paymentSettings.VATaxIncluded;
             var VATaxRate = _paymentSettings.VATaxRate;
 
@@ -404,7 +393,7 @@ public class TransactionBusiness(ILogger<TransactionBusiness> logger
                 SubTotal = subTotal,
                 DiscountTotal = Math.Max(total - subTotal, 0),
                 FinalTotal = finalTotal,
-                Paid = realPaid,
+                Paid = 0,
                 BuyerPaysFee = trans.BuyerPaysFee,
                 FeeRate = trans.FeeRate * 100,
                 FeeTotal = feeTotal,

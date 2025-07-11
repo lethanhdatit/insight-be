@@ -12,7 +12,7 @@ public interface ICurrencyService
     decimal ConvertToVND(decimal amount, decimal rate);
 }
 
-public class CurrencyService(IOptions<PaymentGateOptions> settings) : ICurrencyService
+public class CurrencyService(IOptions<PaymentOptions> settings) : ICurrencyService
 {
     private readonly CurrencyExchangeOptions _options = settings.Value.CurrencyExchangeRates;
 
