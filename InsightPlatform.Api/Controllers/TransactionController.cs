@@ -51,20 +51,19 @@ public class TransactionController(IWebHostEnvironment env
     [HttpGet("paymentGates")]
     public IActionResult GetPaymentGates()
     {
-        var res = Enum.GetValues<TransactionProvider>().Select(s =>
+        var res = _paymentSettings.Gates.Select(s =>
         {
-            var parts = s.GetDescription()?.Split('|') ?? [];
-            var description = parts.ElementAtOrDefault(0);
-            var icon = parts.ElementAtOrDefault(1);
-            var active = parts.ElementAtOrDefault(2);
+            var description = s.Value.Description;
+            var icon = s.Value.Icon;
+            var active = s.Value.IsActive;
 
             return new
             {
-                Id = (byte)s,
-                Name = s.ToString(),
+                Id = (byte)s.Key,
+                Name = s.Key.GetDescription(),
                 Description = description,
                 Icon = icon,
-                Active = !active.IsMissing() && bool.TryParse(active, out var _active) && _active,
+                Active = active,
             };
         }).ToList();
 
