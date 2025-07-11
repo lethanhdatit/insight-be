@@ -10,16 +10,16 @@ public interface IVietQRService
     Task<VietQrPaymentResponse> NewPaymentAsync(VietQrTokenResponse token, VietQrPaymentRequest detail);
 }
 
-public class VietQRService(IOptions<PaymentGateOptions> settings
+public class VietQRService(IOptions<PaymentOptions> settings
     , IHttpClientService httpClientService) : IVietQRService
 {
-    private readonly PaymentGateOptions _settings = settings.Value;
+    private readonly GateConnectionOptions _settings = settings.Value.Gates[TransactionProvider.VietQR].GateConnection;
     private readonly IHttpClientService _httpClientService = httpClientService;
 
     public async Task<VietQrTokenResponse> GenerateTokenAsync()
     {
-        var basicToken = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{_settings.VietQR.GateConnection.Username}:{_settings.VietQR.GateConnection.Password}"));
-        var url = _settings.VietQR.GateConnection.BaseUrl.WithPath(_settings.VietQR.GateConnection.TokenPath);
+        var basicToken = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{_settings.Username}:{_settings.Password}"));
+        var url = _settings.BaseUrl.WithPath(_settings.TokenPath);
        
         var (passed, failed, status) = await _httpClientService.PostAsync<VietQrTokenResponse, VietQrFail>(url, null, new Dictionary<string, string>
         {
@@ -35,7 +35,7 @@ public class VietQRService(IOptions<PaymentGateOptions> settings
 
     public async Task<VietQrPaymentResponse> NewPaymentAsync(VietQrTokenResponse token, VietQrPaymentRequest detail)
     {
-        var url = _settings.VietQR.GateConnection.BaseUrl.WithPath(_settings.VietQR.GateConnection.NewTransactionPath);
+        var url = _settings.BaseUrl.WithPath(_settings.NewOrderPath);
         var (passed, failed, status) = await _httpClientService.PostAsync<VietQrPaymentResponse, VietQrFail>(url, detail, new Dictionary<string, string>
         {
             { "Authorization", $"{token.TokenType} {token.AccessToken}" }

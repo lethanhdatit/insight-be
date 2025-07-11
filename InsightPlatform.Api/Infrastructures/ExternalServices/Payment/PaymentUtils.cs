@@ -113,16 +113,11 @@ public static class PaymentUtils
 
     public static decimal RoundAmountByGateProvider(TransactionProvider provider, decimal amount)
     {
-        switch (provider)
+        return provider switch
         {
-            case TransactionProvider.Paypal:
-                return Math.Round(amount, 2);
-
-            case TransactionProvider.VietQR:
-                return Math.Ceiling(amount);
-
-            default:
-                return Math.Ceiling(amount);
-        }
+            TransactionProvider.Paypal => Math.Round(amount, 2),
+            TransactionProvider.VietQR => Math.Ceiling(amount),
+            _ => Math.Ceiling(amount),
+        };
     }
 }

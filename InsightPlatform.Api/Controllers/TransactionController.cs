@@ -16,10 +16,10 @@ public class TransactionController(IWebHostEnvironment env
         , ITransactionBusiness transactionBusiness
         , IAccountBusiness accountBusiness
         , IPayPalService payPalService
-        , IOptions<PaymentGateOptions> paymentSettings
+        , IOptions<PaymentOptions> paymentSettings
     ) : BaseController(env, logger)
 {
-    private readonly PaymentGateOptions _paymentSettings = paymentSettings.Value;
+    private readonly PaymentOptions _paymentSettings = paymentSettings.Value;
     private readonly ITransactionBusiness _transactionBusiness = transactionBusiness;
     private readonly IAccountBusiness _accountBusiness = accountBusiness;
     private readonly IPayPalService _payPalService = payPalService;
@@ -115,8 +115,10 @@ public class TransactionController(IWebHostEnvironment env
         var username = values[0];
         var password = values[1];
 
-        if (username == _paymentSettings.VietQR.PlatformConnection.Username
-            && password == _paymentSettings.VietQR.PlatformConnection.Password)
+        var connectionOptions = _paymentSettings.Gates[TransactionProvider.VietQR].PlatformConnection;
+
+        if (username == connectionOptions.Username
+            && password == connectionOptions.Password)
         {
             int expiresIn = 300;
             var (token, _) = _accountBusiness.GenerateAccessTokenForPaymentGate(TimeSpan.FromSeconds(expiresIn), "VietQr");
