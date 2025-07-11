@@ -13,8 +13,11 @@ public class PaymentOptions
 
 public class PaymentGateOptions
 {
+    public bool IsActive { get; set; }
     public decimal FeeRate { get; set; }
     public bool BuyerPaysFee { get; set; }
+    public string Description { get; set; }
+    public string Icon { get; set; }
 
     public PlatformConnectionOptions PlatformConnection { get; set; } = new();
     public GateConnectionOptions GateConnection { get; set; } = new();    
