@@ -315,7 +315,12 @@ public class TransactionBusiness(ILogger<TransactionBusiness> logger
                     VATaxIncluded = includeVAT,
                     VATaxRate = VATaxRate * 100,
                     VATaxTotal = vatAmount,
-                    Note = effectiveDescription
+                    Note = effectiveDescription,
+                    PackageName = package.Name,
+                    Fates = package.Fates,
+                    FinalFates = package.GetFinalFates(),
+                    FateBonus = package.FateBonus ?? 0,
+                    FateBonusRate = (package.FateBonusRate ?? 0) * 100,
                 }
             });
         }
