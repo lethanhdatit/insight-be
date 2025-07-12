@@ -393,7 +393,7 @@ public class TransactionBusiness(ILogger<TransactionBusiness> logger
                 SubTotal = subTotal,
                 DiscountTotal = Math.Max(total - subTotal, 0),
                 FinalTotal = finalTotal,
-                Paid = 0,
+                Paid = realPaid,
                 BuyerPaysFee = trans.BuyerPaysFee,
                 FeeRate = trans.FeeRate * 100,
                 FeeTotal = feeTotal,
