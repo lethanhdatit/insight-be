@@ -59,6 +59,12 @@ public class TransactionBusiness(ILogger<TransactionBusiness> logger
 
         try
         {
+            var settings = _paymentSettings.Gates[request.Provider];
+            if (settings == null || !settings.IsActive)
+            {
+                throw new BusinessException("PaymentGateNotAvailable", "Payment gate is not available or not active");
+            }
+
             var package = await context.TopUpPackages.FirstOrDefaultAsync(f => f.Id == request.TopupPackageId
                                                                             && f.Status == (short)TopupPackageStatus.Actived);
 
@@ -97,9 +103,7 @@ public class TransactionBusiness(ILogger<TransactionBusiness> logger
                 { "transId", trans.Id.ToString() }
             });
 
-            string ipnUrl = null;
-
-            var settings = _paymentSettings.Gates[request.Provider];
+            string ipnUrl = null;            
 
             switch (request.Provider)
             {
