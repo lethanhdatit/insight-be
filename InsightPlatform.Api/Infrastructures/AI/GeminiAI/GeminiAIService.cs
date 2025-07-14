@@ -41,9 +41,9 @@ public class GeminiAIService : IGeminiAIService
             }
         };
 
-        var url = $"{_settings.BaseUrl.WithPath(_settings.Model)}:generateContent".WithQuery(new 
+        var url = $"{_settings.BaseUrl.WithPath(_settings.Model)}:generateContent".WithQuery(new Dictionary<string, string>
         {
-            key = _settings.ApiKey,
+            { "key" , _settings.ApiKey }
         });
 
         var (passed, failed, statusCode) = await _httpClientService.PostAsync<GeminiAIApiResponse, GeminiAIApiFailedResponse>(url, 

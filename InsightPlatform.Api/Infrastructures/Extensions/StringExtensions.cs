@@ -149,17 +149,6 @@ public static partial class StringExtensions
         return string.Join("/", lst.ToArray());
     }
 
-    public static string WithQuery(this string source, string query)
-    {
-        query = query.SlashTrim();
-        source = source.SlashTrim();
-
-        if(!query.StartsWith("?"))
-            query = $"?{query}";
-
-        return source + query;
-    }
-
     public static string StandardizePhoneNumber(this string phoneNumber)
     {
         if (phoneNumber.IsMissing())
@@ -180,20 +169,56 @@ public static partial class StringExtensions
         return phoneNumber;
     }
 
-    public static string WithQuery<T>(this string source, T queryObject)
+    //public static string WithQuery<T>(this string source, T queryObject)
+    //{
+    //    if (queryObject == null)
+    //        throw new ArgumentNullException(nameof(queryObject));
+
+    //    var queryDict = typeof(T).GetProperties(BindingFlags.Instance | BindingFlags.Public)
+    //                              .Where(p => p.GetValue(queryObject) != null)
+    //                              .ToDictionary(
+    //                                  p => p.Name.UrlEncode(),
+    //                                  p => p.GetValue(queryObject)?.ToString().UrlEncode()
+    //                              );
+
+    //    return source.WithQuery(queryDict);
+    //}
+
+    public static string WithQuery(this string source, IDictionary<string, string> newQueryParams)
     {
-        if (queryObject == null)
+        if (source.IsMissing())
+            return source;
+
+        var uri = new Uri(source, UriKind.RelativeOrAbsolute);
+
+        // Extract existing query parameters
+        var baseUrl = source;
+        string fragment = null;
+
+        var queryIndex = source.IndexOf('?');
+        var fragmentIndex = source.IndexOf('#');
+
+        if (fragmentIndex >= 0)
         {
-            throw new ArgumentNullException(nameof(queryObject));
+            fragment = source[fragmentIndex..];
+            baseUrl = source[..fragmentIndex];
         }
 
-        var properties = typeof(T).GetProperties(BindingFlags.Instance | BindingFlags.Public)
-                                  .Where(p => p.GetValue(queryObject) != null) // Exclude null values
-                                  .Select(p => $"{p.Name.UrlEncode()}={p.GetValue(queryObject)?.ToString().UrlEncode()}");
+        var existingQuery = queryIndex >= 0
+            ? source.Substring(queryIndex + 1, (fragmentIndex >= 0 ? fragmentIndex : source.Length) - queryIndex - 1)
+            : string.Empty;
 
-        var query = string.Join("&", properties);
+        var queryParams = System.Web.HttpUtility.ParseQueryString(existingQuery);
+        foreach (var kvp in newQueryParams)
+        {
+            queryParams[kvp.Key] = kvp.Value;
+        }
 
-        return source.WithQuery(query);
+        var newQuery = queryParams.HasKeys()
+            ? "?" + string.Join("&", queryParams.AllKeys.Select(k => $"{k}={queryParams[k]}"))
+            : string.Empty;
+
+        return baseUrl.Split('?')[0] + newQuery + (fragment ?? "");
     }
 
     public static string PathAt(this string path, byte levels, char separator = '.')
