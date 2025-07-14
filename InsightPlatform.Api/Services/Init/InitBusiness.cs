@@ -50,14 +50,13 @@ public class InitBusiness(ILogger<BocMenhBusiness> logger
     {
         await using var context = await _contextFactory.CreateDbContextAsync();
 
-        if (!await context.TopUpPackages.AnyAsync(a => a.Kind == (byte)TopUpPackageKind.HuuDuyen))
+        if (!await context.TopUpPackages.AnyAsync(a => a.Kind == (byte)TopUpPackageKind.Package1))
         {
-            // Gói Hữu Duyên (gói thấp nhất)
             await context.TopUpPackages.AddAsync(new TopUpPackage
             {
-                Name = TopUpPackageKind.HuuDuyen.GetDescription(),
-                Description = TopUpPackageKind.HuuDuyen.GetDescription(),
-                Kind = (byte)TopUpPackageKind.HuuDuyen,
+                Name = TopUpPackageKind.Package1.GetDescription(),
+                Description = TopUpPackageKind.Package1.GetDescription(),
+                Kind = (byte)TopUpPackageKind.Package1,
                 Status = (byte)TopupPackageStatus.Actived,
                 Amount = 29000,
                 AmountDiscount = 2000,
@@ -68,14 +67,13 @@ public class InitBusiness(ILogger<BocMenhBusiness> logger
                 CreatedTs = DateTime.UtcNow,
             });
 
-            // Gói Thời Duyên (gói thứ hai)
             await context.TopUpPackages.AddAsync(new TopUpPackage
             {
-                Name = TopUpPackageKind.ThoiDuyen.GetDescription(),
-                Description = TopUpPackageKind.ThoiDuyen.GetDescription(),
-                Kind = (byte)TopUpPackageKind.ThoiDuyen,
+                Name = TopUpPackageKind.Package2.GetDescription(),
+                Description = TopUpPackageKind.Package2.GetDescription(),
+                Kind = (byte)TopUpPackageKind.Package2,
                 Status = (byte)TopupPackageStatus.Actived,
-                Amount = 49000, // Mức giá nhỉnh hơn Hữu Duyên
+                Amount = 49000,
                 AmountDiscount = 4500,
                 AmountDiscountRate = 0.065m,
                 Fates = 290, // Số Fates cũng cao hơn
@@ -84,14 +82,13 @@ public class InitBusiness(ILogger<BocMenhBusiness> logger
                 CreatedTs = DateTime.UtcNow,
             });
 
-            // Gói Nhật Duyên (gói thứ ba)
             await context.TopUpPackages.AddAsync(new TopUpPackage
             {
-                Name = TopUpPackageKind.NhatDuyen.GetDescription(),
-                Description = TopUpPackageKind.NhatDuyen.GetDescription(),
-                Kind = (byte)TopUpPackageKind.NhatDuyen,
+                Name = TopUpPackageKind.Package3.GetDescription(),
+                Description = TopUpPackageKind.Package3.GetDescription(),
+                Kind = (byte)TopUpPackageKind.Package3,
                 Status = (byte)TopupPackageStatus.Actived,
-                Amount = 99000, // Mức giá cao hơn đáng kể
+                Amount = 99000,
                 AmountDiscount = 7900,
                 AmountDiscountRate = 0.085m,
                 Fates = 580, // Số Fates tăng mạnh
@@ -100,14 +97,13 @@ public class InitBusiness(ILogger<BocMenhBusiness> logger
                 CreatedTs = DateTime.UtcNow,
             });
 
-            // Gói Nguyệt Duyên (gói thứ tư)
             await context.TopUpPackages.AddAsync(new TopUpPackage
             {
-                Name = TopUpPackageKind.NguyetDuyen.GetDescription(),
-                Description = TopUpPackageKind.NguyetDuyen.GetDescription(),
-                Kind = (byte)TopUpPackageKind.NguyetDuyen,
+                Name = TopUpPackageKind.Package4.GetDescription(),
+                Description = TopUpPackageKind.Package4.GetDescription(),
+                Kind = (byte)TopUpPackageKind.Package4,
                 Status = (byte)TopupPackageStatus.Actived,
-                Amount = 199000, // Gói cao hơn với mức giá hấp dẫn
+                Amount = 199000,
                 AmountDiscount = 14500,
                 AmountDiscountRate = 0.105m,
                 Fates = 1160, // Số điểm Fates tăng tiếp
@@ -116,12 +112,11 @@ public class InitBusiness(ILogger<BocMenhBusiness> logger
                 CreatedTs = DateTime.UtcNow,
             });
 
-            // Gói Thiên Duyên (gói cao cấp)
             await context.TopUpPackages.AddAsync(new TopUpPackage
             {
-                Name = TopUpPackageKind.ThienDuyen.GetDescription(),
-                Description = TopUpPackageKind.ThienDuyen.GetDescription(),
-                Kind = (byte)TopUpPackageKind.ThienDuyen,
+                Name = TopUpPackageKind.Package5.GetDescription(),
+                Description = TopUpPackageKind.Package5.GetDescription(),
+                Kind = (byte)TopUpPackageKind.Package5,
                 Status = (byte)TopupPackageStatus.Actived,
                 Amount = 340000, // Mức giá lớn
                 AmountDiscount = 32000,
@@ -132,12 +127,11 @@ public class InitBusiness(ILogger<BocMenhBusiness> logger
                 CreatedTs = DateTime.UtcNow,
             });
 
-            // Gói Vũ Duyên (gói cao nhất)
             await context.TopUpPackages.AddAsync(new TopUpPackage
             {
-                Name = TopUpPackageKind.VuDuyen.GetDescription(),
-                Description = TopUpPackageKind.VuDuyen.GetDescription(),
-                Kind = (byte)TopUpPackageKind.VuDuyen,
+                Name = TopUpPackageKind.Package6.GetDescription(),
+                Description = TopUpPackageKind.Package6.GetDescription(),
+                Kind = (byte)TopUpPackageKind.Package6,
                 Status = (byte)TopupPackageStatus.Actived,
                 Amount = 580000, // Gói cao cấp nhất
                 AmountDiscount = 55000,
@@ -151,6 +145,4 @@ public class InitBusiness(ILogger<BocMenhBusiness> logger
 
         await context.SaveChangesAsync();
     }
-
-
 }
