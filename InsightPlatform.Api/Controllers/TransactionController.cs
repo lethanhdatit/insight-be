@@ -65,7 +65,8 @@ public class TransactionController(IWebHostEnvironment env
                 Icon = icon,
                 Active = active,
             };
-        }).ToList();
+        }).OrderBy(o => o.Id)
+          .ToList();
 
         return HandleOk(new BaseResponse<dynamic>(res));
     }
