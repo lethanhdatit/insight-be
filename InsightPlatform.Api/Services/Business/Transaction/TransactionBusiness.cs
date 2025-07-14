@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -91,9 +92,9 @@ public class TransactionBusiness(ILogger<TransactionBusiness> logger
             await context.Transactions.AddAsync(trans);
             await context.SaveChangesAsync();
 
-            request.CallbackUrl = request.CallbackUrl?.WithQuery(new
+            request.CallbackUrl = request.CallbackUrl?.WithQuery(new Dictionary<string, string>
             {
-                transId = trans.Id
+                { "transId", trans.Id.ToString() }
             });
 
             string ipnUrl = null;
