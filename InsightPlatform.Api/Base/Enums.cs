@@ -84,23 +84,23 @@ public enum TheologyStatus : byte
 
 public enum TopUpPackageKind : byte
 {
-    [Description("Hữu Duyên")]
-    HuuDuyen = 1,
+    [Description("Vô Vi")]
+    Package1 = 1,
 
-    [Description("Thời Duyên")]
-    ThoiDuyen = 2,
+    [Description("Vô Ngã")]
+    Package2 = 2,
 
-    [Description("Nhật Duyên")]
-    NhatDuyen = 3,
+    [Description("Vô Tướng")]
+    Package3 = 3,
 
-    [Description("Nguyệt Duyên")]
-    NguyetDuyen = 4,
+    [Description("Vô Úy")]
+    Package4 = 4,
 
-    [Description("Thiên Duyên")]
-    ThienDuyen = 5,
+    [Description("Vô Nhiễm")]
+    Package5 = 5,
 
-    [Description("Vũ Duyên")]
-    VuDuyen = 6,
+    [Description("Vô lượng")]
+    Package6 = 6,
 }
 
 public enum TopupPackageStatus : byte
