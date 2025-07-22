@@ -480,9 +480,17 @@ public class TransactionBusiness(ILogger<TransactionBusiness> logger
 
         try
         {
+            if (data.OrderId.IsMissing())
+                throw new BusinessException("InvalidVietQrCallback", "OrderId is missing in the callback data");
+
+            var orderId = Guid.TryParse(data.OrderId, out var id) ? id : (Guid?)null;
+
+            if (orderId == null)
+                throw new BusinessException("InvalidVietQrCallback", "OrderId is invalid in the callback data");
+
             var trans = await context.Transactions.Include(i => i.FatePointTransactions)
                                                   .Include(i => i.TopUpPackage)
-                                                  .FirstOrDefaultAsync(x => x.Id == Guid.Parse(data.OrderId));
+                                                  .FirstOrDefaultAsync(x => x.Id == orderId);
 
             if (trans == null)
                 throw new BusinessException("TransactionNotFound", $"Transaction not found, id = {data.OrderId}");
@@ -533,10 +541,10 @@ public class TransactionBusiness(ILogger<TransactionBusiness> logger
 
             return new(trans.Id);
         }
-        catch
+        catch(Exception ex)
         {
             await transaction.RollbackAsync();
-            throw;
+            throw new BusinessException("VietQrCallbackFailed", $"payload: {JsonSerializer.Serialize(data)}", ex);
         }
         finally
         {

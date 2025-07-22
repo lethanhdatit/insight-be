@@ -88,6 +88,22 @@ public static class HttpRequestExtensions
         return str.IsPresent() ? Guid.TryParse(str, out var val) ? val : null : null;
     }
 
+    public static string GetAccessToken(this HttpRequest request)
+    {
+        if (request.Headers.Authorization.Count == 0)
+            return null;
+
+        var authHeader = request.Headers.Authorization.ToString();
+
+        if (authHeader.IsMissing())
+            return null;
+
+        const string bearerPrefix = "Bearer ";
+        return authHeader.StartsWith(bearerPrefix, StringComparison.OrdinalIgnoreCase)
+                ? authHeader[bearerPrefix.Length..].Trim()
+                : null;
+    }
+
     public static string GetBaseUrl(this HttpRequest request)
     {
         return $"{request.Scheme}://{request.Host}";

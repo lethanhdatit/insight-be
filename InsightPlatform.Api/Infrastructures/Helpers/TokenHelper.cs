@@ -30,14 +30,23 @@ public static class TokenHelper
 
     public static (string token, DateTime? expiration) GetToken(TokenSettings appSettings, List<Claim> userClaims, TimeSpan exp)
     {
-        var secretKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(appSettings.SecretKey));
+        return GetToken(appSettings.SecretKey, appSettings.Issuer, appSettings.Audience, userClaims, exp);
+    }
+
+    public static (string token, DateTime? expiration) GetToken(string secret
+        , string issuer
+        , string audience
+        , List<Claim> userClaims
+        , TimeSpan exp)
+    {
+        var secretKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret));
         var signInCredentials = new SigningCredentials(secretKey, SecurityAlgorithms.HmacSha256);
 
         var expiration = DateTime.UtcNow.Add(exp);
 
         var tokenOptions = new JwtSecurityToken(
-            issuer: appSettings.Issuer,
-            audience: appSettings.Audience,
+            issuer: issuer,
+            audience: audience,
             claims: userClaims,
             expires: expiration,
             signingCredentials: signInCredentials
@@ -46,6 +55,50 @@ public static class TokenHelper
         var token = new JwtSecurityTokenHandler().WriteToken(tokenOptions);
 
         return (token, expiration);
+    }
+
+    public static ClaimsPrincipal ValidateToken(
+        string token,
+        string secret,
+        string validIssuer,
+        string validAudience,
+        out SecurityToken validatedToken)
+    {
+        validatedToken = null;
+
+        var tokenHandler = new JwtSecurityTokenHandler();
+        var key = Encoding.UTF8.GetBytes(secret);
+
+        var validationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidIssuer = validIssuer,
+
+            ValidateAudience = true,
+            ValidAudience = validAudience,
+
+            ValidateLifetime = true,
+            ClockSkew = TimeSpan.FromMinutes(1),
+
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(key),
+
+            RequireExpirationTime = true,
+            RequireSignedTokens = true
+        };
+
+        try
+        {
+            return tokenHandler.ValidateToken(token, validationParameters, out validatedToken);
+        }
+        catch (SecurityTokenException)
+        {
+            return null;
+        }
+        catch (Exception)
+        {
+            return null;
+        }
     }
 
     public static ClaimsPrincipal GetPrincipalFromExpiredToken(TokenSettings appSettings, string token)
