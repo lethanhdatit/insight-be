@@ -115,13 +115,14 @@ public class TransactionController(IWebHostEnvironment env
         var username = values[0];
         var password = values[1];
 
-        var connectionOptions = _paymentSettings.Gates[TransactionProvider.VietQR].PlatformConnection;
+        var gate = _paymentSettings.Gates[TransactionProvider.VietQR];
+        var connectionOptions = gate.PlatformConnection;
 
         if (username == connectionOptions.Username
             && password == connectionOptions.Password)
         {
             int expiresIn = 300;
-            var (token, _) = _accountBusiness.GenerateAccessTokenForPaymentGate(TimeSpan.FromSeconds(expiresIn), "VietQr");
+            var (token, _) = _accountBusiness.GenerateAccessTokenForPaymentGate(TimeSpan.FromSeconds(expiresIn), gate.GateConnection);
 
             return Ok(new
             {
@@ -136,11 +137,28 @@ public class TransactionController(IWebHostEnvironment env
         }
     }
 
+    [AllowAnonymous]
     [HttpPost("vqr/ipn/bank/api/transaction-sync")]
     public async Task<IActionResult> VietQrIPN([FromBody] TransactionCallback transactionCallback)
     {
         try
         {
+            var accessToken = Request.GetAccessToken();
+
+            if (accessToken.IsMissing())
+                return Unauthorized("Access token is missing");
+
+            var gate = _paymentSettings.Gates[TransactionProvider.VietQR];
+
+            var principal = TokenHelper.ValidateToken(accessToken
+                , gate.GateConnection.Password
+                , AccountBusiness.InsightSystemConst
+                , gate.GateConnection.Username
+                , out var validatedToken);
+
+            if (principal == null)
+                return Unauthorized("Invalid Access token");
+
             var res = await _transactionBusiness.HandleVietQrCallbackAsync(transactionCallback);
             string refTransactionId = res.Data.ToString();
 

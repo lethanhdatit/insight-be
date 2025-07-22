@@ -19,6 +19,7 @@ public class AccountBusiness(ILogger<AccountBusiness> logger
     private readonly TokenSettings _tokenSettings = tokenSettings.Value;
     private readonly ExternalLoginSettings _externalLoginSettings = externalLoginSettings.Value;
     private readonly IHttpClientService _httpClientService = httpClientService;
+    public const string InsightSystemConst = "InsightSystem";
 
     public async Task<BaseResponse<dynamic>> InitGuest()
     {
@@ -383,14 +384,15 @@ public class AccountBusiness(ILogger<AccountBusiness> logger
 
         return userInfoResponse;
     }
-    public (string token, DateTime? expiration) GenerateAccessTokenForPaymentGate(TimeSpan exp, string gateName)
+
+    public (string token, DateTime? expiration) GenerateAccessTokenForPaymentGate(TimeSpan exp, GateConnectionOptions gateConnection)
     {
         List<Claim> claims = [
             new Claim(Microsoft.IdentityModel.JsonWebTokens.JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-            new Claim(Microsoft.IdentityModel.JsonWebTokens.JwtRegisteredClaimNames.Sub, gateName)
+            new Claim(Microsoft.IdentityModel.JsonWebTokens.JwtRegisteredClaimNames.Sub, gateConnection.Username)
         ];
 
-        return TokenHelper.GetToken(_tokenSettings, claims, exp);
+        return TokenHelper.GetToken(gateConnection.Password, InsightSystemConst, gateConnection.Username, claims, exp);
     }
 
     private (string token, DateTime? expiration) GenerateAccessTokenFromUser(User user, bool isRememberMe)

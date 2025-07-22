@@ -13,5 +13,5 @@ public interface IAccountBusiness
 
     Task<BaseResponse<dynamic>> LoginAsync(LoginRequest payload);
 
-    (string token, DateTime? expiration) GenerateAccessTokenForPaymentGate(TimeSpan exp, string gateName);
+    (string token, DateTime? expiration) GenerateAccessTokenForPaymentGate(TimeSpan exp, GateConnectionOptions gateConnection);
 }
