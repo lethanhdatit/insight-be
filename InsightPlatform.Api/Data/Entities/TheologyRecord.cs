@@ -21,11 +21,19 @@ public class TheologyRecord
 
     public string UserPrompt { get; set; }
 
+    public string CombinedPrompts { get; set; }    
+
     public string UniqueKey { get; set; }
 
     public string Result { get; set; }
 
     public DateTime CreatedTs { get; set; }
+
+    public DateTime? LastAnalysisTs { get; set; }
+
+    public int? FailedCount { get; set; }
+
+    public List<string> Errors { get; set; }
 
     public User User { get; set; }
 

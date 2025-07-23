@@ -373,7 +373,7 @@ public static partial class StringExtensions
     /// <summary>
     /// Converts a search string to a PostgreSQL TSQUERY format with prefix matching.
     /// </summary>
-    /// <param name="searchTerm">The user's search term.</param>
+    /// <param Name="searchTerm">The user's search term.</param>
     /// <returns>A formatted string suitable for to_tsquery with prefix matching.</returns>
     public static string ToTsQuery(this string searchTerm, bool anyKeyword = false)
     {

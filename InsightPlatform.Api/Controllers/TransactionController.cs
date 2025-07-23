@@ -92,6 +92,13 @@ public class TransactionController(IWebHostEnvironment env
         return HandleOk(res);
     }
 
+    [HttpPost("theology/{id}/paid")]
+    public async Task<IActionResult> PaidTheologyRecord([FromRoute] Guid id)
+    {
+        var res = await _transactionBusiness.PaidTheologyRecordAsync(id);
+        return HandleOk(res);
+    }
+
     #region VietQR IPN
 
     [AllowAnonymous]

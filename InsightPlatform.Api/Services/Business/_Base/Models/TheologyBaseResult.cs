@@ -1,5 +1,5 @@
-﻿public class TheologyBaseResult<PaidResult, FreeResult>
+﻿public class TheologyBaseResult<PaidResultT, FreeResultT>
 {
-    public PaidResult PResult { get; set; }
-    public FreeResult FResult { get; set; }
+    public PaidResultT PaidResult { get; set; }
+    public FreeResultT FreeResult { get; set; }
 }
