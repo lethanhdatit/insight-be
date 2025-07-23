@@ -188,7 +188,7 @@ public class PayPalName
     public string Surname { get; set; }
 
     [JsonPropertyName("full_name")]
-    public string FullName { get; set; } // optional – dùng cho shipping.name
+    public string FullName { get; set; } // optional – dùng cho shipping.Name
 }
 
 public class PayPalAddress

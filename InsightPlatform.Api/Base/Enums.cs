@@ -80,6 +80,7 @@ public enum TheologyStatus : byte
     Created = 1,
     Analyzing = 2,
     Analyzed = 3,
+    Failed = 4,
 }
 
 public enum TopUpPackageKind : byte

@@ -735,6 +735,60 @@ public class TransactionBusiness(ILogger<TransactionBusiness> logger
         }
     }
 
+    public async Task<BaseResponse<int>> PaidTheologyRecordAsync(Guid id)
+    {
+        await using var context = await _contextFactory.CreateDbContextAsync();
+        await using var transaction = await context.Database.BeginTransactionAsync();
+
+        var userId = Current.UserId;
+
+        var service = await context.TheologyRecords.Include(i => i.FatePointTransactions)
+                                                   .Include(i => i.ServicePrice)
+                                                   .FirstOrDefaultAsync(f => f.Id == id
+                                                                          && f.UserId == userId);
+
+        try
+        {
+            if (service == null)
+                throw new BusinessException("NotFound", "Id not found");
+
+            if (service.FatePointTransactions.Count != 0)
+                throw new BusinessException("Paid", "This service paid");
+
+            var fates = await RecalculateUserFates(userId.Value);
+
+            var serviceFates = service.ServicePrice.GetFinalFates();
+
+            if (fates < serviceFates)
+                throw new BusinessException("FatesNotEnough", "Fates are not enough to proceed");
+
+            service.FatePointTransactions.Add(new FatePointTransaction
+            {
+                UserId = userId.Value,
+                Fates = -serviceFates,
+                CreatedTs = DateTime.UtcNow,
+            });
+
+            context.TheologyRecords.Update(service);
+            await context.SaveChangesAsync();
+            await transaction.CommitAsync();
+
+            fates = await RecalculateUserFates(userId.Value);
+            return new(fates);
+        }
+        catch
+        {
+            await transaction.RollbackAsync();
+            throw;
+        }
+        finally
+        {
+            await transaction.DisposeAsync();
+            await context.DisposeAsync();
+        }
+    }
+
+
     private decimal CalculateAmountByGateProvider(TransactionProvider provider, decimal amountVND, ref decimal rate, ref string currency)
     {
         rate = 1;

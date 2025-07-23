@@ -1,34 +1,36 @@
 ﻿using System;
+using System.Text.Json.Serialization;
 
 public class TuTruBatTuRequest : TheologyBase
 {
-    public string name { get; set; }
+    [JsonPropertyName("name")]
+    public string Name { get; set; }
 
-    public DateTime birthDateTime { get; set; }
+    [JsonPropertyName("birthDateTime")]
+    public DateTime BirthDateTime { get; set; }
 
-    public string birthPlace { get; set; }
+    [JsonPropertyName("gender")]
+    public Gender Gender { get; set; }
 
-    public Gender gender { get; set; }
-
-    public TuTruBatTuCategory category { get; set; }
+    [JsonPropertyName("category")]
+    public TuTruBatTuCategory Category { get; set; }
 
     public void Standardize()
     {
-        birthPlace = birthPlace?.Trim();
-        name = name?.Trim();
+        Name = Name?.Trim();
     }
 
-    public string InitUniqueKey(TheologyKind kind, string sysPrompt = null, string userPrompt = null)
+    public string InitUniqueKey(TheologyKind kind, string sysPrompt = null, string userPrompt = null, string combinedPrompts = null)
     {
         return string.Join("|",
-             Normalize(name),
-             Normalize(birthPlace),
-             Normalize(birthDateTime, "dd/MM/yyyy HH:mm"),
-             Normalize(((short?)gender)?.ToString()),
-             Normalize(((short?)category)?.ToString()),
+             Normalize(Name),
+             Normalize(BirthDateTime, "dd/MM/yyyy HH:mm"),
+             Normalize(((short?)Gender)?.ToString()),
+             Normalize(((short?)Category)?.ToString()),
              Normalize(((short?)kind)?.ToString()),
              Normalize(sysPrompt),
-             Normalize(userPrompt)
+             Normalize(userPrompt),
+             Normalize(combinedPrompts)
          ).ComputeSha256Hash();
     }
 }

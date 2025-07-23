@@ -20,4 +20,6 @@ public interface ITransactionBusiness
     Task<BaseResponse<Guid>> HandleVietQrCallbackAsync(TransactionCallback data);
 
     Task<BaseResponse<Guid>> HandlePaypalCallbackAsync(PayPalWebhookEvent data);
+
+    Task<BaseResponse<int>> PaidTheologyRecordAsync(Guid id);
 }

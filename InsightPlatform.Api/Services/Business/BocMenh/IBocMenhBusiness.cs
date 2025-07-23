@@ -5,9 +5,9 @@ public interface IBocMenhBusiness
 {  
     Task<BaseResponse<dynamic>> InitTuTruBatTuAsync(TuTruBatTuRequest request);
 
-    Task<BaseResponse<TheologyBaseResult<string, string>>> ExplainTuTruBatTuAsync(Guid id, int retry);
+    Task<BaseResponse<bool>> ExplainTuTruBatTuAsync(Guid id);
 
-    Task<BaseResponse<int>> PaidTheologyRecordAsync(Guid id);
+    Task<BaseResponse<dynamic>> ExplainTuTruBatTuTestAsync(TuTruBatTuRequest request);    
 
     Task<BaseResponse<dynamic>> GetTuTruBatTuAsync(Guid id);
 }

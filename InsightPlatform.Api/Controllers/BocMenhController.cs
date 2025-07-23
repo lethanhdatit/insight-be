@@ -24,26 +24,20 @@ public class BocMenhController(IWebHostEnvironment env
         return HandleOk(res);
     }
 
+    [AllowAnonymous]
+    [HttpPost("tuTruBatTu/test")]
+    public async Task<IActionResult> ExplainTuTruBatTuTest([FromBody] TuTruBatTuRequest request)
+    {
+        var res = await _bocMenhBusiness.ExplainTuTruBatTuTestAsync(request);
+        return HandleOk(res);
+    }
+
     [HttpGet("tuTruBatTu/{id}")]
     public async Task<IActionResult> GetTuTruBatTu([FromRoute] Guid id)
     {
         var res = await _bocMenhBusiness.GetTuTruBatTuAsync(id);
         return HandleOk(res);
     }
-    
-    [HttpPost("tuTruBatTu/{id}")]
-    public async Task<IActionResult> ExplainTuTruBatTu([FromRoute] Guid id)
-    {
-        var res = await _bocMenhBusiness.ExplainTuTruBatTuAsync(id, 5);
-        return HandleOk(res);
-    }
 
-    #endregion BatTuTuTru
-
-    [HttpPost("{id}/paid")]
-    public async Task<IActionResult> PaidTheologyRecord([FromRoute] Guid id)
-    {
-        var res = await _bocMenhBusiness.PaidTheologyRecordAsync(id);
-        return HandleOk(res);
-    }
+    #endregion BatTuTuTru    
 }
