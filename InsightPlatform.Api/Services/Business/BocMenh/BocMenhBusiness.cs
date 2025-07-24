@@ -132,7 +132,7 @@ public class BocMenhBusiness(ILogger<BocMenhBusiness> logger
 
             if (existed.Status == (byte)TheologyStatus.Created
                 || (existed.Status == (byte)TheologyStatus.Analyzing
-                     && (existed.LastAnalysisTs == null || existed.LastAnalysisTs.Value < DateTime.UtcNow.AddSeconds(-40))))
+                     && (existed.LastAnalysisTs == null || existed.LastAnalysisTs.Value < DateTime.UtcNow.AddSeconds(-(GeminiAIService.HttpClientTimeOut/3)))))
             {
                 existed.Status = (byte)TheologyStatus.Analyzing;
                 existed.LastAnalysisTs = DateTime.UtcNow;
