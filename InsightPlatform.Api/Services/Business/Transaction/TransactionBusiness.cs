@@ -537,7 +537,7 @@ public class TransactionBusiness(ILogger<TransactionBusiness> logger
             await context.SaveChangesAsync();
             await transaction.CommitAsync();
 
-            FuncTaskHelper.FireAndForget(() => RecalculateUserFates(trans.UserId));
+            await RecalculateUserFates(trans.UserId);
 
             return new(trans.Id);
         }
@@ -658,7 +658,7 @@ public class TransactionBusiness(ILogger<TransactionBusiness> logger
             await context.SaveChangesAsync();
             await transaction.CommitAsync();
 
-            FuncTaskHelper.FireAndForget(() => RecalculateUserFates(trans.UserId));
+            await RecalculateUserFates(trans.UserId);
 
             return new(trans.Id);
         }
