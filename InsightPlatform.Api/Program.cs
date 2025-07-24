@@ -126,11 +126,13 @@ services.AddHealthChecks();
 
 var app = builder.Build();
 
-if (!app.Environment.IsProduction())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+//if (!app.Environment.IsProduction())
+//{
+//    app.UseSwagger();
+//    app.UseSwaggerUI();
+//}
+app.UseSwagger();
+app.UseSwaggerUI();
 
 app.MapHealthChecks("/health");
 app.MapGet("/", (HttpContext context) =>
