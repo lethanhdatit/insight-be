@@ -249,6 +249,7 @@ Thông tin lá số như sau:
 - Họ và tên: {request.Name}
 - Giới tính: {request.Gender.GetDescription()}
 - Tuổi hiện tại: {(DateTime.UtcNow.Year - request.BirthDateTime.Year)}
+- Năm hiện tại: {DateTime.UtcNow.Year}
 - Ngày giờ sinh Dương lịch: {request.BirthDateTime:dd/MM/yyyy HH:mm} ({request.BirthDateTime.DayOfWeek})
 - Ngày giờ sinh Âm lịch: {lunarBirthDateTime:dd/MM/yyyy HH:mm} ({lunarBirthDateTime.DayOfWeek})
 - Tứ trụ:
@@ -293,7 +294,7 @@ Thông tin lá số như sau:
 6.  **Luôn bám sát thông tin lá số mà người dùng cung cấp, được phép tự do suy luận dựa trên đó**: Sử dụng thông tin từ lá số Bát Tự mà người dùng cung cấp để làm cơ sở cho các phân tích và luận giải. Không tự ý thêm thông tin không có trong lá số, nhưng được phép suy luận tự do từ lá số ấy.
 7.  **Luôn đề cập và xưng hô bằng tên gọi của người dùng và tuổi của họ**: Xưng hô tên gọi dựa vào tuổi, ví dụ anh Đạt, chị Hân, cô Nhàn, chú Đức, ông Năm, bà Lan,... thể hiện sự gần gũi, tôn trọng.
 8.  **Luôn chú trọng tính mạch lạc trong câu từ, cách hành văn, tránh lập ý lập từ quá nhiều** Tuy rằng kết quả trả về ở dạng Json, nhưng vẫn cần đảm bảo tính mạch lạc toàn bộ các câu trong đoạn, các đoạn trong section, section trong cả Json. Phải dễ hiểu trong từng câu từ, tránh việc lập ý lập từ quá nhiều, khiến cho người đọc cảm thấy khó hiểu hoặc rối rắm.
-9.  **Luận giải phải dựa trên tính thực tế về độ tuổi, khoản thời gian đang đề cập so với xu thế xã hội hiện tại**: Các luận giải đưa ra phải mang sức thuyết phục và khiến người dùng cảm giác đúng với bản thân và xu hướng xã hội và độ tuổi của họ lúc được đề cập.
+9.  **Luận giải phải dựa trên tính thực tế về độ tuổi, khoản thời gian đang đề cập so, năm hiện tại mà người dùng cung cấp và xu thế xã hội hiện tại**: Các luận giải đưa ra phải mang sức thuyết phục và khiến người dùng cảm giác đúng với bản thân và xu hướng xã hội và độ tuổi của họ lúc được đề cập. lưu ý phải lấy năm hiện tại là năm mà người dùng cung cấp, tránh việc lấy năm mà dữ liệu AI được training cuối cùng có thể gây sai lệch về thời gian.
 
 == CẤU TRÚC JSON BẮT BUỘC ==
 Hãy điền thông tin vào mẫu JSON dưới đây.
