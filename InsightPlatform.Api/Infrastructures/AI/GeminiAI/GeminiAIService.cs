@@ -14,7 +14,7 @@ public class GeminiAIService : IGeminiAIService
 {
     private readonly IHttpClientService _httpClientService;
     private readonly AISettings _settings;
-    private const int HttpClientTimeOut = 300;
+    public const int HttpClientTimeOut = 300;
 
     public GeminiAIService(IOptions<AISettings> settings, IHttpClientService httpClientService, IConfiguration config)
     {
