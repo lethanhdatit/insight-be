@@ -408,11 +408,11 @@ public class VietnameseCalendar
     {
         GetCanChiTuTru(lunar, out CanChi day, out CanChi month, out CanChi year, out CanChi hour);
 
-        var canChiThangGieng = GetCanThangGieng(year.Can.Value.Value);
+        //var canChiThangGieng = GetCanThangGieng(year.Can.Value.Value);
 
-        var thaiNguyen = GetThaiNguyen(month.Can.Value.Value, month.Chi.Value.Value);
-        var thaiTuc = GetThaiTuc(day.Can.Value.Value, day.Chi.Value.Value);
-        var cungMenh = GetCungMenh(canChiThangGieng, month.Chi.Value.Value, hour.Chi.Value.Value);
+        //var thaiNguyen = GetThaiNguyen(month.Can.Value.Value, month.Chi.Value.Value);
+        //var thaiTuc = GetThaiTuc(day.Can.Value.Value, day.Chi.Value.Value);
+        //var cungMenh = GetCungMenh(canChiThangGieng, month.Chi.Value.Value, hour.Chi.Value.Value);
 
         return new TuTru(day, month, year, hour);
     }
@@ -878,7 +878,18 @@ public class CanChi
     public CanChiDetail<EnumCAN> Can { get; set; }
     public CanChiDetail<EnumCHI> Chi { get; set; }
     public CanChiDetail<EnumNapAm> NapAm { get; set; }
+    public List<string> VongTruongSinh { get; set; }
+    public List<string> ThanSat { get; set; }
+    public List<string> ThapThan { get; set; }
     public bool? IsLeap { get; set; }
+
+    public string ShortDisplay
+    {
+        get
+        {
+            return $"{Can.Value.Display} {Chi.Value.Display}";
+        }
+    }
 }
 
 public class CanChiDetail<TEnum> where TEnum : Enum
@@ -916,6 +927,9 @@ public class CanChiDetail<TEnum> where TEnum : Enum
     public EnumDetail<TEnum> Value { get; set; }
     public EnumDetail<EnumYinYang> AmDuong { get; set; }
     public EnumDetail<EnumNguHanhBanMenh> NguHanhBanMenh { get; set; }
+
+    public List<string> ThapThan { get; set; }
+
     public string Display
     {
         get

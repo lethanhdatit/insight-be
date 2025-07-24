@@ -1,13 +1,13 @@
 ﻿using Microsoft.AspNetCore.Http;
 using System;
 using System.Linq;
-using System.Security.Claims;
 using UAParser;
 
 public static class HttpRequestExtensions
 {
     public const string XCountrySiteHeaderKey = "X-Country-site";
     public const string XTimeZoneOffsetHeaderKey = "X-TimeZone-Offset";
+    public const string XTimeZoneIdHeaderKey = "X-Time-Zone-Id";
     public const string XGuestUserIdHeaderKey = "X-GuestUserId";
     public const string XLocaleCodeHeaderKey = "X-Locale-Code";
 
@@ -80,6 +80,11 @@ public static class HttpRequestExtensions
         _ = int.TryParse(str, out var offset);
 
         return offset;
+    }
+
+    public static string GetClientTimeZoneId(this HttpRequest request, string defaultId = "Asia/Ho_Chi_Minh")
+    {
+        return request.Headers.TryGetValue(XTimeZoneIdHeaderKey, out var id) && id.Count != 0 ? id.FirstOrDefault() : defaultId;
     }
 
     public static Guid? GetGuestUserId(this HttpRequest request)

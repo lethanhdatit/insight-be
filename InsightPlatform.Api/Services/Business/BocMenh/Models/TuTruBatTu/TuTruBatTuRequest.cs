@@ -24,7 +24,7 @@ public class TuTruBatTuRequest : TheologyBase
     {
         return string.Join("|",
              Normalize(Name),
-             Normalize(BirthDateTime, "dd/MM/yyyy HH:mm"),
+             Normalize(BirthDateTime, "dd/MM/yyyy HH"),
              Normalize(((short?)Gender)?.ToString()),
              Normalize(((short?)Category)?.ToString()),
              Normalize(((short?)kind)?.ToString()),

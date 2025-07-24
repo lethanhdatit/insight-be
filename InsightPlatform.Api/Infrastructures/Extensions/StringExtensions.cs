@@ -4,7 +4,6 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net;
-using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -55,9 +54,44 @@ public static partial class StringExtensions
 
     public static string ComputeSha256Hash(this string rawData)
     {
-        using var sha256 = SHA256.Create();
-        var bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(rawData));
+        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(rawData));
         return Convert.ToHexString(bytes).ToLowerInvariant();
+    }
+
+    public static List<List<string>> ExtractDelimitedLists(this string input, string open = "[[", string close = "]]")
+    {
+        string escapedOpen = Regex.Escape(open);
+        string escapedClose = Regex.Escape(close);
+
+        string pattern = $@"{escapedOpen}(.*?){escapedClose}";
+
+        var matches = Regex.Matches(input, pattern);
+        var result = new List<List<string>>();
+
+        foreach (Match match in matches)
+        {
+            var content = match.Groups[1].Value;
+            var items = content.Split(',')
+                               .Select(s => s.Trim())
+                               .Where(s => !string.IsNullOrEmpty(s))
+                               .ToList();
+
+            result.Add(items);
+        }
+
+        return result;
+    }
+
+    public static string RemoveDelimiters(this string input, string open, string close)
+    {
+        string escapedOpen = Regex.Escape(open);
+        string escapedClose = Regex.Escape(close);
+        string pattern = $@"{escapedOpen}(.*?){escapedClose}";
+
+        return Regex.Replace(input, pattern, match =>
+        {
+            return match.Groups[1].Value; // Giữ nguyên phần bên trong
+        });
     }
 
     public static (bool, string) CompareWords(this string source, string target, string replaceBy = null)
@@ -388,6 +422,26 @@ public static partial class StringExtensions
         var condition = anyKeyword ? "|" : "&";
 
         return string.Join($" {condition} ", formattedTerms).ToLower();
+    }
+
+    public static string NormalizeAiResponseString(this string input)
+    {
+        if (input.IsMissing())
+            return null;
+
+        input = input.Trim();
+
+        input = input.Replace("```html", string.Empty);
+
+        input = input.Replace("```json", string.Empty);
+
+        if (input.StartsWith("```"))
+            input = input.TrimStart('`');
+
+        if (input.EndsWith("```"))
+            input = input.TrimEnd('`');
+
+        return input;
     }
 
     public static string RemoveVietnameseDiacritics(this string input)
