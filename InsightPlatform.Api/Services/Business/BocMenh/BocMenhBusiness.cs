@@ -123,6 +123,13 @@ public class BocMenhBusiness(ILogger<BocMenhBusiness> logger
             if (existed.Status == (short)TheologyStatus.Failed)
                 throw new BusinessException("FailedTuTruBatTu", "TuTruBatTu failed");
 
+            if (existed.FirstAnalysisTs == null)
+            {
+                existed.FirstAnalysisTs = DateTime.UtcNow;
+                context.TheologyRecords.Update(existed);
+                await context.SaveChangesAsync();
+            }
+
             if (existed.Status == (byte)TheologyStatus.Created
                 || (existed.Status == (byte)TheologyStatus.Analyzing
                      && (existed.LastAnalysisTs == null || existed.LastAnalysisTs.Value < DateTime.UtcNow.AddSeconds(-40))))
@@ -156,6 +163,7 @@ public class BocMenhBusiness(ILogger<BocMenhBusiness> logger
                     }).ToList() ?? [],
                 });
 
+                existed.SuccessedAnalysisTs = DateTime.UtcNow;
                 existed.Status = (byte)TheologyStatus.Analyzed;
                 context.TheologyRecords.Update(existed);
                 await context.SaveChangesAsync();
@@ -171,6 +179,7 @@ public class BocMenhBusiness(ILogger<BocMenhBusiness> logger
 
                 if (existed.FailedCount >= 5)
                 {
+                    existed.FailedAnalysisTs = DateTime.UtcNow;
                     existed.Status = (byte)TheologyStatus.Failed;
                 }
                 else
