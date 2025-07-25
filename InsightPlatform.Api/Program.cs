@@ -4,8 +4,10 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
@@ -117,24 +119,13 @@ services.AddSwaggerGen(options =>
 });
 services.AddHealthChecks();
 
-// === Build & Pipeline ===
-//if (!builder.Environment.IsDevelopment())
-//{
-//    builder.WebHost.ConfigureKestrel(options =>
-//    {
-//        options.ListenUnixSocket("/app/socket/socket.sock");
-//    });
-//}
-
 var app = builder.Build();
 
-//if (!app.Environment.IsProduction())
-//{
-//    app.UseSwagger();
-//    app.UseSwaggerUI();
-//}
-app.UseSwagger();
-app.UseSwaggerUI();
+if (!app.Environment.IsProduction())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
 
 app.MapHealthChecks("/health");
 app.MapGet("/", (HttpContext context) =>
@@ -160,8 +151,14 @@ app.Use(async (context, next) =>
     }
 
     var rqkey = context.Request.GetApiKey();
+    var path = context.Request.Path.ToString().ToLowerInvariant();
+    var excludedPaths = new List<string>
+    {
+        "/",
+        "/health"
+    };
 
-    if (rqkey != corsSettings.Key)
+    if (!excludedPaths.Contains(path) && rqkey != corsSettings.Key)
     {
         context.Response.StatusCode = StatusCodes.Status403Forbidden;
         await context.Response.WriteAsJsonAsync(new BaseResponse<object>(null, "Invalid API key."));
