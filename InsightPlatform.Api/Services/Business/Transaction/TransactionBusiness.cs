@@ -759,13 +759,13 @@ public class TransactionBusiness(ILogger<TransactionBusiness> logger
 
             var serviceFates = service.ServicePrice.GetFinalFates();
 
-            if (fates < serviceFates)
+            if (serviceFates > 0 && fates < serviceFates)
                 throw new BusinessException("FatesNotEnough", "Fates are not enough to proceed");
 
             service.FatePointTransactions.Add(new FatePointTransaction
             {
                 UserId = userId.Value,
-                Fates = -serviceFates,
+                Fates = serviceFates > 0 ? -serviceFates : 0,
                 CreatedTs = DateTime.UtcNow,
             });
 
