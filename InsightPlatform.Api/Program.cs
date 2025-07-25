@@ -4,9 +4,9 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using System;
+using System.Linq;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
@@ -39,13 +39,15 @@ services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 // === Localization && CORS ===
 services.AddSingleton<AppRequestLocalization>();
-var cors = builder.Configuration.GetSection(CorsWhiteListSettings.Path).Get<string[]>();
+
+var corsSettings = configuration.GetSection(CorsWhiteListSettings.Path).Get<CorsWhiteListSettings>();
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy(CorsWhiteListSettings.Policy,
         policy =>
         {
-            policy.WithOrigins(cors)
+            policy.WithOrigins([.. corsSettings.Origins])
                   .AllowAnyHeader()
                   .AllowCredentials()
                   .AllowAnyMethod()
@@ -144,6 +146,30 @@ app.UseHttpsRedirection();
 
 var localization = app.Services.GetRequiredService<AppRequestLocalization>();
 app.UseRequestLocalization(localization.GetRequestLocalizationOptions());
+
+app.Use(async (context, next) =>
+{
+    var origin = context.Request.Headers.Origin.ToString();
+
+    if (origin.IsPresent()
+      && !corsSettings.Origins.Any(a => a.Trim().Trim('/').Equals(origin.Trim().Trim('/'), StringComparison.OrdinalIgnoreCase)))
+    {
+        context.Response.StatusCode = StatusCodes.Status403Forbidden;
+        await context.Response.WriteAsJsonAsync(new BaseResponse<object>(null, "Origin not allowed."));
+        return;
+    }
+
+    var rqkey = context.Request.GetApiKey();
+
+    if (rqkey != corsSettings.Key)
+    {
+        context.Response.StatusCode = StatusCodes.Status403Forbidden;
+        await context.Response.WriteAsJsonAsync(new BaseResponse<object>(null, "Invalid API key."));
+        return;
+    }
+
+    await next();
+});
 
 app.UseAuthentication();
 app.UseAuthorization();

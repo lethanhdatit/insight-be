@@ -10,6 +10,7 @@ public static class HttpRequestExtensions
     public const string XTimeZoneIdHeaderKey = "X-Time-Zone-Id";
     public const string XGuestUserIdHeaderKey = "X-GuestUserId";
     public const string XLocaleCodeHeaderKey = "X-Locale-Code";
+    public const string XApiKeyHeaderKey = "X-Api-Key";
 
     public readonly static Parser UaParser = Parser.GetDefault();
 
@@ -72,7 +73,6 @@ public static class HttpRequestExtensions
         };
     }
 
-
     public static int GetClientTimeZoneOffset(this HttpRequest request)
     {
         var str = request.Headers[XTimeZoneOffsetHeaderKey].FirstOrDefault();
@@ -91,6 +91,11 @@ public static class HttpRequestExtensions
     {
         var str = request.Headers[XGuestUserIdHeaderKey].FirstOrDefault() ?? string.Empty;
         return str.IsPresent() ? Guid.TryParse(str, out var val) ? val : null : null;
+    }
+
+    public static string GetApiKey(this HttpRequest request)
+    {
+        return request.Headers.TryGetValue(XApiKeyHeaderKey, out var apiKey) ? apiKey.ToString() :null;
     }
 
     public static string GetAccessToken(this HttpRequest request)
