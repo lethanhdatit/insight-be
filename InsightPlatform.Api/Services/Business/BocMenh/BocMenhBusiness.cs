@@ -11,10 +11,12 @@ public class BocMenhBusiness(ILogger<BocMenhBusiness> logger
     , IDbContextFactory<ApplicationDbContext> contextFactory
     , IHttpContextAccessor contextAccessor
     , IGeminiAIService geminiAIService
+    , ITransactionBusiness transactionBusiness
     , IPhongThuyNhanSinhService phongThuyNhanSinhService) : BaseHttpBusiness<BocMenhBusiness, ApplicationDbContext>(logger, contextFactory, contextAccessor), IBocMenhBusiness
 {
     private readonly IGeminiAIService _geminiAIService = geminiAIService;
     private readonly IPhongThuyNhanSinhService _phongThuyNhanSinhService = phongThuyNhanSinhService;
+    private readonly ITransactionBusiness _transactionBusiness = transactionBusiness;
 
     public async Task<BaseResponse<dynamic>> GetTuTruBatTuAsync(Guid id)
     {
@@ -92,6 +94,11 @@ public class BocMenhBusiness(ILogger<BocMenhBusiness> logger
 
                 await context.TheologyRecords.AddAsync(existed);
                 await context.SaveChangesAsync();
+
+                if (servicePrice.GetFinalFates() <= 0)
+                {
+                    await _transactionBusiness.PaidTheologyRecordAsync(existed.Id);
+                }
             }
 
             return new(new
