@@ -50,6 +50,79 @@ public class TransactionBusiness(ILogger<TransactionBusiness> logger
         return new(topups);
     }
 
+    public async Task<BaseResponse<dynamic>> GetTransactionsAsync(int pageNumber, int pageSize)
+    {
+        await using var context = await _contextFactory.CreateDbContextAsync();
+
+        var userId = Current.UserId;
+
+        var query = context.Transactions.Where(f => f.UserId == userId)
+                                        .OrderByDescending(o => o.CreatedTs);
+
+        var result = new PaginatedBase<dynamic>
+        {
+            PageNumber = pageNumber,
+            PageSize = pageSize,
+            Items = [],
+            TotalRecords = await query.LongCountAsync()
+        };
+        result.TotalPages = result.PageSize.HasValue ? (long)Math.Ceiling((double)result.TotalRecords / result.PageSize.Value) : 1;
+
+        var list = await query.Skip(((pageNumber - 1) * pageSize))
+                              .Take(pageSize)
+                              .ToListAsync();
+
+        foreach (var item in list)
+        {
+            var meta = item.MetaData.IsPresent() ? JsonSerializer.Deserialize<TransactionMetaData>(item.MetaData) : null;
+            string currency = "VND";
+
+            var provider = (TransactionProvider)item.Provider;
+            decimal exchangeRate = item.ExchangeRate ?? 1;
+
+            var total = CalculateAmountByGateProvider(provider, item.Total, ref exchangeRate, ref currency);
+
+            var subTotal = CalculateAmountByGateProvider(provider, item.SubTotal, ref exchangeRate, ref currency);
+
+            var feeTotal = CalculateAmountByGateProvider(provider, item.FeeTotal, ref exchangeRate, ref currency);
+
+            var vatTotal = CalculateAmountByGateProvider(provider, item.VATaxTotal, ref exchangeRate, ref currency);
+
+            var finalTotal = CalculateAmountByGateProvider(provider, item.FinalTotal, ref exchangeRate, ref currency);
+
+            var realPaid = meta?.TransactionHictories.Sum(s => s.Amount) ?? 0;
+            
+            result.Items.Add(new
+            {
+                Id = item.Id,
+                Status = (TransactionStatus)item.Status,
+                item.CreatedTs,
+                Provider = provider,
+                Currency = currency,
+                ExchangeRate = exchangeRate,
+                Total = total,
+                SubTotal = subTotal,
+                DiscountTotal = Math.Max(total - subTotal, 0),
+                FinalTotal = finalTotal,
+                Paid = realPaid,
+                BuyerPaysFee = item.BuyerPaysFee,
+                FeeRate = item.FeeRate * 100,
+                FeeTotal = feeTotal,
+                VATaxIncluded = item.VATaxIncluded,
+                VATaxRate = item.VATaxRate * 100,
+                VATaxTotal = vatTotal,
+                Note = item.Note,
+                PackageName = meta?.TopUpPackageSnap?.Name,
+                Fates = meta?.TopUpPackageSnap?.Fates ?? 0,
+                FinalFates = meta?.TopUpPackageSnap?.FinalFates ?? 0,
+                FateBonus = meta?.TopUpPackageSnap?.FateBonus ?? 0,
+                FateBonusRate = (meta?.TopUpPackageSnap?.FateBonusRate ?? 0) * 100,
+            });
+        }
+
+        return new(result);
+    }
+
     public async Task<BaseResponse<dynamic>> BuyTopupAsync(BuyTopupRequest request)
     {
         await using var context = await _contextFactory.CreateDbContextAsync();
@@ -59,7 +132,53 @@ public class TransactionBusiness(ILogger<TransactionBusiness> logger
 
         try
         {
-            var settings = _paymentSettings.Gates[request.Provider];
+            Transaction trans = null;
+
+            if (request.Id != null)
+            {
+                trans = await context.Transactions.FirstOrDefaultAsync(f => f.Id == request.Id);
+
+                if (trans == null
+                    || trans.Status == (short)TransactionStatus.Cancelled
+                    || trans.Status == (short)TransactionStatus.Paid)
+                {
+                    throw new BusinessException("NoPermission", $"Transaction not found or invalid status, '${(TransactionStatus)trans.Status}'");
+                }
+
+                switch ((TransactionProvider)trans.Provider)
+                {
+                    case TransactionProvider.VietQR:
+                        {
+                            var providerTransaction = trans.ProviderTransaction.IsPresent()
+                                                    ? JsonSerializer.Deserialize<VietQrPaymentMetaData>(trans.ProviderTransaction)
+                                                    : null;
+
+                            return new(new
+                            {
+                                IpnUrl = providerTransaction?.Response?.QrLink
+                            });
+                        }
+                    case TransactionProvider.Paypal:
+                        {
+                            var providerTransaction = trans.ProviderTransaction.IsPresent()
+                                                     ? JsonSerializer.Deserialize<PaypalPaymentMetaData>(trans.ProviderTransaction)
+                                                     : null;
+
+                            return new(new
+                            {
+                                IpnUrl = providerTransaction?.IpnUrl
+                            });
+                        }
+                    default:
+                        throw new BusinessException("InvalidTransactionProvider", $"Transaction provider is invalid, '${trans.Provider}'");
+                }
+            }
+
+            if (request.Provider == null
+                || request.TopupPackageId == null)
+                throw new BusinessException("InvalidInput", $"Invalid input");
+
+            var settings = _paymentSettings.Gates[request.Provider.Value];
             if (settings == null || !settings.IsActive)
             {
                 throw new BusinessException("PaymentGateNotAvailable", "Payment gate is not available or not active");
@@ -73,14 +192,16 @@ public class TransactionBusiness(ILogger<TransactionBusiness> logger
                 throw new BusinessException("TopupPackageNotFound", "Topup package not found or unavailable");
             }
 
+            var provider = request.Provider.Value;
+
             var amountAfterDiscount = package.GetAmountAfterDiscount();
 
-            var trans = new Transaction
+            trans = new Transaction
             {
                 UserId = userId.Value,
                 TopUpPackageId = package.Id,
                 Status = (byte)TransactionStatus.New,
-                Provider = (byte)request.Provider,
+                Provider = (byte)provider,
                 Total = package.Amount,
                 SubTotal = amountAfterDiscount,
                 FinalTotal = amountAfterDiscount,
@@ -105,7 +226,7 @@ public class TransactionBusiness(ILogger<TransactionBusiness> logger
 
             string ipnUrl = null;            
 
-            switch (request.Provider)
+            switch (provider)
             {
                 case TransactionProvider.VietQR:
                     {
@@ -126,11 +247,11 @@ public class TransactionBusiness(ILogger<TransactionBusiness> logger
                         , content
                         , out decimal feeAmount, out decimal discount, out decimal vatAmount, out decimal finalAmount, out string effectiveDescription);
 
-                        total = PaymentUtils.RoundAmountByGateProvider(request.Provider, total);
-                        subTotal = PaymentUtils.RoundAmountByGateProvider(request.Provider, subTotal);
-                        vatAmount = PaymentUtils.RoundAmountByGateProvider(request.Provider, vatAmount);
-                        feeAmount = PaymentUtils.RoundAmountByGateProvider(request.Provider, feeAmount);
-                        discount = PaymentUtils.RoundAmountByGateProvider(request.Provider, discount);
+                        total = PaymentUtils.RoundAmountByGateProvider(provider, total);
+                        subTotal = PaymentUtils.RoundAmountByGateProvider(provider, subTotal);
+                        vatAmount = PaymentUtils.RoundAmountByGateProvider(provider, vatAmount);
+                        feeAmount = PaymentUtils.RoundAmountByGateProvider(provider, feeAmount);
+                        discount = PaymentUtils.RoundAmountByGateProvider(provider, discount);
                         finalAmount = total + vatAmount + feeAmount - discount;
 
                         var vietQrRequest = new VietQrPaymentRequest
@@ -172,8 +293,8 @@ public class TransactionBusiness(ILogger<TransactionBusiness> logger
                     }                   
                 case TransactionProvider.Paypal:
                     {
-                        var totalUSD = PaymentUtils.RoundAmountByGateProvider(request.Provider, _currencyService.ConvertFromVND(trans.Total, "USD", out decimal rate));
-                        var subTotalUSD = PaymentUtils.RoundAmountByGateProvider(request.Provider, _currencyService.ConvertFromVND(trans.SubTotal, "USD", out rate));
+                        var totalUSD = PaymentUtils.RoundAmountByGateProvider(provider, _currencyService.ConvertFromVND(trans.Total, "USD", out decimal rate));
+                        var subTotalUSD = PaymentUtils.RoundAmountByGateProvider(provider, _currencyService.ConvertFromVND(trans.SubTotal, "USD", out rate));
 
                         var content = $"Thanh toán '{((TopUpPackageKind)package.Kind).GetDescription()}'";
 
@@ -339,7 +460,7 @@ public class TransactionBusiness(ILogger<TransactionBusiness> logger
         }
     }
 
-    public async Task<BaseResponse<dynamic>> CheckStatusAsync(Guid id)
+    public async Task<BaseResponse<dynamic>> GetDetailAsync(Guid id)
     {
         await using var context = await _contextFactory.CreateDbContextAsync();
 
@@ -527,7 +648,7 @@ public class TransactionBusiness(ILogger<TransactionBusiness> logger
                     trans.FatePointTransactions.Add(new FatePointTransaction
                     {
                         UserId = trans.UserId,
-                        Fates = trans.TopUpPackage.GetFinalFates(),
+                        Fates = metaData?.TopUpPackageSnap?.FinalFates ?? trans.TopUpPackage.GetFinalFates(),
                         CreatedTs = DateTime.UtcNow,
                     });
                 }
@@ -631,7 +752,7 @@ public class TransactionBusiness(ILogger<TransactionBusiness> logger
                                 trans.FatePointTransactions.Add(new FatePointTransaction
                                 {
                                     UserId = trans.UserId,
-                                    Fates = trans.TopUpPackage.GetFinalFates(),
+                                    Fates = metaData?.TopUpPackageSnap?.FinalFates ?? trans.TopUpPackage.GetFinalFates(),
                                     CreatedTs = DateTime.UtcNow,
                                 });
                             }

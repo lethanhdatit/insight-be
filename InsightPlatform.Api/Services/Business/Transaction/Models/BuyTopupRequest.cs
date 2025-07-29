@@ -2,9 +2,11 @@
 
 public class BuyTopupRequest
 {
-    public Guid TopupPackageId { get; set; }
+    public Guid? Id { get; set; }
 
-    public TransactionProvider Provider { get; set; }
+    public Guid? TopupPackageId { get; set; }
+
+    public TransactionProvider? Provider { get; set; }
 
     public string CallbackUrl { get; set; }
 }
