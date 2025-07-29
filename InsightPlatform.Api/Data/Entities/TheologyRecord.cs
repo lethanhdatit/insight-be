@@ -13,6 +13,8 @@ public class TheologyRecord
 
     public byte Status { get; set; }
 
+    public string ServicePriceSnap { get; set; }
+
     public string Input { get; set; }
 
     public string PreData { get; set; }

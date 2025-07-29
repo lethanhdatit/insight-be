@@ -25,6 +25,7 @@ public class BocMenhBusiness(ILogger<BocMenhBusiness> logger
         var currentUserId = Current.UserId;
 
         var existed = await context.TheologyRecords.AsNoTracking()
+                                                   .Include(i => i.ServicePrice)
                                                    .FirstOrDefaultAsync(f => f.Id == id 
                                                                           && f.UserId == currentUserId
                                                                           && f.Kind == (short)TheologyKind.TuTruBatTu);
@@ -36,14 +37,17 @@ public class BocMenhBusiness(ILogger<BocMenhBusiness> logger
             && existed.Status != (short)TheologyStatus.Failed)
             FuncTaskHelper.FireAndForget(() => ExplainTuTruBatTuAsync(existed.Id));
 
-        var servicePrice = await GetServicePriceByTheologyKind((TheologyKind)existed.Kind, context);
+        var serviceFates = existed.ServicePriceSnap.IsPresent() ?
+                           JsonSerializer.Deserialize<ServicePriceSnap>(existed.ServicePriceSnap).FinalFates :
+                           existed.ServicePrice.GetFinalFates();
+
         var res = await GetTuTruBatTuWithPaymentStatus(existed.Id, context);
 
         return new(new
         {
             Id = id,
             Status = (TheologyStatus)existed.Status,
-            ServicePrice = servicePrice?.GetFinalFates(),
+            ServicePrice = serviceFates,
             Input = existed.Input.IsPresent() ? JsonSerializer.Deserialize<TuTruBatTuRequest>(existed.Input) : null,
             PreData = existed.PreData.IsPresent() ? JsonSerializer.Deserialize<LunarInfo>(existed.PreData) : null,
             Explanation = res.Data,
@@ -82,6 +86,7 @@ public class BocMenhBusiness(ILogger<BocMenhBusiness> logger
                     UserId = userId.Value,
                     UniqueKey = key,
                     Kind = (byte)kind,
+                    ServicePriceSnap = JsonSerializer.Serialize(new ServicePriceSnap(servicePrice)),
                     Status = (byte)TheologyStatus.Created,
                     Input = JsonSerializer.Serialize(request),
                     PreData = JsonSerializer.Serialize(laSoBatTu),
@@ -97,7 +102,7 @@ public class BocMenhBusiness(ILogger<BocMenhBusiness> logger
 
                 if (servicePrice.GetFinalFates() <= 0)
                 {
-                    await _transactionBusiness.PaidTheologyRecordAsync(existed.Id);
+                    await _transactionBusiness.PayTheologyRecordAsync(existed.Id);
                 }
             }
 

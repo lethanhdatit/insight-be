@@ -41,6 +41,7 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.Input).HasColumnType("jsonb");
             entity.Property(e => e.PreData).HasColumnType("jsonb");
             entity.Property(e => e.Result).HasColumnType("jsonb");
+            entity.Property(e => e.ServicePriceSnap).HasColumnType("jsonb");
 
             entity.HasOne(p => p.User)
                     .WithMany(u => u.TheologyRecords)
