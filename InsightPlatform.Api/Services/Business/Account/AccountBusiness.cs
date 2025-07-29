@@ -407,6 +407,8 @@ public class AccountBusiness(ILogger<AccountBusiness> logger
         if (user == null)
             throw new BusinessException("UserNotFound", "User not found");
 
+        bool needLogout = false;
+
         if (request.DisplayName.IsPresent())
         {
             user.DisplayName = request.DisplayName.Trim();
@@ -414,10 +416,24 @@ public class AccountBusiness(ILogger<AccountBusiness> logger
             await context.SaveChangesAsync();
         }
 
+        if(request.Password.IsPresent() && request.NewPassword.IsPresent())
+        {
+            if (!PasswordHelper.VerifyPassword(request.Password.Trim(), user.PasswordHash, user.PasswordSalt))
+                throw new BusinessException("InvalidCredentials", "Current password is incorrect");
+            PasswordHelper.CreatePasswordHash(request.NewPassword.Trim(), out var passwordHash, out var passwordSalt);
+            user.PasswordHash = passwordHash;
+            user.PasswordSalt = passwordSalt;
+            context.Users.Update(user);
+            await context.SaveChangesAsync();
+
+            needLogout = true;
+        }
+
         return new(new
         {
             DisplayName = user.DisplayName,
             Avatar = "",
+            NeedLogout = needLogout
         });
     }
 
@@ -468,10 +484,9 @@ public class FacebookUserInfo
 public class RegisterRequest : UpdateRequest
 {
     public string Username { get; set; }
-    public string Password { get; set; }
 }
 
-public class UpdateRequest
+public class UpdateRequest : ChangePasswordRequest
 {
     public string DisplayName { get; set; }
 }
@@ -481,4 +496,10 @@ public class LoginRequest
     public string Username { get; set; }
     public string Password { get; set; }
     public bool RememberMe { get; set; }
+}
+
+public class ChangePasswordRequest
+{
+    public string Password { get; set; }
+    public string NewPassword { get; set; }
 }
