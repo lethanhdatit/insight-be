@@ -39,15 +39,6 @@ public class TransactionController(IWebHostEnvironment env
         return HandleOk(res);
     }
 
-    [HttpGet("topups/histories")]
-    public async Task<IActionResult> GetTopups(
-          [FromQuery] int pageSize = 10
-        , [FromQuery] int pageNumber = 1)
-    {
-        var res = await _transactionBusiness.GetTransactionsAsync(pageNumber, pageSize);
-        return HandleOk(res);
-    }
-
     [AllowAnonymous]
     [HttpGet("topups/memoCheckout")]
     public async Task<IActionResult> GetMemoCheckout([FromQuery] Guid topupPackageId, [FromQuery] TransactionProvider provider)
@@ -87,10 +78,19 @@ public class TransactionController(IWebHostEnvironment env
         return HandleOk(res);
     }
 
-    [HttpPost("{id}")]
-    public async Task<IActionResult> CheckStatus([FromRoute] Guid id)
+    [HttpGet("histories")]
+    public async Task<IActionResult> GetTopups(
+          [FromQuery] int pageSize = 10
+        , [FromQuery] int pageNumber = 1)
     {
-        var res = await _transactionBusiness.CheckStatusAsync(id);
+        var res = await _transactionBusiness.GetTransactionsAsync(pageNumber, pageSize);
+        return HandleOk(res);
+    }
+
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetDetail([FromRoute] Guid id)
+    {
+        var res = await _transactionBusiness.GetDetailAsync(id);
         return HandleOk(res);
     }
 

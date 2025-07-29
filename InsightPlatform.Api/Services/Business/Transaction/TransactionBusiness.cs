@@ -57,7 +57,6 @@ public class TransactionBusiness(ILogger<TransactionBusiness> logger
         var userId = Current.UserId;
 
         var query = context.Transactions.Where(f => f.UserId == userId)
-                                        .Include(i => i.TopUpPackage)
                                         .OrderByDescending(o => o.CreatedTs);
 
         var result = new PaginatedBase<dynamic>
@@ -97,6 +96,7 @@ public class TransactionBusiness(ILogger<TransactionBusiness> logger
             {
                 Id = item.Id,
                 Status = (TransactionStatus)item.Status,
+                item.CreatedTs,
                 Provider = provider,
                 Currency = currency,
                 ExchangeRate = exchangeRate,
@@ -460,7 +460,7 @@ public class TransactionBusiness(ILogger<TransactionBusiness> logger
         }
     }
 
-    public async Task<BaseResponse<dynamic>> CheckStatusAsync(Guid id)
+    public async Task<BaseResponse<dynamic>> GetDetailAsync(Guid id)
     {
         await using var context = await _contextFactory.CreateDbContextAsync();
 
@@ -648,7 +648,7 @@ public class TransactionBusiness(ILogger<TransactionBusiness> logger
                     trans.FatePointTransactions.Add(new FatePointTransaction
                     {
                         UserId = trans.UserId,
-                        Fates = trans.TopUpPackage.GetFinalFates(),
+                        Fates = metaData?.TopUpPackageSnap?.FinalFates ?? trans.TopUpPackage.GetFinalFates(),
                         CreatedTs = DateTime.UtcNow,
                     });
                 }
@@ -752,7 +752,7 @@ public class TransactionBusiness(ILogger<TransactionBusiness> logger
                                 trans.FatePointTransactions.Add(new FatePointTransaction
                                 {
                                     UserId = trans.UserId,
-                                    Fates = trans.TopUpPackage.GetFinalFates(),
+                                    Fates = metaData?.TopUpPackageSnap?.FinalFates ?? trans.TopUpPackage.GetFinalFates(),
                                     CreatedTs = DateTime.UtcNow,
                                 });
                             }

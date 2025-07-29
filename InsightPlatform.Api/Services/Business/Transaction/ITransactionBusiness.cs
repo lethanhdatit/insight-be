@@ -9,7 +9,7 @@ public interface ITransactionBusiness
 
     Task<BaseResponse<dynamic>> BuyTopupAsync(BuyTopupRequest request);
 
-    Task<BaseResponse<dynamic>> CheckStatusAsync(Guid id);
+    Task<BaseResponse<dynamic>> GetDetailAsync(Guid id);
 
     Task<BaseResponse<int>> GetUserFates();
 
