@@ -356,23 +356,69 @@ public class AccountBusiness(ILogger<AccountBusiness> logger
         if (user == null || !PasswordHelper.VerifyPassword(payload.Password, user.PasswordHash, user.PasswordSalt))
             throw new BusinessException("InvalidCredentials", "Username or password incorrect");
 
-         var (accessToken, expiration) = GenerateAccessTokenFromUser(user, payload.RememberMe);
-            var username = user.Username;
+        var (accessToken, expiration) = GenerateAccessTokenFromUser(user, payload.RememberMe);
+        var username = user.Username;
 
-            var isGuest = user.PasswordSalt.IsMissing()
-                       && user.GoogleId.IsMissing()
-                       && user.FacebookId.IsMissing();
+        var isGuest = user.PasswordSalt.IsMissing()
+                   && user.GoogleId.IsMissing()
+                   && user.FacebookId.IsMissing();
 
-            return new(new
-            {
-                Id = user.Id,
-                Email = user.Email,
-                DisplayName = user.DisplayName,
-                Token = accessToken,
-                Expiration = expiration,
-                Username = username,
-                IsGuest = isGuest
-            });
+        return new(new
+        {
+            Id = user.Id,
+            Email = user.Email,
+            DisplayName = user.DisplayName,
+            Token = accessToken,
+            Expiration = expiration,
+            Username = username,
+            IsGuest = isGuest
+        });
+    }
+    
+    public async Task<BaseResponse<dynamic>> GetMeAsync()
+    {
+        await using var context = await _contextFactory.CreateDbContextAsync();
+
+        var user = await context.Users.AsNoTracking()
+                                      .FirstOrDefaultAsync(u => u.Id == Current.UserId);
+
+        if(user == null)
+            throw new BusinessException("UserNotFound", "User not found");
+
+        return new(new
+        {
+            Id = user.Id,
+            Email = user.Email,
+            Name = user.DisplayName,
+            Avatar = string.Empty,
+            CreatedTs = user.CreatedAt,
+            TotalDays = (DateTime.UtcNow - user.CreatedAt).Days,
+            CurrentFates = user.Fates
+        });
+    }
+
+    public async Task<BaseResponse<dynamic>> UpdateMeAsync(UpdateRequest request)
+    {
+        await using var context = await _contextFactory.CreateDbContextAsync();
+
+        var user = await context.Users.AsNoTracking()
+                                      .FirstOrDefaultAsync(u => u.Id == Current.UserId);
+
+        if (user == null)
+            throw new BusinessException("UserNotFound", "User not found");
+
+        if (request.DisplayName.IsPresent())
+        {
+            user.DisplayName = request.DisplayName.Trim();
+            context.Users.Update(user);
+            await context.SaveChangesAsync();
+        }
+
+        return new(new
+        {
+            DisplayName = user.DisplayName,
+            Avatar = "",
+        });
     }
 
     public async Task<FacebookUserInfo> ValidateFacebookTokenAsync(string accessToken)
@@ -419,11 +465,15 @@ public class FacebookUserInfo
     public string Email { get; set; }
 }
 
-public class RegisterRequest
+public class RegisterRequest : UpdateRequest
 {
-    public string DisplayName { get; set; }
     public string Username { get; set; }
     public string Password { get; set; }
+}
+
+public class UpdateRequest
+{
+    public string DisplayName { get; set; }
 }
 
 public class LoginRequest
