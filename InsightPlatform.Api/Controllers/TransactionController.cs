@@ -79,11 +79,20 @@ public class TransactionController(IWebHostEnvironment env
     }
 
     [HttpGet("histories")]
-    public async Task<IActionResult> GetTopups(
+    public async Task<IActionResult> GetTransactions(
           [FromQuery] int pageSize = 10
         , [FromQuery] int pageNumber = 1)
     {
         var res = await _transactionBusiness.GetTransactionsAsync(pageNumber, pageSize);
+        return HandleOk(res);
+    }
+
+    [HttpGet("services/histories")]
+    public async Task<IActionResult> GetServices(
+          [FromQuery] int pageSize = 10
+        , [FromQuery] int pageNumber = 1)
+    {
+        var res = await _transactionBusiness.GetServicesAsync(pageNumber, pageSize);
         return HandleOk(res);
     }
 
@@ -101,10 +110,10 @@ public class TransactionController(IWebHostEnvironment env
         return HandleOk(res);
     }
 
-    [HttpPost("theology/{id}/paid")]
-    public async Task<IActionResult> PaidTheologyRecord([FromRoute] Guid id)
+    [HttpPost("theology/{id}/pay")]
+    public async Task<IActionResult> Pay([FromRoute] Guid id)
     {
-        var res = await _transactionBusiness.PaidTheologyRecordAsync(id);
+        var res = await _transactionBusiness.PayTheologyRecordAsync(id);
         return HandleOk(res);
     }
 

@@ -56,7 +56,8 @@ public class TransactionBusiness(ILogger<TransactionBusiness> logger
 
         var userId = Current.UserId;
 
-        var query = context.Transactions.Where(f => f.UserId == userId)
+        var query = context.Transactions.AsNoTracking()
+                                        .Where(f => f.UserId == userId)
                                         .OrderByDescending(o => o.CreatedTs);
 
         var result = new PaginatedBase<dynamic>
@@ -117,6 +118,73 @@ public class TransactionBusiness(ILogger<TransactionBusiness> logger
                 FinalFates = meta?.TopUpPackageSnap?.FinalFates ?? 0,
                 FateBonus = meta?.TopUpPackageSnap?.FateBonus ?? 0,
                 FateBonusRate = (meta?.TopUpPackageSnap?.FateBonusRate ?? 0) * 100,
+            });
+        }
+
+        return new(result);
+    }
+    
+    public async Task<BaseResponse<dynamic>> GetServicesAsync(int pageNumber, int pageSize)
+    {
+        await using var context = await _contextFactory.CreateDbContextAsync();
+
+        var userId = Current.UserId;
+
+        var query = context.TheologyRecords.AsNoTracking()
+                                           .Include(i => i.ServicePrice)
+                                           .Where(f => f.UserId == userId)
+                                           .OrderByDescending(o => o.CreatedTs)
+                                           .ThenBy(t => t.Kind);
+
+        var result = new PaginatedBase<dynamic>
+        {
+            PageNumber = pageNumber,
+            PageSize = pageSize,
+            Items = [],
+            TotalRecords = await query.LongCountAsync()
+        };
+        result.TotalPages = result.PageSize.HasValue ? (long)Math.Ceiling((double)result.TotalRecords / result.PageSize.Value) : 1;
+
+        var list = await query.Skip(((pageNumber - 1) * pageSize))
+                              .Take(pageSize)
+                              .ToListAsync();
+
+        foreach (var item in list)
+        {
+            dynamic servicePrice = null;
+
+            if (item.ServicePriceSnap.IsPresent())
+            {
+                var snap = JsonSerializer.Deserialize<ServicePriceSnap>(item.ServicePriceSnap);
+
+                servicePrice = new
+                {
+                    Fates = snap.Fates,
+                    FatesDiscount = snap.FatesDiscount,
+                    FatesDiscountRate = (snap.FatesDiscountRate ?? 0) * 100,
+                    FinalFates = snap.FinalFates,
+                };
+            }
+            else
+            {
+                var svPrice = item.ServicePrice;
+
+                servicePrice = new
+                {
+                    Fates = svPrice.Fates,
+                    FatesDiscount = svPrice.FatesDiscount,
+                    FatesDiscountRate = (svPrice.FatesDiscountRate ?? 0) * 100,
+                    FinalFates = svPrice.GetFinalFates(),
+                };
+            }
+
+            result.Items.Add(new
+            {
+                Id = item.Id,
+                Status = (TheologyStatus)item.Status,
+                Kind = (TheologyKind)item.Kind,
+                item.CreatedTs,
+                ServicePrice = servicePrice,
             });
         }
 
@@ -856,7 +924,7 @@ public class TransactionBusiness(ILogger<TransactionBusiness> logger
         }
     }
 
-    public async Task<BaseResponse<int>> PaidTheologyRecordAsync(Guid id)
+    public async Task<BaseResponse<int>> PayTheologyRecordAsync(Guid id)
     {
         await using var context = await _contextFactory.CreateDbContextAsync();
         await using var transaction = await context.Database.BeginTransactionAsync();
@@ -876,11 +944,13 @@ public class TransactionBusiness(ILogger<TransactionBusiness> logger
             if (service.FatePointTransactions.Count != 0)
                 throw new BusinessException("Paid", "This service paid");
 
-            var fates = await RecalculateUserFates(userId.Value);
+            var userFates = await RecalculateUserFates(userId.Value);
 
-            var serviceFates = service.ServicePrice.GetFinalFates();
+            var serviceFates = service.ServicePriceSnap.IsPresent() ? 
+                               JsonSerializer.Deserialize<ServicePriceSnap>(service.ServicePriceSnap).FinalFates : 
+                               service.ServicePrice.GetFinalFates();
 
-            if (serviceFates > 0 && fates < serviceFates)
+            if (serviceFates > 0 && userFates < serviceFates)
                 throw new BusinessException("FatesNotEnough", "Fates are not enough to proceed");
 
             service.FatePointTransactions.Add(new FatePointTransaction
@@ -894,8 +964,8 @@ public class TransactionBusiness(ILogger<TransactionBusiness> logger
             await context.SaveChangesAsync();
             await transaction.CommitAsync();
 
-            fates = await RecalculateUserFates(userId.Value);
-            return new(fates);
+            userFates = await RecalculateUserFates(userId.Value);
+            return new(userFates);
         }
         catch
         {
@@ -908,7 +978,6 @@ public class TransactionBusiness(ILogger<TransactionBusiness> logger
             await context.DisposeAsync();
         }
     }
-
 
     private decimal CalculateAmountByGateProvider(TransactionProvider provider, decimal amountVND, ref decimal rate, ref string currency)
     {
@@ -927,7 +996,5 @@ public class TransactionBusiness(ILogger<TransactionBusiness> logger
             default:
                 return PaymentUtils.RoundAmountByGateProvider(provider, amountVND);
         }
-    }
-
-    
+    }    
 }
