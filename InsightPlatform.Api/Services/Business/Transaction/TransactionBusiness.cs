@@ -132,6 +132,7 @@ public class TransactionBusiness(ILogger<TransactionBusiness> logger
 
         var query = context.TheologyRecords.AsNoTracking()
                                            .Include(i => i.ServicePrice)
+                                           .Include(i => i.FatePointTransactions)
                                            .Where(f => f.UserId == userId)
                                            .OrderByDescending(o => o.CreatedTs)
                                            .ThenBy(t => t.Kind);
@@ -182,6 +183,7 @@ public class TransactionBusiness(ILogger<TransactionBusiness> logger
             {
                 Id = item.Id,
                 Status = (TheologyStatus)item.Status,
+                IsPaid = item.FatePointTransactions.Count != 0,
                 Kind = (TheologyKind)item.Kind,
                 item.CreatedTs,
                 ServicePrice = servicePrice,
