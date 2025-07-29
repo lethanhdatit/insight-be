@@ -93,7 +93,6 @@ public class BaseResponse<T>
     }
 }
 
-
 public class BusinessErrorItem
 {
     [JsonPropertyName("code")]
@@ -215,4 +214,19 @@ public class UserAgentInfo
     public string Src { get; set; }
 
     public string XFrom { get; set; }
+}
+
+public class PaginatedBase<TDto>
+{
+    public long? PageNumber { get; set; }
+
+    public long? PageSize { get; set; }
+
+    public long? TotalRecords { get; set; }
+
+    public long? TotalSelected { get; set; }
+
+    public long? TotalPages { get; set; }
+
+    public List<TDto> Items { get; set; }
 }

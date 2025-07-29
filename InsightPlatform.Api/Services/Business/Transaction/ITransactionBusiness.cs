@@ -22,4 +22,6 @@ public interface ITransactionBusiness
     Task<BaseResponse<Guid>> HandlePaypalCallbackAsync(PayPalWebhookEvent data);
 
     Task<BaseResponse<int>> PaidTheologyRecordAsync(Guid id);
+
+    Task<BaseResponse<dynamic>> GetTransactionsAsync(int pageNumber, int pageSize);
 }
