@@ -155,7 +155,10 @@ app.Use(async (context, next) =>
     var excludedPaths = new List<string>
     {
         "/",
-        "/health"
+        "/health",
+        "/api/transaction/paypal/webhook",
+        "/api/transaction/vqr/ipn/api/token_generate",
+        "/api/transaction/vqr/ipn/bank/api/transaction-sync",
     };
 
     if (!excludedPaths.Contains(path) && rqkey != corsSettings.Key)
