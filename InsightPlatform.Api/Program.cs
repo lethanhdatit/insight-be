@@ -26,6 +26,7 @@ services.Configure<QueueMessagingSettings>(configuration.GetSection(QueueMessagi
 services.Configure<LocalizationSettings>(configuration.GetSection(LocalizationSettings.Path));
 services.Configure<AISettings>(configuration.GetSection(AISettings.Path));
 services.Configure<PaymentOptions>(configuration.GetSection(PaymentOptions.Path));
+services.Configure<EmailProviderSettings>(configuration.GetSection(EmailProviderSettings.Path));
 
 // === Infrastructure ===
 services.AddHttpContextAccessor();
@@ -64,6 +65,7 @@ services.AddSingleton<PainConsumer>();
 services.AddHostedService<ConsumerInitializer>();
 
 // === Business logic ===
+services.AddSingleton<IEmailService, EmailService>(); 
 services.AddSingleton<IOpenAiService, OpenAiService>();
 services.AddSingleton<IGeminiAIService, GeminiAIService>();
 services.AddSingleton<IPhongThuyNhanSinhService, PhongThuyNhanSinhService>();

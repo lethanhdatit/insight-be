@@ -1,5 +1,22 @@
 ﻿using System.ComponentModel;
 
+public enum Modules
+{
+    [Description("Bóc Mệnh|bocmenh.com")]
+    BocMenh
+}
+
+public enum EmailTemplateEnum
+{
+    EmailVerification = 1,
+}
+
+public enum EntityOtpType
+{
+    [Description("Xác thực email")]
+    EmailVerification = 1,
+}
+
 public enum Gender
 {
     [Description("Nam")]

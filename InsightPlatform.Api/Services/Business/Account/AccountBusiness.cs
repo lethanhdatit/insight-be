@@ -13,12 +13,14 @@ public class AccountBusiness(ILogger<AccountBusiness> logger
     , IDbContextFactory<ApplicationDbContext> contextFactory
     , IHttpContextAccessor contextAccessor
     , IHttpClientService httpClientService
+    , IEmailService mailService
     , IOptions<TokenSettings> tokenSettings
     , IOptions<ExternalLoginSettings> externalLoginSettings) : BaseHttpBusiness<AccountBusiness, ApplicationDbContext>(logger, contextFactory, contextAccessor), IAccountBusiness
 {
     private readonly TokenSettings _tokenSettings = tokenSettings.Value;
     private readonly ExternalLoginSettings _externalLoginSettings = externalLoginSettings.Value;
     private readonly IHttpClientService _httpClientService = httpClientService;
+    private readonly IEmailService _mailService = mailService;
     public const string InsightSystemConst = "InsightSystem";
 
     public async Task<BaseResponse<dynamic>> InitGuest()
@@ -254,7 +256,7 @@ public class AccountBusiness(ILogger<AccountBusiness> logger
             await context.DisposeAsync();
         }
     }
-   
+
     public async Task<BaseResponse<dynamic>> RegisterAsync(RegisterRequest payload)
     {
         await using var context = await _contextFactory.CreateDbContextAsync();
@@ -265,6 +267,11 @@ public class AccountBusiness(ILogger<AccountBusiness> logger
             if (payload.Username.IsMissing()
                 || payload.Password.IsMissing())
                 throw new BusinessException("InvalidPayload", "Payload invalid");
+
+            payload.Username = payload.Username.Trim();
+            payload.Password = payload.Password.Trim();
+
+            await VerifyEmailAsync(payload.Username);
 
             var user = await context.Users.FirstOrDefaultAsync(f => f.FacebookId == null
                                                                  && f.GoogleId == null
@@ -279,11 +286,12 @@ public class AccountBusiness(ILogger<AccountBusiness> logger
 
             var guestUser = await context.Users.FirstOrDefaultAsync(u => u.Id == guestUserId);
 
-            PasswordHelper.CreatePasswordHash(payload.Password.Trim(), out var passwordHash, out var passwordSalt);
+            PasswordHelper.CreatePasswordHash(payload.Password, out var passwordHash, out var passwordSalt);
 
             if (guestUser != null && guestUser.Username == null && guestUser.FacebookId == null && guestUser.GoogleId == null)
             {
-                guestUser.Username = payload.Username.Trim();
+                guestUser.Username = payload.Username;
+                guestUser.Email = payload.Username;
                 guestUser.DisplayName = payload.DisplayName?.Trim();
                 guestUser.PasswordHash = passwordHash;
                 guestUser.PasswordSalt = passwordSalt;
@@ -388,7 +396,7 @@ public class AccountBusiness(ILogger<AccountBusiness> logger
         return new(new
         {
             Id = user.Id,
-            Email = user.Email,
+            Email = user.Email ?? user.Username,
             Name = user.DisplayName,
             Avatar = string.Empty,
             CreatedTs = user.CreatedAt,
@@ -437,6 +445,87 @@ public class AccountBusiness(ILogger<AccountBusiness> logger
         });
     }
 
+    public async Task<BaseResponse<bool>> SendEmailVerificationAsync(SendEmailVerifyRequest input)
+    {
+        await using var context = await _contextFactory.CreateDbContextAsync();
+
+        if(input.Email.IsMissing())
+            throw new BusinessException("InvalidPayload", "Email is required");
+
+        input.Email= input.Email.Trim();
+
+        if (await context.Users.AnyAsync(u => u.Username.ToLower() == input.Email.ToLower() 
+                                           && u.DeletedTs == null))
+            throw new BusinessException("EmailAlreadyExists", "Email already exists");
+
+        string otp = GenerateOtp();
+
+        var existed = await context.EntityOTPs.FirstOrDefaultAsync(f => f.Key.ToLower() == input.Email.ToLower()
+                                                                     && f.Type == (short)EntityOtpType.EmailVerification);
+
+        var modules = input.Module.GetDescription().Split("|");
+
+        var model = new EmailVerificationModel
+        {
+            ProductName = modules[0],
+            ProductFullName = modules[1],
+            VerificationCode = otp,
+        };
+
+        if (existed == null)
+            return await CreateAndSendEmailVerificationAsync(input.Module, input.Email, otp, model);
+
+        ValidateResendEmailVerification(existed);
+
+        return await UpdateAndSendEmailVerificationAsync(input.Module, existed, otp, model);
+    }
+
+    public async Task<BaseResponse<bool>> ConfirmEmailVerificationAsync(ConfirmEmailVerifyRequest input)
+    {
+        await using var context = await _contextFactory.CreateDbContextAsync();
+        await using var transaction = await context.Database.BeginTransactionAsync();
+
+        input.Otp = input.Otp?.Replace(" ", string.Empty);
+
+        try
+        {
+            var existed = await context.EntityOTPs.FirstOrDefaultAsync(f => f.Key.ToLower() == input.Email.ToLower()
+                                                                      && f.OTP == input.Otp
+                                                                      && f.Type == (short)EntityOtpType.EmailVerification
+                                                                      && f.ConfirmedTs == null);
+
+            if (existed == null)
+            {
+                throw new BusinessException("InvalidOtp", $"Invalid OTP.");
+            }
+
+            if (DateTime.UtcNow >= existed.CreatedTs.AddSeconds(300))
+            {
+                context.EntityOTPs.Remove(existed);
+                await context.SaveChangesAsync();
+                await transaction.CommitAsync();
+                throw new BusinessException("ExpiredOtp", $"Expired OTP.");
+            }
+
+            existed.ConfirmedTs = DateTime.UtcNow;
+            context.EntityOTPs.Update(existed);
+
+            await context.SaveChangesAsync();
+            await transaction.CommitAsync();
+            return new(true, "Verified!");
+        }
+        catch
+        {
+            await transaction.RollbackAsync();
+            throw;
+        }
+        finally
+        {
+            await transaction.DisposeAsync();
+            await context.DisposeAsync();
+        }
+    }
+
     public async Task<FacebookUserInfo> ValidateFacebookTokenAsync(string accessToken)
     {
         using var http = new HttpClient();
@@ -445,6 +534,124 @@ public class AccountBusiness(ILogger<AccountBusiness> logger
             $"https://graph.facebook.com/me?fields=id,name,email&access_token={accessToken}");
 
         return userInfoResponse;
+    }
+
+    private void ValidateResendEmailVerification(EntityOTP existed)
+    {
+        var nextValidResendTime = existed.ConfirmedTs?.AddSeconds(300) ?? existed.CreatedTs.AddSeconds(300);
+        if (DateTime.UtcNow <= nextValidResendTime)
+        {
+            var waitTs = (nextValidResendTime - DateTime.UtcNow).PrettyFormatTimeSpan();
+            throw new BusinessException(new BusinessErrorItem
+            {
+                Code = "SpamEmailSending",
+                Description = waitTs
+            }, $"Please wait more '{waitTs}' and try again.");
+        }
+    }
+
+    private async Task<EntityOTP> VerifyEmailAsync(string email)
+    {
+        await using var context = await _contextFactory.CreateDbContextAsync();
+
+        var verifiedEmail = await context.EntityOTPs.FirstOrDefaultAsync(f => f.Key.ToLower() == email.ToLower()
+                                                                           && f.Type == (short)EntityOtpType.EmailVerification
+                                                                           && f.ConfirmedTs != null);
+
+        if (verifiedEmail == null)
+            throw new BusinessException("UnverifiedEmail", "Unverified Email.");
+
+        var expiredTs = DateTime.UtcNow.AddSeconds(-300);
+
+        if (verifiedEmail.ConfirmedTs > DateTime.UtcNow || verifiedEmail.ConfirmedTs < expiredTs)
+            throw new BusinessException("ExpiredEmailVerification", "Expired email verification");
+
+        return verifiedEmail;
+    }
+
+    private async Task<BaseResponse<bool>> CreateAndSendEmailVerificationAsync(
+        Modules module
+        , string email
+        , string otp
+        , EmailVerificationModel content)
+    {
+        await using var context = await _contextFactory.CreateDbContextAsync();
+        await using var transaction = await context.Database.BeginTransactionAsync();
+
+        var currentCulture = Current.CurrentCulture;
+
+        try
+        {
+            await context.EntityOTPs.AddAsync(new EntityOTP
+            {
+                Type = (short)EntityOtpType.EmailVerification,
+                Key = email,
+                OTP = otp,
+                CreatedTs = DateTime.UtcNow,
+            });
+            await context.SaveChangesAsync();
+            await transaction.CommitAsync();
+        }
+        catch
+        {
+            await transaction.RollbackAsync();
+            throw;
+        }
+        finally
+        {
+            await transaction.DisposeAsync();
+            await context.DisposeAsync();
+        }
+
+        // No wait, fire and forget
+        FuncTaskHelper.FireAndForget(() => _mailService.SendEmailAsync(email
+            , module
+            , EmailTemplateEnum.EmailVerification
+            , currentCulture
+            , content));
+
+        return new(true, "OTP sent to your email.");
+    }
+
+    private async Task<BaseResponse<bool>> UpdateAndSendEmailVerificationAsync(Modules module
+        , EntityOTP existed
+        , string otp
+        , EmailVerificationModel content)
+    {
+        await using var context = await _contextFactory.CreateDbContextAsync();
+        await using var transaction = await context.Database.BeginTransactionAsync();
+
+        var currentCulture = Current.CurrentCulture;
+
+        try
+        {
+            existed.CreatedTs = DateTime.UtcNow;
+            existed.ConfirmedTs = null;
+            existed.OTP = otp;
+
+            context.EntityOTPs.Update(existed);
+            await context.SaveChangesAsync();
+            await transaction.CommitAsync();
+        }
+        catch
+        {
+            await transaction.RollbackAsync();
+            throw;
+        }
+        finally
+        {
+            await transaction.DisposeAsync();
+            await context.DisposeAsync();
+        }
+
+        // No wait, fire and forget
+        FuncTaskHelper.FireAndForget(() => _mailService.SendEmailAsync(existed.Key
+           , module
+           , EmailTemplateEnum.EmailVerification
+           , currentCulture
+           , content));
+
+        return new(true, "OTP was sent to your email.");
     }
 
     public (string token, DateTime? expiration) GenerateAccessTokenForPaymentGate(TimeSpan exp, GateConnectionOptions gateConnection)
@@ -472,6 +679,8 @@ public class AccountBusiness(ILogger<AccountBusiness> logger
 
         return TokenHelper.GetToken(_tokenSettings, claims, isRememberMe);
     }
+
+    private static string GenerateOtp() => new Random().Next(0, 1000000).ToString("D6");
 }
 
 public class FacebookUserInfo
@@ -502,4 +711,16 @@ public class ChangePasswordRequest
 {
     public string Password { get; set; }
     public string NewPassword { get; set; }
+}
+
+public class SendEmailVerifyRequest
+{
+    public Modules Module { get; set; }
+
+    public string Email { get; set; }
+}
+
+public class ConfirmEmailVerifyRequest : SendEmailVerifyRequest
+{
+    public string Otp { get; set; }
 }

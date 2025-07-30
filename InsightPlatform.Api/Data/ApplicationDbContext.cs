@@ -15,6 +15,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<ServicePrice> ServicePrices { get; set; }
     public DbSet<TopUpPackage> TopUpPackages { get; set; }
     public DbSet<Transaction> Transactions { get; set; }
+    public DbSet<EntityOTP> EntityOTPs { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
