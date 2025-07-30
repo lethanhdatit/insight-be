@@ -17,5 +17,9 @@ public interface IAccountBusiness
 
     Task<BaseResponse<dynamic>> UpdateMeAsync(UpdateRequest request);
 
+    Task<BaseResponse<bool>> SendEmailVerificationAsync(SendEmailVerifyRequest input);
+
+    Task<BaseResponse<bool>> ConfirmEmailVerificationAsync(ConfirmEmailVerifyRequest input);
+
     (string token, DateTime? expiration) GenerateAccessTokenForPaymentGate(TimeSpan exp, GateConnectionOptions gateConnection);
 }

@@ -62,4 +62,18 @@ public class AccountController(IWebHostEnvironment env
         var res = await _accountBusiness.UpdateMeAsync(payload);
         return HandleOk(res);
     }
+
+    [HttpPost("email/verification")]
+    public async Task<IActionResult> RequestEmailVerification([FromBody] SendEmailVerifyRequest input)
+    {
+        var res = await _accountBusiness.SendEmailVerificationAsync(input);
+        return HandleOk(res);
+    }
+
+    [HttpPost("email/confirmation")]
+    public async Task<IActionResult> ConfirmEmailVerification([FromBody] ConfirmEmailVerifyRequest input)
+    {
+        var res = await _accountBusiness.ConfirmEmailVerificationAsync(input);
+        return HandleOk(res);
+    }
 }
