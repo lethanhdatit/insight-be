@@ -485,7 +485,6 @@ public class AccountBusiness(ILogger<AccountBusiness> logger
     public async Task<BaseResponse<bool>> ConfirmEmailVerificationAsync(ConfirmEmailVerifyRequest input)
     {
         await using var context = await _contextFactory.CreateDbContextAsync();
-        await using var transaction = await context.Database.BeginTransactionAsync();
 
         input.Otp = input.Otp?.Replace(" ", string.Empty);
 
@@ -505,7 +504,6 @@ public class AccountBusiness(ILogger<AccountBusiness> logger
             {
                 context.EntityOTPs.Remove(existed);
                 await context.SaveChangesAsync();
-                await transaction.CommitAsync();
                 throw new BusinessException("ExpiredOtp", $"Expired OTP.");
             }
 
@@ -513,17 +511,14 @@ public class AccountBusiness(ILogger<AccountBusiness> logger
             context.EntityOTPs.Update(existed);
 
             await context.SaveChangesAsync();
-            await transaction.CommitAsync();
             return new(true, "Verified!");
         }
         catch
         {
-            await transaction.RollbackAsync();
             throw;
         }
         finally
         {
-            await transaction.DisposeAsync();
             await context.DisposeAsync();
         }
     }
