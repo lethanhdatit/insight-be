@@ -21,6 +21,7 @@ public class AccountBusiness(ILogger<AccountBusiness> logger
     private readonly ExternalLoginSettings _externalLoginSettings = externalLoginSettings.Value;
     private readonly IHttpClientService _httpClientService = httpClientService;
     private readonly IEmailService _mailService = mailService;
+    private readonly int EmailVerificationExpInSeconds = 300;
     public const string InsightSystemConst = "InsightSystem";
 
     public async Task<BaseResponse<dynamic>> InitGuest()
@@ -309,6 +310,7 @@ public class AccountBusiness(ILogger<AccountBusiness> logger
                     ClientLocale = Current.CurrentCulture?.Name,
                     CreatedAt = DateTime.UtcNow,
                     Username = payload.Username,
+                    Email = payload.Username,
                     DisplayName = payload.DisplayName,
                     PasswordHash = passwordHash,
                     PasswordSalt = passwordSalt
@@ -330,7 +332,7 @@ public class AccountBusiness(ILogger<AccountBusiness> logger
             return new(new
             {
                 Id = user.Id,
-                Email = user.Email,
+                Email = user.Email ?? username,
                 DisplayName = user.DisplayName,
                 Token = accessToken,
                 Expiration = expiration,
@@ -374,7 +376,7 @@ public class AccountBusiness(ILogger<AccountBusiness> logger
         return new(new
         {
             Id = user.Id,
-            Email = user.Email,
+            Email = user.Email ?? username,
             DisplayName = user.DisplayName,
             Token = accessToken,
             Expiration = expiration,
@@ -499,7 +501,7 @@ public class AccountBusiness(ILogger<AccountBusiness> logger
                 throw new BusinessException("InvalidOtp", $"Invalid OTP.");
             }
 
-            if (DateTime.UtcNow >= existed.CreatedTs.AddSeconds(300))
+            if (DateTime.UtcNow >= existed.CreatedTs.AddSeconds(EmailVerificationExpInSeconds))
             {
                 context.EntityOTPs.Remove(existed);
                 await context.SaveChangesAsync();
@@ -538,7 +540,7 @@ public class AccountBusiness(ILogger<AccountBusiness> logger
 
     private void ValidateResendEmailVerification(EntityOTP existed)
     {
-        var nextValidResendTime = existed.ConfirmedTs?.AddSeconds(300) ?? existed.CreatedTs.AddSeconds(300);
+        var nextValidResendTime = existed.ConfirmedTs?.AddSeconds(EmailVerificationExpInSeconds) ?? existed.CreatedTs.AddSeconds(EmailVerificationExpInSeconds);
         if (DateTime.UtcNow <= nextValidResendTime)
         {
             var waitTs = (nextValidResendTime - DateTime.UtcNow).PrettyFormatTimeSpan();
@@ -550,23 +552,27 @@ public class AccountBusiness(ILogger<AccountBusiness> logger
         }
     }
 
-    private async Task<EntityOTP> VerifyEmailAsync(string email)
+    private async Task<bool> VerifyEmailAsync(string email)
     {
         await using var context = await _contextFactory.CreateDbContextAsync();
 
-        var verifiedEmail = await context.EntityOTPs.FirstOrDefaultAsync(f => f.Key.ToLower() == email.ToLower()
+        var entity = await context.EntityOTPs.FirstOrDefaultAsync(f => f.Key.ToLower() == email.ToLower()
                                                                            && f.Type == (short)EntityOtpType.EmailVerification
                                                                            && f.ConfirmedTs != null);
 
-        if (verifiedEmail == null)
+        if (entity == null)
             throw new BusinessException("UnverifiedEmail", "Unverified Email.");
 
-        var expiredTs = DateTime.UtcNow.AddSeconds(-300);
+        var expiredTs = DateTime.UtcNow.AddSeconds(-EmailVerificationExpInSeconds);
+        var confirmedTs = entity.ConfirmedTs;
 
-        if (verifiedEmail.ConfirmedTs > DateTime.UtcNow || verifiedEmail.ConfirmedTs < expiredTs)
+        context.EntityOTPs.Remove(entity);
+        await context.SaveChangesAsync();
+
+        if (confirmedTs > DateTime.UtcNow || confirmedTs < expiredTs)
             throw new BusinessException("ExpiredEmailVerification", "Expired email verification");
 
-        return verifiedEmail;
+        return true;
     }
 
     private async Task<BaseResponse<bool>> CreateAndSendEmailVerificationAsync(
