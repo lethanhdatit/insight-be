@@ -1,8 +1,21 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Net.Mime;
+
+public enum MailContentDisposition
+{
+    [Description("inline")]
+    Inline,
+
+    [Description("attachment")]
+    Attachment,
+
+    [Description("form-data")]
+    FormData
+}
 
 public class EmailTemplateItem
 {
@@ -20,6 +33,8 @@ public class LinkedResourceItem
     public string FileName { get; set; }
 
     public string ContentType { get; set; } = null;
+
+    public MailContentDisposition ContentDisposition { get; set; } = MailContentDisposition.Inline;
 }
 
 public static class EmailTemplates
@@ -41,7 +56,8 @@ public static class EmailTemplates
                     ["logo"] = new LinkedResourceItem
                     {
                         FileName = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "EmailTemplates/Resources/logo.png"),
-                        ContentType = MediaTypeNames.Image.Png
+                        ContentType = MediaTypeNames.Image.Png,
+                        ContentDisposition = MailContentDisposition.Inline
                     }
                 }
             },
@@ -58,7 +74,8 @@ public static class EmailTemplates
                     ["logo"] = new LinkedResourceItem
                     {
                         FileName = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "EmailTemplates/Resources/logo.png"),
-                        ContentType = MediaTypeNames.Image.Png
+                        ContentType = MediaTypeNames.Image.Png,
+                        ContentDisposition = MailContentDisposition.Inline
                     }
                 }
             },
