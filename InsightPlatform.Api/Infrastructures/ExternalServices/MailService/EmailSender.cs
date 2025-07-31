@@ -18,8 +18,9 @@ internal class EmailService : IEmailService
         _emailSettings = emailSettings.Value;
         _templateBasePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "EmailTemplates/Views");
         _emailTemplateEngine = new RazorLightEngineBuilder()
-            .UseFileSystemProject(_templateBasePath)
-            .Build();
+                            .UseFileSystemProject(_templateBasePath)
+                            .UseMemoryCachingProvider()
+                            .Build();
     }
 
     public async Task SendEmailAsync(
