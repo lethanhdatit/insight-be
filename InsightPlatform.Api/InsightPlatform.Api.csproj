@@ -28,12 +28,18 @@
     <Folder Include="Services\Business\Account\Models\" />
   </ItemGroup>
   <ItemGroup>
-    <Content Update="EmailTemplates\Views\BocMenh\en\EmailVerification.cshtml">
+    <Content Update="EmailTemplates\Views\BocMenh\en\EmailOtpForPasswordRecovery.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Update="EmailTemplates\Views\BocMenh\en\EmailOtpForRegister.cshtml">
 		<CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		<ExcludeFromSingleFile>true</ExcludeFromSingleFile>
 		<CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
     </Content>
-    <Content Update="EmailTemplates\Views\BocMenh\vi\EmailVerification.cshtml">
+    <Content Update="EmailTemplates\Views\BocMenh\vi\EmailOtpForPasswordRecovery.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Update="EmailTemplates\Views\BocMenh\vi\EmailOtpForRegister.cshtml">
 		<CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		<ExcludeFromSingleFile>true</ExcludeFromSingleFile>
 		<CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>

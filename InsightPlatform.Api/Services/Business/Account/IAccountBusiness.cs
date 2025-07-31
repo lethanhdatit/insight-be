@@ -17,9 +17,15 @@ public interface IAccountBusiness
 
     Task<BaseResponse<dynamic>> UpdateMeAsync(UpdateRequest request);
 
-    Task<BaseResponse<bool>> SendEmailVerificationAsync(SendEmailVerifyRequest input);
+    Task<BaseResponse<bool>> ResetPasswordAsync(ResetPasswordRequest request);
 
-    Task<BaseResponse<bool>> ConfirmEmailVerificationAsync(ConfirmEmailVerifyRequest input);
+    Task<BaseResponse<bool>> SendEmailOtpForRegisterAsync(SendEmailVerifyRequest input);
+
+    Task<BaseResponse<bool>> ConfirmEmailOtpForRegisterAsync(ConfirmEmailVerifyRequest input);
+
+    Task<BaseResponse<bool>> SendEmailOtpForPasswordRecoveryAsync(SendEmailVerifyRequest input);
+
+    Task<BaseResponse<bool>> ConfirmEmailOtpForPasswordRecoveryAsync(ConfirmEmailVerifyRequest request);
 
     (string token, DateTime? expiration) GenerateAccessTokenForPaymentGate(TimeSpan exp, GateConnectionOptions gateConnection);
 }
