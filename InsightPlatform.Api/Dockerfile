@@ -27,4 +27,7 @@ FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
 
+# Ensure EmailTemplates are copied to /app
+COPY InsightPlatform.Api/EmailTemplates ./EmailTemplates
+
 CMD ["dotnet", "InsightPlatform.Api.dll"]
