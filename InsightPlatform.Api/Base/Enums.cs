@@ -8,13 +8,20 @@ public enum Modules
 
 public enum EmailTemplateEnum
 {
-    EmailVerification = 1,
+    [Description("Xác thực email để tạo tài khoản")]
+    EmailOtpForRegister = 1,
+
+    [Description("Xác thực email để đặt lại mật khẩu")]
+    EmailOtpForPasswordRecovery = 2,
 }
 
 public enum EntityOtpType
 {
-    [Description("Xác thực email")]
-    EmailVerification = 1,
+    [Description("Xác thực email để tạo tài khoản")]
+    EmailOtpForRegister = 1, 
+    
+    [Description("Xác thực email để đặt lại mật khẩu")]
+    EmailOtpForPasswordRecovery = 2,
 }
 
 public enum Gender

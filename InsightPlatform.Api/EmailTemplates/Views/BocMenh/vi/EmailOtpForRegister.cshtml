@@ -1,0 +1,140 @@
+﻿@model EmailVerificationModel
+@{
+    var productName = Model.ProductName ?? "Insight Platform";
+    var productFullName = Model.ProductFullName ?? "Insight Platform";
+    var title = $"Xác thực email - {productFullName}";
+    var verificationCode = Model.VerificationCode ?? "123456";
+    var expInSeconds = Model.ExpInSeconds;
+    var supportEmail = "support@insight.ai.vn";
+}
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>@title</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        :root {
+            color-scheme: dark;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background: #181818;
+            color: #fffbe6;
+            font-family: 'Segoe UI', Arial, sans-serif;
+        }
+
+        .container {
+            max-width: 480px;
+            margin: 32px auto;
+            background: #232323;
+            border-radius: 16px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.7);
+            padding: 32px 24px;
+        }
+
+        .logo {
+            display: block;
+            margin: 0 auto 24px auto;
+            width: 120px;
+            height: 120px;
+            object-fit: contain;
+            border-radius: 12px;
+            background: #222;
+        }
+
+        h1 {
+            color: #ffd700;
+            font-size: 1.6rem;
+            margin-bottom: 16px;
+            text-align: center;
+            font-weight: 700;
+        }
+
+        .code-box {
+            background: #111;
+            color: #ffd700;
+            font-size: 2.2rem;
+            letter-spacing: 0.4rem;
+            text-align: center;
+            padding: 18px 0;
+            border-radius: 12px;
+            margin: 24px 0 8px 0;
+            font-family: 'Segoe UI Mono', 'Consolas', monospace;
+            font-weight: bold;
+        }
+
+        .expire-note {
+            text-align: center;
+            font-size: 0.95rem;
+            color: #bdbdbd;
+            margin-bottom: 20px;
+        }
+
+        .desc {
+            color: #fff;
+            font-size: 1rem;
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .footer {
+            margin-top: 32px;
+            font-size: 0.95rem;
+            color: #bdbdbd;
+            text-align: center;
+        }
+
+        .footer a {
+            color: #ffd700;
+            text-decoration: none;
+        }
+
+        @@media (max-width: 600px) {
+            .container {
+                padding: 16px 8px;
+            }
+
+            h1 {
+                font-size: 1.2rem;
+            }
+
+            .code-box {
+                font-size: 1.5rem;
+                padding: 12px 0;
+            }
+            .expire-note {
+                font-size: 0.85rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <img src="cid:logo" alt="@productName Logo" class="logo" />
+        <h1>Xác thực địa chỉ email của bạn</h1>
+        <div class="desc">
+            Xin chào,<br />
+            Cảm ơn bạn đã đăng ký sử dụng <strong>@productName</strong>.<br />
+            Vui lòng nhập mã xác thực dưới đây để hoàn tất quá trình xác thực email.
+        </div>
+        <div class="code-box">
+            @verificationCode
+        </div>
+        <div class="expire-note">
+            Mã xác thực sẽ hết hạn sau <strong>@expInSeconds giây</strong>.
+        </div>
+        <div class="desc">
+            Nếu bạn không thực hiện yêu cầu này, vui lòng bỏ qua email này.<br />
+            Mọi thắc mắc xin liên hệ <a style="text-decoration: none;cursor:pointer" href="mailto:@supportEmail"><strong style="color: #ffd700"><i>@supportEmail</i></strong></a>.
+        </div>
+        <div class="footer">
+            Email được gửi từ hệ thống <strong>@productFullName</strong>.<br />
+            &copy; @DateTime.Now.Year @productFullName. Mọi quyền được bảo lưu.
+        </div>
+    </div>
+</body>
+</html>

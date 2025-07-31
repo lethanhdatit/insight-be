@@ -29,7 +29,7 @@ public static class ClassStructureBuilder
             if (IsSimpleType(propType))
                 continue;
 
-            Type? elementType = GetEnumerableElementType(propType) ?? propType;
+            Type elementType = GetEnumerableElementType(propType) ?? propType;
 
             if (visited.Contains(elementType))
                 continue; // tránh lặp vô hạn
@@ -60,7 +60,7 @@ public static class ClassStructureBuilder
         return type.Name;
     }
 
-    private static Type? GetEnumerableElementType(Type type)
+    private static Type GetEnumerableElementType(Type type)
     {
         if (type.IsArray) return type.GetElementType();
         if (type.IsGenericType && typeof(IEnumerable).IsAssignableFrom(type))

@@ -21,7 +21,9 @@ public class AccountBusiness(ILogger<AccountBusiness> logger
     private readonly ExternalLoginSettings _externalLoginSettings = externalLoginSettings.Value;
     private readonly IHttpClientService _httpClientService = httpClientService;
     private readonly IEmailService _mailService = mailService;
-    private readonly int EmailVerificationExpInSeconds = 300;
+    private readonly int ResendEmailOtpInSeconds = 120;
+    private readonly int EmailOtpForRegisterExpInSeconds = 300;
+    private readonly int EmailOtpForPasswordRecoveryExpInSeconds = 600;
     public const string InsightSystemConst = "InsightSystem";
 
     public async Task<BaseResponse<dynamic>> InitGuest()
@@ -272,7 +274,10 @@ public class AccountBusiness(ILogger<AccountBusiness> logger
             payload.Username = payload.Username.Trim();
             payload.Password = payload.Password.Trim();
 
-            await VerifyEmailAsync(payload.Username);
+            await VerifyEmailAsync(Modules.BocMenh
+                , EntityOtpType.EmailOtpForRegister
+                , EmailOtpForRegisterExpInSeconds
+                , payload.Username);
 
             var user = await context.Users.FirstOrDefaultAsync(f => f.FacebookId == null
                                                                  && f.GoogleId == null
@@ -447,11 +452,46 @@ public class AccountBusiness(ILogger<AccountBusiness> logger
         });
     }
 
-    public async Task<BaseResponse<bool>> SendEmailVerificationAsync(SendEmailVerifyRequest input)
+    public async Task<BaseResponse<bool>> ResetPasswordAsync(ResetPasswordRequest request)
+    {
+        if (request.Password.IsMissing())
+            throw new BusinessException("MissingPassword", "Missing password");
+
+        if (request.Email.IsMissing())
+            throw new BusinessException("MissingEmail", "Missing email");
+
+        request.Email = request.Email?.Trim();
+        request.Password = request.Password?.Trim();
+
+        await VerifyEmailAsync(Modules.BocMenh
+                , EntityOtpType.EmailOtpForPasswordRecovery
+                , EmailOtpForPasswordRecoveryExpInSeconds
+                , request.Email);
+
+        await using var context = await _contextFactory.CreateDbContextAsync();
+
+        var user = await context.Users.AsNoTracking()
+                                      .FirstOrDefaultAsync(u => u.Email.ToLower() == request.Email.ToLower()
+                                                             && u.DeletedTs == null);
+
+        if (user == null)
+            throw new BusinessException("UserNotFound", "User not found");
+
+        PasswordHelper.CreatePasswordHash(request.Password, out var passwordHash, out var passwordSalt);
+
+        user.PasswordHash = passwordHash;
+        user.PasswordSalt = passwordSalt;
+        context.Users.Update(user);
+        await context.SaveChangesAsync();
+
+        return new(true);
+    }
+
+    public async Task<BaseResponse<bool>> SendEmailOtpForRegisterAsync(SendEmailVerifyRequest input)
     {
         await using var context = await _contextFactory.CreateDbContextAsync();
 
-        if(input.Email.IsMissing())
+        if (input.Email.IsMissing())
             throw new BusinessException("InvalidPayload", "Email is required");
 
         input.Email= input.Email.Trim();
@@ -460,39 +500,124 @@ public class AccountBusiness(ILogger<AccountBusiness> logger
                                            && u.DeletedTs == null))
             throw new BusinessException("EmailAlreadyExists", "Email already exists");
 
+        var otpType = EntityOtpType.EmailOtpForRegister;
+        var emailTemplate = EmailTemplateEnum.EmailOtpForRegister;
+
+        return await SendOtpByEmailAsync(context
+            , input.Email
+            , input.Module
+            , otpType
+            , emailTemplate
+            , EmailOtpForRegisterExpInSeconds);
+    }
+
+    public async Task<BaseResponse<bool>> ConfirmEmailOtpForRegisterAsync(ConfirmEmailVerifyRequest request)
+    {
+        return await ConfirmEmailOtpAsync(request.Module
+            , EntityOtpType.EmailOtpForRegister
+            , EmailOtpForRegisterExpInSeconds
+            , request.Otp
+            , request.Email);
+    }
+
+    public async Task<BaseResponse<bool>> SendEmailOtpForPasswordRecoveryAsync(SendEmailVerifyRequest input)
+    {
+        await using var context = await _contextFactory.CreateDbContextAsync();
+
+        if (input.Email.IsMissing())
+            throw new BusinessException("InvalidPayload", "Email is required");
+
+        input.Email = input.Email.Trim();
+
+        if (!await context.Users.AnyAsync(u => u.Username.ToLower() == input.Email.ToLower()
+                                            && u.DeletedTs == null))
+            throw new BusinessException("UserNotFound", "User not found");
+
+        var otpType = EntityOtpType.EmailOtpForPasswordRecovery;
+        var emailTemplate = EmailTemplateEnum.EmailOtpForPasswordRecovery;
+
+        return await SendOtpByEmailAsync(context
+            , input.Email
+            , input.Module
+            , otpType
+            , emailTemplate
+            , EmailOtpForPasswordRecoveryExpInSeconds);
+    }
+
+    public async Task<BaseResponse<bool>> ConfirmEmailOtpForPasswordRecoveryAsync(ConfirmEmailVerifyRequest request)
+    {
+        return await ConfirmEmailOtpAsync(request.Module
+            , EntityOtpType.EmailOtpForPasswordRecovery
+            , EmailOtpForPasswordRecoveryExpInSeconds
+            , request.Otp
+            , request.Email);
+    }
+
+    public async Task<FacebookUserInfo> ValidateFacebookTokenAsync(string accessToken)
+    {
+        using var http = new HttpClient();
+
+        var userInfoResponse = await _httpClientService.GetAsync<FacebookUserInfo>(
+            $"https://graph.facebook.com/me?fields=id,name,email&access_token={accessToken}");
+
+        return userInfoResponse;
+    }
+
+    private async Task<BaseResponse<bool>> SendOtpByEmailAsync(
+        ApplicationDbContext context,
+        string email,
+        Modules module,
+        EntityOtpType otpType,
+        EmailTemplateEnum emailTemplate,
+        int? expInSeconds)
+    {
         string otp = GenerateOtp();
 
-        var existed = await context.EntityOTPs.FirstOrDefaultAsync(f => f.Key.ToLower() == input.Email.ToLower()
-                                                                     && f.Type == (short)EntityOtpType.EmailVerification);
+        var existed = await context.EntityOTPs.FirstOrDefaultAsync(f => f.Key.ToLower() == email.ToLower()
+                                                                     && f.Module == (short)module
+                                                                     && f.Type == (short)otpType);
 
-        var modules = input.Module.GetDescription().Split("|");
+        var modules = module.GetDescription().Split("|");
 
         var model = new EmailVerificationModel
         {
             ProductName = modules[0],
             ProductFullName = modules[1],
             VerificationCode = otp,
+            ExpInSeconds = expInSeconds
         };
 
         if (existed == null)
-            return await CreateAndSendEmailVerificationAsync(input.Module, input.Email, otp, model);
+            return await CreateAndSendOtpByEmailAsync(module
+                , otpType
+                , emailTemplate
+                , email
+                , otp
+                , model);
 
-        ValidateResendEmailVerification(existed);
+        ValidateResendOtp(existed, ResendEmailOtpInSeconds);
 
-        return await UpdateAndSendEmailVerificationAsync(input.Module, existed, otp, model);
+        return await UpdateAndSendOtpByEmailAsync(existed, emailTemplate, otp, model);
     }
 
-    public async Task<BaseResponse<bool>> ConfirmEmailVerificationAsync(ConfirmEmailVerifyRequest input)
+    private async Task<BaseResponse<bool>> ConfirmEmailOtpAsync(
+        Modules module
+        , EntityOtpType otpType
+        , int expInSeconds
+        , string otp
+        , string email)
     {
         await using var context = await _contextFactory.CreateDbContextAsync();
 
-        input.Otp = input.Otp?.Replace(" ", string.Empty);
+        otp = otp?.Replace(" ", string.Empty);
+        email = email?.Replace(" ", string.Empty);
 
         try
         {
-            var existed = await context.EntityOTPs.FirstOrDefaultAsync(f => f.Key.ToLower() == input.Email.ToLower()
-                                                                      && f.OTP == input.Otp
-                                                                      && f.Type == (short)EntityOtpType.EmailVerification
+            var existed = await context.EntityOTPs.FirstOrDefaultAsync(f => f.Key.ToLower() == email.ToLower()
+                                                                      && f.Module == (short)module
+                                                                      && f.OTP == otp
+                                                                      && f.Type == (short)otpType
                                                                       && f.ConfirmedTs == null);
 
             if (existed == null)
@@ -500,7 +625,7 @@ public class AccountBusiness(ILogger<AccountBusiness> logger
                 throw new BusinessException("InvalidOtp", $"Invalid OTP.");
             }
 
-            if (DateTime.UtcNow >= existed.CreatedTs.AddSeconds(EmailVerificationExpInSeconds))
+            if (DateTime.UtcNow >= existed.CreatedTs.AddSeconds(expInSeconds))
             {
                 context.EntityOTPs.Remove(existed);
                 await context.SaveChangesAsync();
@@ -523,19 +648,9 @@ public class AccountBusiness(ILogger<AccountBusiness> logger
         }
     }
 
-    public async Task<FacebookUserInfo> ValidateFacebookTokenAsync(string accessToken)
+    private void ValidateResendOtp(EntityOTP existed, int expInSeconds)
     {
-        using var http = new HttpClient();
-
-        var userInfoResponse = await _httpClientService.GetAsync<FacebookUserInfo>(
-            $"https://graph.facebook.com/me?fields=id,name,email&access_token={accessToken}");
-
-        return userInfoResponse;
-    }
-
-    private void ValidateResendEmailVerification(EntityOTP existed)
-    {
-        var nextValidResendTime = existed.ConfirmedTs?.AddSeconds(EmailVerificationExpInSeconds) ?? existed.CreatedTs.AddSeconds(EmailVerificationExpInSeconds);
+        var nextValidResendTime = existed.ConfirmedTs?.AddSeconds(expInSeconds) ?? existed.CreatedTs.AddSeconds(expInSeconds);
         if (DateTime.UtcNow <= nextValidResendTime)
         {
             var waitTs = (nextValidResendTime - DateTime.UtcNow).PrettyFormatTimeSpan();
@@ -547,18 +662,23 @@ public class AccountBusiness(ILogger<AccountBusiness> logger
         }
     }
 
-    private async Task<bool> VerifyEmailAsync(string email)
+    private async Task VerifyEmailAsync(
+        Modules module
+        , EntityOtpType otpType
+        , int expInSeconds
+        , string email)
     {
         await using var context = await _contextFactory.CreateDbContextAsync();
 
         var entity = await context.EntityOTPs.FirstOrDefaultAsync(f => f.Key.ToLower() == email.ToLower()
-                                                                           && f.Type == (short)EntityOtpType.EmailVerification
-                                                                           && f.ConfirmedTs != null);
+                                                                    && f.Module == (short)module
+                                                                    && f.Type == (short)otpType
+                                                                    && f.ConfirmedTs != null);
 
         if (entity == null)
             throw new BusinessException("UnverifiedEmail", "Unverified Email.");
 
-        var expiredTs = DateTime.UtcNow.AddSeconds(-EmailVerificationExpInSeconds);
+        var expiredTs = DateTime.UtcNow.AddSeconds(-expInSeconds);
         var confirmedTs = entity.ConfirmedTs;
 
         context.EntityOTPs.Remove(entity);
@@ -566,12 +686,12 @@ public class AccountBusiness(ILogger<AccountBusiness> logger
 
         if (confirmedTs > DateTime.UtcNow || confirmedTs < expiredTs)
             throw new BusinessException("ExpiredEmailVerification", "Expired email verification");
-
-        return true;
     }
 
-    private async Task<BaseResponse<bool>> CreateAndSendEmailVerificationAsync(
+    private async Task<BaseResponse<bool>> CreateAndSendOtpByEmailAsync(
         Modules module
+        , EntityOtpType otpType
+        , EmailTemplateEnum emailTemplate
         , string email
         , string otp
         , EmailVerificationModel content)
@@ -585,7 +705,8 @@ public class AccountBusiness(ILogger<AccountBusiness> logger
         {
             await context.EntityOTPs.AddAsync(new EntityOTP
             {
-                Type = (short)EntityOtpType.EmailVerification,
+                Module = (short)module,
+                Type = (short)otpType,
                 Key = email,
                 OTP = otp,
                 CreatedTs = DateTime.UtcNow,
@@ -607,15 +728,16 @@ public class AccountBusiness(ILogger<AccountBusiness> logger
         // No wait, fire and forget
         FuncTaskHelper.FireAndForget(() => _mailService.SendEmailAsync(email
             , module
-            , EmailTemplateEnum.EmailVerification
+            , emailTemplate
             , currentCulture
-            , content));
+            , content
+        ));
 
         return new(true, "OTP sent to your email.");
     }
 
-    private async Task<BaseResponse<bool>> UpdateAndSendEmailVerificationAsync(Modules module
-        , EntityOTP existed
+    private async Task<BaseResponse<bool>> UpdateAndSendOtpByEmailAsync(EntityOTP existed
+        , EmailTemplateEnum emailTemplate
         , string otp
         , EmailVerificationModel content)
     {
@@ -647,8 +769,8 @@ public class AccountBusiness(ILogger<AccountBusiness> logger
 
         // No wait, fire and forget
         FuncTaskHelper.FireAndForget(() => _mailService.SendEmailAsync(existed.Key
-           , module
-           , EmailTemplateEnum.EmailVerification
+           , (Modules)existed.Module
+           , emailTemplate
            , currentCulture
            , content));
 
@@ -706,6 +828,12 @@ public class LoginRequest
     public string Username { get; set; }
     public string Password { get; set; }
     public bool RememberMe { get; set; }
+}
+
+public class ResetPasswordRequest
+{
+    public string Email { get; set; }
+    public string Password { get; set; }
 }
 
 public class ChangePasswordRequest

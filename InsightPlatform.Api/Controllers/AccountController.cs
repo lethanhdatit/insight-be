@@ -66,14 +66,35 @@ public class AccountController(IWebHostEnvironment env
     [HttpPost("email/verification")]
     public async Task<IActionResult> RequestEmailVerification([FromBody] SendEmailVerifyRequest input)
     {
-        var res = await _accountBusiness.SendEmailVerificationAsync(input);
+        var res = await _accountBusiness.SendEmailOtpForRegisterAsync(input);
         return HandleOk(res);
     }
 
     [HttpPost("email/confirmation")]
     public async Task<IActionResult> ConfirmEmailVerification([FromBody] ConfirmEmailVerifyRequest input)
     {
-        var res = await _accountBusiness.ConfirmEmailVerificationAsync(input);
+        var res = await _accountBusiness.ConfirmEmailOtpForRegisterAsync(input);
+        return HandleOk(res);
+    }
+
+    [HttpPost("password/recovery/email/verification")]
+    public async Task<IActionResult> RequestPasswordRecovery([FromBody] SendEmailVerifyRequest input)
+    {
+        var res = await _accountBusiness.SendEmailOtpForPasswordRecoveryAsync(input);
+        return HandleOk(res);
+    }
+
+    [HttpPost("password/recovery/email/confirmation")]
+    public async Task<IActionResult> ConfirmPasswordRecovery([FromBody] ConfirmEmailVerifyRequest input)
+    {
+        var res = await _accountBusiness.ConfirmEmailOtpForPasswordRecoveryAsync(input);
+        return HandleOk(res);
+    }
+
+    [HttpPost("password/recovery")]
+    public async Task<IActionResult> PasswordRecovery([FromBody] ResetPasswordRequest input)
+    {
+        var res = await _accountBusiness.ResetPasswordAsync(input);
         return HandleOk(res);
     }
 }

@@ -28,14 +28,14 @@ public static class EmailTemplates
     {
         [Modules.BocMenh] = new()
         {
-            [EmailTemplateEnum.EmailVerification] = new EmailTemplateItem
+            [EmailTemplateEnum.EmailOtpForRegister] = new EmailTemplateItem
             {
                 Titles = new Dictionary<string, string>
                 {
                     ["vi"] = "Xác thực email",
                     ["en"] = "Email Verification",
                 },
-                Source = "EmailVerification.cshtml",
+                Source = "EmailOtpForRegister.cshtml",
                 Resources = new Dictionary<string, LinkedResourceItem>
                 {
                     ["logo"] = new LinkedResourceItem
@@ -44,7 +44,24 @@ public static class EmailTemplates
                         ContentType = MediaTypeNames.Image.Png
                     }
                 }
-            }
+            },
+            [EmailTemplateEnum.EmailOtpForPasswordRecovery] = new EmailTemplateItem
+            {
+                Titles = new Dictionary<string, string>
+                {
+                    ["vi"] = "Mã xác thực để đặt lại mật khẩu của bạn",
+                    ["en"] = "Authentication code to reset your password",
+                },
+                Source = "EmailOtpForPasswordRecovery.cshtml",
+                Resources = new Dictionary<string, LinkedResourceItem>
+                {
+                    ["logo"] = new LinkedResourceItem
+                    {
+                        FileName = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "EmailTemplates/Resources/logo.png"),
+                        ContentType = MediaTypeNames.Image.Png
+                    }
+                }
+            },
         }
     };
 
