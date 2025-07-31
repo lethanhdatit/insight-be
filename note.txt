@@ -8,12 +8,11 @@ dotnet ef database update --project InsightPlatform.Api --startup-project Insigh
 
 
 
-$path = "D:\insight\insight-be\InsightPlatform.Api\appsettings.Production.json" 
-[Convert]::ToBase64String([IO.File]::ReadAllBytes($path)) | Set-Clipboard
+[Convert]::ToBase64String([IO.File]::ReadAllBytes("D:\insight\insight-be\InsightPlatform.Api\appsettings.Production.json")) | Set-Clipboard
 
 
 docker-compose up -d --build
 docker system prune -a --volumes -f
 
 
-[Convert]::ToBase64String([IO.File]::ReadAllBytes("D:\insight\insight-fe\.env.prod")) | Set-Clipboard
+[Convert]::ToBase64String([IO.File]::ReadAllBytes("D:\insight\v0-bocmenh\.env.prod")) | Set-Clipboard
