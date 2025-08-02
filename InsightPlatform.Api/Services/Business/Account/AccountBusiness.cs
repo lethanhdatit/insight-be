@@ -653,11 +653,16 @@ public class AccountBusiness(ILogger<AccountBusiness> logger
         var nextValidResendTime = existed.ConfirmedTs?.AddSeconds(expInSeconds) ?? existed.CreatedTs.AddSeconds(expInSeconds);
         if (DateTime.UtcNow <= nextValidResendTime)
         {
-            var waitTs = (nextValidResendTime - DateTime.UtcNow).PrettyFormatTimeSpan();
+            var nextValidResendTs = (nextValidResendTime - DateTime.UtcNow);
+            var waitTs = nextValidResendTs.PrettyFormatTimeSpan();
             throw new BusinessException(new BusinessErrorItem
             {
                 Code = "SpamEmailSending",
-                Description = waitTs
+                Description = waitTs,
+                MetaData = new
+                {
+                    WaitTimeInSeconds = (int)Math.Floor(nextValidResendTs.TotalSeconds)
+                }
             }, $"Please wait more '{waitTs}' and try again.");
         }
     }
