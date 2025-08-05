@@ -90,7 +90,6 @@ public class BocMenhBusiness(ILogger<BocMenhBusiness> logger
                     Status = (byte)TheologyStatus.Created,
                     Input = JsonSerializer.Serialize(request),
                     PreData = JsonSerializer.Serialize(laSoBatTu),
-                    CreatedTs = DateTime.UtcNow,
                     ServicePrice = servicePrice,
                     SystemPrompt = systemPrompt,
                     UserPrompt = userPrompt,

@@ -1,4 +1,8 @@
 using Microsoft.EntityFrameworkCore;
+using System;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 public class ApplicationDbContext : DbContext
 {
@@ -20,7 +24,7 @@ public class ApplicationDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
-                
+
         modelBuilder.Entity<Pain>()
                     .HasOne(p => p.User)
                     .WithMany(u => u.Pains)
@@ -39,6 +43,8 @@ public class ApplicationDbContext : DbContext
 
         modelBuilder.Entity<TheologyRecord>(entity =>
         {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.AutoId).UseIdentityColumn();
             entity.Property(e => e.Input).HasColumnType("jsonb");
             entity.Property(e => e.PreData).HasColumnType("jsonb");
             entity.Property(e => e.Result).HasColumnType("jsonb");
@@ -78,5 +84,64 @@ public class ApplicationDbContext : DbContext
             .HasOne(f => f.TheologyRecord)
             .WithMany(u => u.FatePointTransactions)
             .HasForeignKey(f => f.TheologyRecordId);
+
+        modelBuilder.Entity<ServicePrice>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.AutoId).UseIdentityColumn();
+        });
+
+        modelBuilder.Entity<TheologyRecord>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.AutoId).UseIdentityColumn();
+        });
+
+        modelBuilder.Entity<TopUpPackage>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.AutoId).UseIdentityColumn();
+        });
+        
+        modelBuilder.Entity<User>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.AutoId).UseIdentityColumn();
+        });
+    }
+
+    public override int SaveChanges()
+    {
+        UpdateTimestamps();
+        return base.SaveChanges();
+    }
+
+    public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        UpdateTimestamps();
+        return await base.SaveChangesAsync(cancellationToken);
+    }
+
+    private void UpdateTimestamps()
+    {
+        var entries = ChangeTracker.Entries()
+            .Where(e => e.Entity is Trackable && (e.State == EntityState.Added || e.State == EntityState.Modified));
+
+        foreach (var entry in entries)
+        {
+            var trackable = (Trackable)entry.Entity;
+            var utcNow = DateTime.UtcNow;
+
+            if (entry.State == EntityState.Added)
+            {
+                trackable.CreatedTs = utcNow;
+                trackable.LastUpdatedTs = null;
+            }
+            else if (entry.State == EntityState.Modified)
+            {
+                entry.Property(nameof(Trackable.CreatedTs)).IsModified = false;
+                trackable.LastUpdatedTs = utcNow;
+            }
+        }
     }
 }

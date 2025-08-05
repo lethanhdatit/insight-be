@@ -277,7 +277,6 @@ public class TransactionBusiness(ILogger<TransactionBusiness> logger
                 FinalTotal = amountAfterDiscount,
                 VATaxIncluded = _paymentSettings.VATaxIncluded,
                 VATaxRate = _paymentSettings.VATaxRate,
-                CreatedTs = DateTime.UtcNow,
                 MetaData = JsonSerializer.Serialize(new TransactionMetaData
                 {
                     TopUpPackageSnap = new(package),
@@ -719,7 +718,6 @@ public class TransactionBusiness(ILogger<TransactionBusiness> logger
                     {
                         UserId = trans.UserId,
                         Fates = metaData?.TopUpPackageSnap?.FinalFates ?? trans.TopUpPackage.GetFinalFates(),
-                        CreatedTs = DateTime.UtcNow,
                     });
                 }
             }
@@ -822,8 +820,7 @@ public class TransactionBusiness(ILogger<TransactionBusiness> logger
                                 trans.FatePointTransactions.Add(new FatePointTransaction
                                 {
                                     UserId = trans.UserId,
-                                    Fates = metaData?.TopUpPackageSnap?.FinalFates ?? trans.TopUpPackage.GetFinalFates(),
-                                    CreatedTs = DateTime.UtcNow,
+                                    Fates = metaData?.TopUpPackageSnap?.FinalFates ?? trans.TopUpPackage.GetFinalFates()
                                 });
                             }
                         }
@@ -958,8 +955,7 @@ public class TransactionBusiness(ILogger<TransactionBusiness> logger
             service.FatePointTransactions.Add(new FatePointTransaction
             {
                 UserId = userId.Value,
-                Fates = serviceFates > 0 ? -serviceFates : 0,
-                CreatedTs = DateTime.UtcNow,
+                Fates = serviceFates > 0 ? -serviceFates : 0
             });
 
             context.TheologyRecords.Update(service);

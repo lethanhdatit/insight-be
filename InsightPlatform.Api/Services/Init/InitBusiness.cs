@@ -63,8 +63,7 @@ public class InitBusiness(ILogger<BocMenhBusiness> logger
                 AmountDiscountRate = 0.03m,
                 Fates = 190,
                 FateBonus = 5,
-                FateBonusRate = 0.04m,
-                CreatedTs = DateTime.UtcNow,
+                FateBonusRate = 0.04m
             });
 
             await context.TopUpPackages.AddAsync(new TopUpPackage
@@ -78,8 +77,7 @@ public class InitBusiness(ILogger<BocMenhBusiness> logger
                 AmountDiscountRate = 0.065m,
                 Fates = 290, // Số Fates cũng cao hơn
                 FateBonus = 8,
-                FateBonusRate = 0.06m,
-                CreatedTs = DateTime.UtcNow,
+                FateBonusRate = 0.06m
             });
 
             await context.TopUpPackages.AddAsync(new TopUpPackage
@@ -93,8 +91,7 @@ public class InitBusiness(ILogger<BocMenhBusiness> logger
                 AmountDiscountRate = 0.085m,
                 Fates = 580, // Số Fates tăng mạnh
                 FateBonus = 20,
-                FateBonusRate = 0.095m,
-                CreatedTs = DateTime.UtcNow,
+                FateBonusRate = 0.095m
             });
 
             await context.TopUpPackages.AddAsync(new TopUpPackage
@@ -108,8 +105,7 @@ public class InitBusiness(ILogger<BocMenhBusiness> logger
                 AmountDiscountRate = 0.105m,
                 Fates = 1160, // Số điểm Fates tăng tiếp
                 FateBonus = 45,
-                FateBonusRate = 0.115m,
-                CreatedTs = DateTime.UtcNow,
+                FateBonusRate = 0.115m
             });
 
             await context.TopUpPackages.AddAsync(new TopUpPackage
@@ -123,8 +119,7 @@ public class InitBusiness(ILogger<BocMenhBusiness> logger
                 AmountDiscountRate = 0.125m,
                 Fates = 1988, // Số Fates cao
                 FateBonus = 80,
-                FateBonusRate = 0.135m,
-                CreatedTs = DateTime.UtcNow,
+                FateBonusRate = 0.135m
             });
 
             await context.TopUpPackages.AddAsync(new TopUpPackage
@@ -138,8 +133,7 @@ public class InitBusiness(ILogger<BocMenhBusiness> logger
                 AmountDiscountRate = 0.145m,
                 Fates = 3391, // Số điểm Fates cao nhất
                 FateBonus = 120,
-                FateBonusRate = 0.155m,
-                CreatedTs = DateTime.UtcNow,
+                FateBonusRate = 0.155m
             });
         }
 

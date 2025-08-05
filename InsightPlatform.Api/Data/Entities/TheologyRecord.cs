@@ -1,9 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 
-public class TheologyRecord
+public class TheologyRecord : Trackable
 {
     public Guid Id { get; set; }
+
+    [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+    public long AutoId { get; set; }    
 
     public Guid UserId { get; set; }
 
@@ -29,7 +33,6 @@ public class TheologyRecord
 
     public string Result { get; set; }
 
-    public DateTime CreatedTs { get; set; }
     public DateTime? FirstAnalysisTs { get; set; }
     public DateTime? LastAnalysisTs { get; set; }
     public DateTime? SuccessedAnalysisTs { get; set; }

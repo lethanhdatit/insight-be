@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-public class LuckyNumberRecordByKind
+public class LuckyNumberRecordByKind : Trackable
 {
     public Guid Id { get; set; }
 
@@ -12,6 +12,4 @@ public class LuckyNumberRecordByKind
     public string Url { get; set; }
 
     public List<string> Numbers { get; set; }
-
-    public DateTime CreatedTs { get; set; }
 }

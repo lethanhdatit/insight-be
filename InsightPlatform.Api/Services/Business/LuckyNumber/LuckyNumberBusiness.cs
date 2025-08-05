@@ -42,7 +42,6 @@ public class LuckyNumberBusiness(ILogger<LuckyNumberBusiness> logger
                 providerEntity = new LuckyNumberProvider
                 {
                     Name = provider.Name.Trim(),
-                    CreatedTs = DateTime.UtcNow,
                     HomePage = provider.HomePage?.Trim(),
                     Description = provider.Description?.Trim(),
                     UrlPathTemplate = provider.UrlPathTemplate?.Trim(),
@@ -87,7 +86,6 @@ public class LuckyNumberBusiness(ILogger<LuckyNumberBusiness> logger
                         ProviderId = providerEntity.Id,
                         CrawlUrl = data.CrawlUrl,
                         Detail = JsonSerializer.Serialize(data),
-                        CreatedTs = DateTime.UtcNow,
                     };
 
                     await context.LuckyNumberRecords.AddAsync(existed);
@@ -353,8 +351,7 @@ luận giải phải hấp dẫn, huyền bí, lôi cuốn người đọc, và 
                         Input = existed.Input,
                         SystemPrompt = existed.SystemPrompt,
                         UserPrompt = existed.UserPrompt,
-                        Result = existed.Result,
-                        CreatedTs = DateTime.UtcNow,
+                        Result = existed.Result
                     };
 
                     await context.TheologyRecords.AddAsync(cloned);
@@ -387,8 +384,7 @@ luận giải phải hấp dẫn, huyền bí, lôi cuốn người đọc, và 
                     Input = JsonSerializer.Serialize(request),
                     SystemPrompt = sysPrompt,
                     UserPrompt = userPrompt,
-                    Result = JsonSerializer.Serialize(theologyResult),
-                    CreatedTs = DateTime.UtcNow,
+                    Result = JsonSerializer.Serialize(theologyResult)
                 };
 
                 await context.TheologyRecords.AddAsync(existed);
@@ -472,7 +468,6 @@ luận giải phải hấp dẫn, huyền bí, lôi cuốn người đọc, và 
                 {
                     Date = item.Date,
                     Kind = prizeType,
-                    CreatedTs = DateTime.UtcNow,
                     Url = item.CrawlUrl,
                     Numbers = numbers
                 };

@@ -1,6 +1,6 @@
 ﻿using System;
 
-public class LuckyNumberRecord
+public class LuckyNumberRecord : Trackable
 {
     public Guid Id { get; set; }
 
@@ -15,8 +15,6 @@ public class LuckyNumberRecord
     public DateTime? CrossCheckedTs { get; set; }
 
     public Guid? CrossCheckedProviderId { get; set; }
-
-    public DateTime CreatedTs { get; set; }
 
     public LuckyNumberProvider Provider { get; set; }
 }
