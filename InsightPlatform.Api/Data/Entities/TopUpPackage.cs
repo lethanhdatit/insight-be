@@ -1,9 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 
-public class TopUpPackage
+public class TopUpPackage : Trackable
 {
     public Guid Id { get; set; }
+
+    [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+    public long AutoId { get; set; }    
+
     public string Name { get; set; }
     public string Description { get; set; }
     public byte Kind { get; set; }
@@ -16,10 +21,6 @@ public class TopUpPackage
     public int Fates { get; set; }
     public int? FateBonus { get; set; }
     public decimal? FateBonusRate { get; set; }
-
-    public DateTime CreatedTs { get; set; }
-
-    public DateTime? LastUpdatedTs { get; set; }
 
     public ICollection<Transaction> Transactions { get; set; }
 

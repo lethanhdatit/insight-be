@@ -1,6 +1,6 @@
 using System;
 
-public class Pain
+public class Pain : Trackable
 {
     public Guid Id { get; set; }
     public string PainDetail { get; set; }
@@ -12,7 +12,6 @@ public class Pain
     public string UserAgent { get; set; }
     public string ClientLocale { get; set; }
     public Guid? UserId { get; set; }
-    public DateTime CreatedAt { get; set; }
 
     public User User { get; set; }
 }

@@ -46,8 +46,7 @@ public class AccountBusiness(ILogger<AccountBusiness> logger
                 user = new User
                 {
                     UserAgent = Current.UA?.RawUserAgent,
-                    ClientLocale = Current.CurrentCulture?.Name,
-                    CreatedAt = DateTime.UtcNow,
+                    ClientLocale = Current.CurrentCulture?.Name
                 };
 
                 await context.Users.AddAsync(user);
@@ -111,7 +110,6 @@ public class AccountBusiness(ILogger<AccountBusiness> logger
                 {
                     UserAgent = Current.UA?.RawUserAgent,
                     ClientLocale = Current.CurrentCulture?.Name,
-                    CreatedAt = DateTime.UtcNow,
                     GoogleId = payload.Subject,
                     DisplayName = payload.Name,
                 };
@@ -198,7 +196,6 @@ public class AccountBusiness(ILogger<AccountBusiness> logger
                 {
                     UserAgent = Current.UA?.RawUserAgent,
                     ClientLocale = Current.CurrentCulture?.Name,
-                    CreatedAt = DateTime.UtcNow,
                     FacebookId = payload.Id,
                     DisplayName = payload.Name,
                 };
@@ -313,7 +310,6 @@ public class AccountBusiness(ILogger<AccountBusiness> logger
                 {
                     UserAgent = Current.UA?.RawUserAgent,
                     ClientLocale = Current.CurrentCulture?.Name,
-                    CreatedAt = DateTime.UtcNow,
                     Username = payload.Username,
                     Email = payload.Username,
                     DisplayName = payload.DisplayName,
@@ -406,8 +402,8 @@ public class AccountBusiness(ILogger<AccountBusiness> logger
             Email = user.Email ?? user.Username,
             Name = user.DisplayName,
             Avatar = string.Empty,
-            CreatedTs = user.CreatedAt,
-            TotalDays = (DateTime.UtcNow - user.CreatedAt).Days,
+            CreatedTs = user.CreatedTs,
+            TotalDays = (DateTime.UtcNow - user.CreatedTs).Days,
             CurrentFates = user.Fates
         });
     }

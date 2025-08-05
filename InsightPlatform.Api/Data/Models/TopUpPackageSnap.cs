@@ -1,8 +1,9 @@
 ﻿using System;
 
-public class TopUpPackageSnap
+public class TopUpPackageSnap : Trackable
 {
     public Guid Id { get; set; }
+    public long AutoId { get; set; }
     public string Name { get; set; }
     public string Description { get; set; }
     public byte Kind { get; set; }
@@ -17,9 +18,6 @@ public class TopUpPackageSnap
     public int FinalFates { get; set; }
     public int? FateBonus { get; set; }
     public decimal? FateBonusRate { get; set; }
-
-    public DateTime CreatedTs { get; set; }
-    public DateTime? LastUpdatedTs { get; set; }
 
     public TopUpPackageSnap() { }
 
@@ -40,5 +38,6 @@ public class TopUpPackageSnap
         FateBonusRate = entity.FateBonusRate;
         CreatedTs = entity.CreatedTs;
         LastUpdatedTs = entity.LastUpdatedTs;
+        AutoId = entity.AutoId;
     }
 }

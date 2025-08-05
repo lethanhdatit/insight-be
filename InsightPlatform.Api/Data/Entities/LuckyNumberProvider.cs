@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-public class LuckyNumberProvider
+public class LuckyNumberProvider : Trackable
 {
     public Guid Id { get; set; }
 
@@ -12,8 +12,6 @@ public class LuckyNumberProvider
     public string UrlPathTemplate { get; set; }
 
     public string Description { get; set; }
-
-    public DateTime CreatedTs { get; set; }
 
     public ICollection<LuckyNumberRecord> Records { get; set; }
 }

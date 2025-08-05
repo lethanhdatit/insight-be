@@ -1,0 +1,9 @@
+{
+    "dotnet.defaultSolution": "InsightPlatform.Api.csproj",
+    "files.exclude": {
+        "**/bin": true,
+        "**/obj": true
+    },
+    "omnisharp.enableMsBuildLoadProjectsOnDemand": true,
+    "omnisharp.enableAsyncCompletion": true
+}

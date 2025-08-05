@@ -1,8 +1,9 @@
 ﻿using System;
 
-public class ServicePriceSnap
+public class ServicePriceSnap : Trackable
 {
     public Guid Id { get; set; }
+    public long AutoId { get; set; }
     public string Name { get; set; }
     public string Description { get; set; }
     public byte ServiceKind { get; set; }
@@ -15,13 +16,16 @@ public class ServicePriceSnap
 
     public ServicePriceSnap(ServicePrice entity)
     {
-       Id = entity.Id;
-       Name = entity.Name;
-       Description = entity.Description;
-       ServiceKind = entity.ServiceKind;
-       Fates = entity.Fates;
-       FatesDiscount = entity.FatesDiscount;
-       FatesDiscountRate = entity.FatesDiscountRate;
-       FinalFates = entity.GetFinalFates();
+        Id = entity.Id;
+        Name = entity.Name;
+        Description = entity.Description;
+        ServiceKind = entity.ServiceKind;
+        Fates = entity.Fates;
+        FatesDiscount = entity.FatesDiscount;
+        FatesDiscountRate = entity.FatesDiscountRate;
+        FinalFates = entity.GetFinalFates();
+        CreatedTs = entity.CreatedTs;
+        LastUpdatedTs = entity.LastUpdatedTs;
+        AutoId = entity.AutoId;
     }
 }

@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace InsightPlatform.Api.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250703085711_TopUpPackage_Kind")]
-    partial class TopUpPackage_Kind
+    [Migration("20250805021533_Initial")]
+    partial class Initial
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -24,6 +24,35 @@ namespace InsightPlatform.Api.Data.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
+
+            modelBuilder.Entity("EntityOTP", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("ConfirmedTs")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("CreatedTs")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Key")
+                        .HasColumnType("text");
+
+                    b.Property<short>("Module")
+                        .HasColumnType("smallint");
+
+                    b.Property<string>("OTP")
+                        .HasColumnType("text");
+
+                    b.Property<short>("Type")
+                        .HasColumnType("smallint");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("EntityOTPs");
+                });
 
             modelBuilder.Entity("FatePointTransaction", b =>
                 {
@@ -36,6 +65,9 @@ namespace InsightPlatform.Api.Data.Migrations
 
                     b.Property<int>("Fates")
                         .HasColumnType("integer");
+
+                    b.Property<DateTime?>("LastUpdatedTs")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<Guid?>("TheologyRecordId")
                         .HasColumnType("uuid");
@@ -72,6 +104,9 @@ namespace InsightPlatform.Api.Data.Migrations
                     b.Property<string>("HomePage")
                         .HasColumnType("text");
 
+                    b.Property<DateTime?>("LastUpdatedTs")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("Name")
                         .HasColumnType("text");
 
@@ -107,6 +142,9 @@ namespace InsightPlatform.Api.Data.Migrations
                     b.Property<string>("Detail")
                         .HasColumnType("jsonb");
 
+                    b.Property<DateTime?>("LastUpdatedTs")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<Guid>("ProviderId")
                         .HasColumnType("uuid");
 
@@ -132,6 +170,9 @@ namespace InsightPlatform.Api.Data.Migrations
                     b.Property<string>("Kind")
                         .HasColumnType("text");
 
+                    b.Property<DateTime?>("LastUpdatedTs")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<List<string>>("Numbers")
                         .HasColumnType("text[]");
 
@@ -155,7 +196,7 @@ namespace InsightPlatform.Api.Data.Migrations
                     b.Property<string>("ClientLocale")
                         .HasColumnType("text");
 
-                    b.Property<DateTime>("CreatedAt")
+                    b.Property<DateTime>("CreatedTs")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Desire")
@@ -163,6 +204,9 @@ namespace InsightPlatform.Api.Data.Migrations
 
                     b.Property<string>("Emotion")
                         .HasColumnType("text");
+
+                    b.Property<DateTime?>("LastUpdatedTs")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("PainDetail")
                         .HasColumnType("text");
@@ -192,6 +236,15 @@ namespace InsightPlatform.Api.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<long>("AutoId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("AutoId"));
+
+                    b.Property<DateTime>("CreatedTs")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("Description")
                         .HasColumnType("text");
 
@@ -201,8 +254,11 @@ namespace InsightPlatform.Api.Data.Migrations
                     b.Property<int?>("FatesDiscount")
                         .HasColumnType("integer");
 
-                    b.Property<double?>("FatesDiscountRate")
-                        .HasColumnType("double precision");
+                    b.Property<decimal?>("FatesDiscountRate")
+                        .HasColumnType("numeric");
+
+                    b.Property<DateTime?>("LastUpdatedTs")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Name")
                         .HasColumnType("text");
@@ -221,7 +277,28 @@ namespace InsightPlatform.Api.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<long>("AutoId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("AutoId"));
+
+                    b.Property<string>("CombinedPrompts")
+                        .HasColumnType("text");
+
                     b.Property<DateTime>("CreatedTs")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<List<string>>("Errors")
+                        .HasColumnType("text[]");
+
+                    b.Property<DateTime?>("FailedAnalysisTs")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("FailedCount")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("FirstAnalysisTs")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Input")
@@ -229,6 +306,12 @@ namespace InsightPlatform.Api.Data.Migrations
 
                     b.Property<byte>("Kind")
                         .HasColumnType("smallint");
+
+                    b.Property<DateTime?>("LastAnalysisTs")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("LastUpdatedTs")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("PreData")
                         .HasColumnType("jsonb");
@@ -239,8 +322,14 @@ namespace InsightPlatform.Api.Data.Migrations
                     b.Property<Guid>("ServicePriceId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("ServicePriceSnap")
+                        .HasColumnType("jsonb");
+
                     b.Property<byte>("Status")
                         .HasColumnType("smallint");
+
+                    b.Property<DateTime?>("SuccessedAnalysisTs")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("SystemPrompt")
                         .HasColumnType("text");
@@ -275,8 +364,14 @@ namespace InsightPlatform.Api.Data.Migrations
                     b.Property<decimal?>("AmountDiscount")
                         .HasColumnType("numeric");
 
-                    b.Property<double?>("AmountDiscountRate")
-                        .HasColumnType("double precision");
+                    b.Property<decimal?>("AmountDiscountRate")
+                        .HasColumnType("numeric");
+
+                    b.Property<long>("AutoId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("AutoId"));
 
                     b.Property<DateTime>("CreatedTs")
                         .HasColumnType("timestamp with time zone");
@@ -287,8 +382,8 @@ namespace InsightPlatform.Api.Data.Migrations
                     b.Property<int?>("FateBonus")
                         .HasColumnType("integer");
 
-                    b.Property<double?>("FateBonusRate")
-                        .HasColumnType("double precision");
+                    b.Property<decimal?>("FateBonusRate")
+                        .HasColumnType("numeric");
 
                     b.Property<int>("Fates")
                         .HasColumnType("integer");
@@ -296,8 +391,14 @@ namespace InsightPlatform.Api.Data.Migrations
                     b.Property<byte>("Kind")
                         .HasColumnType("smallint");
 
+                    b.Property<DateTime?>("LastUpdatedTs")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("Name")
                         .HasColumnType("text");
+
+                    b.Property<byte>("Status")
+                        .HasColumnType("smallint");
 
                     b.HasKey("Id");
 
@@ -310,10 +411,25 @@ namespace InsightPlatform.Api.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<decimal>("Amount")
-                        .HasColumnType("numeric");
+                    b.Property<bool>("BuyerPaysFee")
+                        .HasColumnType("boolean");
 
                     b.Property<DateTime>("CreatedTs")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal?>("ExchangeRate")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("FeeRate")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("FeeTotal")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("FinalTotal")
+                        .HasColumnType("numeric");
+
+                    b.Property<DateTime?>("LastUpdatedTs")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("MetaData")
@@ -331,11 +447,26 @@ namespace InsightPlatform.Api.Data.Migrations
                     b.Property<byte>("Status")
                         .HasColumnType("smallint");
 
+                    b.Property<decimal>("SubTotal")
+                        .HasColumnType("numeric");
+
                     b.Property<Guid>("TopUpPackageId")
                         .HasColumnType("uuid");
 
+                    b.Property<decimal>("Total")
+                        .HasColumnType("numeric");
+
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid");
+
+                    b.Property<bool>("VATaxIncluded")
+                        .HasColumnType("boolean");
+
+                    b.Property<decimal>("VATaxRate")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("VATaxTotal")
+                        .HasColumnType("numeric");
 
                     b.HasKey("Id");
 
@@ -352,10 +483,16 @@ namespace InsightPlatform.Api.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<long>("AutoId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("AutoId"));
+
                     b.Property<string>("ClientLocale")
                         .HasColumnType("text");
 
-                    b.Property<DateTime>("CreatedAt")
+                    b.Property<DateTime>("CreatedTs")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime?>("DeletedTs")
@@ -378,6 +515,9 @@ namespace InsightPlatform.Api.Data.Migrations
 
                     b.Property<string>("GoogleId")
                         .HasColumnType("text");
+
+                    b.Property<DateTime?>("LastUpdatedTs")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("PasswordHash")
                         .HasColumnType("text");

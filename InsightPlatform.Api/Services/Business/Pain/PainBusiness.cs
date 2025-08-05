@@ -44,8 +44,7 @@ public class PainBusiness(ILogger<PainBusiness> logger
                 Desire = dto.Desire,
                 UserId = userId,
                 UserAgent = ua,
-                ClientLocale = Current.CurrentCulture?.Name,
-                CreatedAt = DateTime.UtcNow
+                ClientLocale = Current.CurrentCulture?.Name
             };
 
             await context.Pains.AddAsync(entity);
