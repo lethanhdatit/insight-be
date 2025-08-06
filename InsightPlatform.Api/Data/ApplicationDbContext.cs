@@ -20,6 +20,13 @@ public class ApplicationDbContext : DbContext
     public DbSet<TopUpPackage> TopUpPackages { get; set; }
     public DbSet<Transaction> Transactions { get; set; }
     public DbSet<EntityOTP> EntityOTPs { get; set; }
+    
+    // Affiliate entities
+    public DbSet<AffiliateCategory> AffiliateCategories { get; set; }
+    public DbSet<AffiliateProduct> AffiliateProducts { get; set; }
+    public DbSet<AffiliateProductCategory> AffiliateProductCategories { get; set; }
+    public DbSet<AffiliateFavorite> AffiliateFavorites { get; set; }
+    public DbSet<AffiliateTrackingEvent> AffiliateTrackingEvents { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -107,6 +114,102 @@ public class ApplicationDbContext : DbContext
         {
             entity.HasKey(e => e.Id);
             entity.Property(e => e.AutoId).UseIdentityColumn();
+        });
+        
+        // Affiliate entities configuration
+        ConfigureAffiliateEntities(modelBuilder);
+    }
+    
+    private void ConfigureAffiliateEntities(ModelBuilder modelBuilder)
+    {
+        // AffiliateCategory
+        modelBuilder.Entity<AffiliateCategory>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.AutoId).UseIdentityColumn();
+            entity.Property(e => e.LocalizedContent).HasColumnType("jsonb");
+            entity.HasIndex(e => e.Code).IsUnique();
+            
+            entity.HasOne(e => e.Parent)
+                  .WithMany(e => e.Children)
+                  .HasForeignKey(e => e.ParentId)
+                  .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // AffiliateProduct
+        modelBuilder.Entity<AffiliateProduct>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.AutoId).UseIdentityColumn();
+            entity.Property(e => e.LocalizedContent).HasColumnType("jsonb");
+            entity.Property(e => e.Images).HasColumnType("jsonb");
+            entity.Property(e => e.Attributes).HasColumnType("jsonb");
+            entity.Property(e => e.Labels).HasColumnType("jsonb");
+            entity.Property(e => e.Variants).HasColumnType("jsonb");
+            entity.Property(e => e.SellerInfo).HasColumnType("jsonb");
+            entity.HasIndex(e => new { e.Provider, e.ProviderId }).IsUnique();
+        });
+
+        // AffiliateProductCategory
+        modelBuilder.Entity<AffiliateProductCategory>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.AutoId).UseIdentityColumn();
+            entity.HasIndex(e => new { e.ProductId, e.CategoryId }).IsUnique();
+            
+            entity.HasOne(e => e.Product)
+                  .WithMany(e => e.ProductCategories)
+                  .HasForeignKey(e => e.ProductId)
+                  .OnDelete(DeleteBehavior.Cascade);
+                  
+            entity.HasOne(e => e.Category)
+                  .WithMany(e => e.ProductCategories)
+                  .HasForeignKey(e => e.CategoryId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // AffiliateFavorite
+        modelBuilder.Entity<AffiliateFavorite>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.AutoId).UseIdentityColumn();
+            entity.HasIndex(e => new { e.UserId, e.ProductId }).IsUnique();
+            
+            entity.HasOne(e => e.User)
+                  .WithMany(u => u.AffiliateFavorites)
+                  .HasForeignKey(e => e.UserId)
+                  .OnDelete(DeleteBehavior.Cascade);
+                  
+            entity.HasOne(e => e.Product)
+                  .WithMany(e => e.Favorites)
+                  .HasForeignKey(e => e.ProductId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // AffiliateTrackingEvent
+        modelBuilder.Entity<AffiliateTrackingEvent>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.AutoId).UseIdentityColumn();
+            entity.Property(e => e.MetaData).HasColumnType("jsonb");
+            entity.HasIndex(e => e.CreatedTs);
+            entity.HasIndex(e => new { e.UserId, e.CreatedTs });
+            entity.HasIndex(e => new { e.ProductId, e.CreatedTs });
+            
+            entity.HasOne(e => e.User)
+                  .WithMany()
+                  .HasForeignKey(e => e.UserId)
+                  .OnDelete(DeleteBehavior.SetNull);
+                  
+            entity.HasOne(e => e.Product)
+                  .WithMany(e => e.TrackingEvents)
+                  .HasForeignKey(e => e.ProductId)
+                  .OnDelete(DeleteBehavior.SetNull);
+                  
+            entity.HasOne(e => e.Category)
+                  .WithMany()
+                  .HasForeignKey(e => e.CategoryId)
+                  .OnDelete(DeleteBehavior.SetNull);
         });
     }
 

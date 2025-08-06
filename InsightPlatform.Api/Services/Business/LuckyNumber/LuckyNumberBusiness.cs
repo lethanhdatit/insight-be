@@ -112,7 +112,7 @@ public class LuckyNumberBusiness(ILogger<LuckyNumberBusiness> logger
 
             return new(true);
         }
-        catch (Exception e)
+        catch (Exception)
         {
             throw;
         }
@@ -158,7 +158,7 @@ public class LuckyNumberBusiness(ILogger<LuckyNumberBusiness> logger
 
             return new(true);
         }
-        catch (Exception e)
+        catch (Exception)
         {
             throw;
         }
@@ -217,7 +217,7 @@ public class LuckyNumberBusiness(ILogger<LuckyNumberBusiness> logger
 
             return new(resultList);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             throw;
         }
@@ -255,7 +255,7 @@ public class LuckyNumberBusiness(ILogger<LuckyNumberBusiness> logger
 
             return new(list);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             throw;
         }
