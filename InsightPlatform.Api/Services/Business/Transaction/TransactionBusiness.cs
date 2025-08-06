@@ -415,7 +415,7 @@ public class TransactionBusiness(ILogger<TransactionBusiness> logger
                 IpnUrl = ipnUrl
             });
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             await transaction.RollbackAsync();
             throw;
@@ -519,7 +519,7 @@ public class TransactionBusiness(ILogger<TransactionBusiness> logger
                 }
             });
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             throw;
         }
@@ -850,7 +850,7 @@ public class TransactionBusiness(ILogger<TransactionBusiness> logger
 
             return new(trans.Id);
         }
-        catch(Exception e)
+        catch(Exception)
         {
             await transaction.RollbackAsync();
             throw;

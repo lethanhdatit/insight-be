@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace InsightPlatform.Api.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250805094737_AddShippingOptionsToAffiliateProduct")]
+    partial class AddShippingOptionsToAffiliateProduct
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -52,6 +55,9 @@ namespace InsightPlatform.Api.Data.Migrations
                     b.Property<Guid?>("ParentId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("Slug")
+                        .HasColumnType("text");
+
                     b.Property<int>("SortOrder")
                         .HasColumnType("integer");
 
@@ -61,6 +67,9 @@ namespace InsightPlatform.Api.Data.Migrations
                         .IsUnique();
 
                     b.HasIndex("ParentId");
+
+                    b.HasIndex("Slug")
+                        .IsUnique();
 
                     b.ToTable("AffiliateCategories");
                 });
@@ -165,6 +174,9 @@ namespace InsightPlatform.Api.Data.Migrations
                     b.Property<string>("ShippingOptions")
                         .HasColumnType("text");
 
+                    b.Property<string>("Slug")
+                        .HasColumnType("text");
+
                     b.Property<byte>("Status")
                         .HasColumnType("smallint");
 
@@ -180,6 +192,9 @@ namespace InsightPlatform.Api.Data.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("AffiliateCategoryId");
+
+                    b.HasIndex("Slug")
+                        .IsUnique();
 
                     b.HasIndex("Provider", "ProviderId")
                         .IsUnique();

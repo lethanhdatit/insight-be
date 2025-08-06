@@ -27,4 +27,5 @@ public class User : Trackable
     public ICollection<TheologyRecord> TheologyRecords { get; set; }
     public ICollection<Transaction> Transactions { get; set; }
     public ICollection<FatePointTransaction> FatePointTransactions { get; set; }
+    public ICollection<AffiliateFavorite> AffiliateFavorites { get; set; }
 }

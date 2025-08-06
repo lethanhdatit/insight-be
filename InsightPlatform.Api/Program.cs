@@ -78,6 +78,8 @@ services.AddScoped<ITransactionBusiness, TransactionBusiness>();
 services.AddScoped<IVietQRService, VietQRService>();
 services.AddScoped<IPayPalService, PayPalService>();
 services.AddScoped<ICurrencyService, CurrencyService>();
+services.AddScoped<IAffiliateBusiness, AffiliateBusiness>();
+services.AddScoped<IAffiliateInitBusiness, AffiliateInitBusiness>();
 
 // === Controller & Swagger ===
 services.AddControllers(options =>

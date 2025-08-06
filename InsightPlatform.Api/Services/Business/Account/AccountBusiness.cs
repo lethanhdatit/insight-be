@@ -70,7 +70,7 @@ public class AccountBusiness(ILogger<AccountBusiness> logger
                 IsGuest = isGuest
             });
         }
-        catch(Exception e)
+        catch(Exception)
         {
             await transaction.RollbackAsync();
             throw;
