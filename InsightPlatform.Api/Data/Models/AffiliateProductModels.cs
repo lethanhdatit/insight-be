@@ -41,6 +41,28 @@ namespace InsightPlatform.Api.Data.Models
         public string Name { get; set; }
         public string Value { get; set; }
         public string Type { get; set; } // text, color, size, etc.
+        public bool IsMatched { get; set; } = false; // For matching with user preferences
+    }
+
+    /// <summary>
+    /// Localized content for product attributes
+    /// </summary>
+    public class ProductAttributeLocalizedContent
+    {
+        public string Name { get; set; }
+        public string Value { get; set; }
+        public string Type { get; set; }
+    }
+
+    /// <summary>
+    /// Product labels for categorization and filtering
+    /// </summary>
+    public class ProductLabel
+    {
+        public string Key { get; set; }
+        public string Name { get; set; }
+        public string Icon { get; set; }
+        public string Color { get; set; }
     }
 
     /// <summary>
@@ -58,6 +80,25 @@ namespace InsightPlatform.Api.Data.Models
     }
 
     /// <summary>
+    /// Localized content for product variants
+    /// </summary>
+    public class ProductVariantLocalizedContent
+    {
+        public string Name { get; set; }
+        public string ImageUrl { get; set; }
+        public List<ProductVariantValue> Values { get; set; }
+    }
+
+    /// <summary>
+    /// Product variant value (e.g., size options, color options)
+    /// </summary>
+    public class ProductVariantValue
+    {
+        public string ValueText { get; set; }
+        public string ImageUrl { get; set; }
+    }
+
+    /// <summary>
     /// Seller information
     /// </summary>
     public class ProductSeller
@@ -69,6 +110,19 @@ namespace InsightPlatform.Api.Data.Models
         public int FollowerCount { get; set; }
         public string Location { get; set; }
         public bool IsVerified { get; set; }
+        public string Description { get; set; }
+        public List<ProductLabel> Labels { get; set; }
+    }
+
+    /// <summary>
+    /// Localized content for seller information
+    /// </summary>
+    public class ProductSellerLocalizedContent
+    {
+        public string Name { get; set; }
+        public string Description { get; set; }
+        public string Location { get; set; }
+        public List<ProductLabel> Labels { get; set; }
     }
 
     /// <summary>
@@ -84,6 +138,15 @@ namespace InsightPlatform.Api.Data.Models
         public int EstimatedDays { get; set; }
         public string Provider { get; set; } // GHN, GHTK, ViettelPost, etc.
         public bool IsDefault { get; set; }
+    }
+
+    /// <summary>
+    /// Localized content for shipping options
+    /// </summary>
+    public class ShippingOptionLocalizedContent
+    {
+        public string Name { get; set; }
+        public string Description { get; set; }
     }
 
     /// <summary>

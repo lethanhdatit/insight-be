@@ -113,76 +113,158 @@ public class AffiliateInitBusiness(ILogger<AffiliateInitBusiness> logger
                                 "https://example.com/bracelet-3.jpg"
                             }
                         }),
-                        Attributes = JsonSerializer.Serialize(new[]
+                        Attributes = JsonSerializer.Serialize(new Dictionary<string, object>
                         {
-                            new { name = "Màu sắc", value = "Đỏ" },
-                            new { name = "Kích thước", value = "16-18cm" },
-                            new { name = "Chất liệu", value = "Thạch anh thiên nhiên" }
-                        }),
-                        Labels = JsonSerializer.Serialize(new[] { "hot", "bestseller", "new" }),
-                        Variants = JsonSerializer.Serialize(new[]
-                        {
-                            new {
-                                name = "Kích thước",
-                                imageUrl = "https://example.com/size-guide.jpg",
-                                values = new[]
-                                {
-                                    new { valueText = "16cm", imageUrl = "https://example.com/16cm.jpg" },
-                                    new { valueText = "17cm", imageUrl = "https://example.com/17cm.jpg" },
-                                    new { valueText = "18cm", imageUrl = "https://example.com/18cm.jpg" }
-                                }
+                            ["vi"] = new[]
+                            {
+                                new { name = "Màu sắc", value = "Đỏ", type = "color" },
+                                new { name = "Kích thước", value = "16-18cm", type = "size" },
+                                new { name = "Chất liệu", value = "Thạch anh thiên nhiên", type = "material" }
+                            },
+                            ["en"] = new[]
+                            {
+                                new { name = "Color", value = "Red", type = "color" },
+                                new { name = "Size", value = "16-18cm", type = "size" },
+                                new { name = "Material", value = "Natural crystal", type = "material" }
                             }
                         }),
-                        SellerInfo = JsonSerializer.Serialize(new
+                        Labels = JsonSerializer.Serialize(new Dictionary<string, object>
                         {
-                            name = "PhongThuyStore",
-                            imageUrl = "https://example.com/seller-logo.jpg",
-                            description = "Chuyên bán đồ phong thủy chính hãng",
-                            labels = new[]
-                            {
-                                new { name = "Uy tín", imageUrl = "https://example.com/trusted.jpg" },
-                                new { name = "Bán chạy", imageUrl = "https://example.com/bestseller.jpg" }
-                            }
+                            ["vi"] = new[] { "hot", "bestseller", "mới" },
+                            ["en"] = new[] { "hot", "bestseller", "new" }
                         }),
-                        ShippingOptions = JsonSerializer.Serialize(new
+                        Variants = JsonSerializer.Serialize(new Dictionary<string, object>
                         {
-                            options = new[]
+                            ["vi"] = new[]
                             {
                                 new {
-                                    id = "standard",
-                                    name = "Giao hàng tiêu chuẩn",
-                                    description = "Giao trong 3-5 ngày làm việc",
-                                    price = 30000m,
-                                    isFree = false,
-                                    estimatedDays = 4,
-                                    provider = "GHN",
-                                    isDefault = true
-                                },
-                                new {
-                                    id = "fast",
-                                    name = "Giao hàng nhanh",
-                                    description = "Giao trong 1-2 ngày làm việc",
-                                    price = 50000m,
-                                    isFree = false,
-                                    estimatedDays = 1,
-                                    provider = "GHTK",
-                                    isDefault = false
-                                },
-                                new {
-                                    id = "free",
-                                    name = "Miễn phí vận chuyển",
-                                    description = "Miễn phí cho đơn hàng trên 500K",
-                                    price = 0m,
-                                    isFree = true,
-                                    estimatedDays = 7,
-                                    provider = "ViettelPost",
-                                    isDefault = false
+                                    name = "Kích thước",
+                                    imageUrl = "https://example.com/size-guide.jpg",
+                                    values = new[]
+                                    {
+                                        new { valueText = "16cm", imageUrl = "https://example.com/16cm.jpg" },
+                                        new { valueText = "17cm", imageUrl = "https://example.com/17cm.jpg" },
+                                        new { valueText = "18cm", imageUrl = "https://example.com/18cm.jpg" }
+                                    }
                                 }
                             },
-                            defaultShippingId = "standard",
-                            freeShippingAvailable = true,
-                            freeShippingThreshold = 500000m,
-                            shippingFrom = "Hồ Chí Minh"
+                            ["en"] = new[]
+                            {
+                                new {
+                                    name = "Size",
+                                    imageUrl = "https://example.com/size-guide.jpg",
+                                    values = new[]
+                                    {
+                                        new { valueText = "16cm", imageUrl = "https://example.com/16cm.jpg" },
+                                        new { valueText = "17cm", imageUrl = "https://example.com/17cm.jpg" },
+                                        new { valueText = "18cm", imageUrl = "https://example.com/18cm.jpg" }
+                                    }
+                                }
+                            }
+                        }),
+                        SellerInfo = JsonSerializer.Serialize(new Dictionary<string, object>
+                        {
+                            ["vi"] = new {
+                                name = "PhongThuyStore",
+                                imageUrl = "https://example.com/seller-logo.jpg",
+                                description = "Chuyên bán đồ phong thủy chính hãng",
+                                labels = new[]
+                                {
+                                    new { name = "Uy tín", imageUrl = "https://example.com/trusted.jpg" },
+                                    new { name = "Bán chạy", imageUrl = "https://example.com/bestseller.jpg" }
+                                }
+                            },
+                            ["en"] = new {
+                                name = "PhongThuyStore",
+                                imageUrl = "https://example.com/seller-logo.jpg",
+                                description = "Specialized in authentic feng shui products",
+                                labels = new[]
+                                {
+                                    new { name = "Trusted", imageUrl = "https://example.com/trusted.jpg" },
+                                    new { name = "Bestseller", imageUrl = "https://example.com/bestseller.jpg" }
+                                }
+                            }
+                        }),
+                        ShippingOptions = JsonSerializer.Serialize(new Dictionary<string, object>
+                        {
+                            ["vi"] = new {
+                                options = new[]
+                                {
+                                    new {
+                                        id = "standard",
+                                        name = "Giao hàng tiêu chuẩn",
+                                        description = "Giao trong 3-5 ngày làm việc",
+                                        price = 30000m,
+                                        isFree = false,
+                                        estimatedDays = 4,
+                                        provider = "GHN",
+                                        isDefault = true
+                                    },
+                                    new {
+                                        id = "fast",
+                                        name = "Giao hàng nhanh",
+                                        description = "Giao trong 1-2 ngày làm việc",
+                                        price = 50000m,
+                                        isFree = false,
+                                        estimatedDays = 1,
+                                        provider = "GHTK",
+                                        isDefault = false
+                                    },
+                                    new {
+                                        id = "free",
+                                        name = "Miễn phí vận chuyển",
+                                        description = "Miễn phí cho đơn hàng trên 500K",
+                                        price = 0m,
+                                        isFree = true,
+                                        estimatedDays = 7,
+                                        provider = "ViettelPost",
+                                        isDefault = false
+                                    }
+                                },
+                                defaultShippingId = "standard",
+                                freeShippingAvailable = true,
+                                freeShippingThreshold = 500000m,
+                                shippingFrom = "Hồ Chí Minh"
+                            },
+                            ["en"] = new {
+                                options = new[]
+                                {
+                                    new {
+                                        id = "standard",
+                                        name = "Standard shipping",
+                                        description = "Delivery in 3-5 business days",
+                                        price = 30000m,
+                                        isFree = false,
+                                        estimatedDays = 4,
+                                        provider = "GHN",
+                                        isDefault = true
+                                    },
+                                    new {
+                                        id = "fast",
+                                        name = "Fast shipping",
+                                        description = "Delivery in 1-2 business days",
+                                        price = 50000m,
+                                        isFree = false,
+                                        estimatedDays = 1,
+                                        provider = "GHTK",
+                                        isDefault = false
+                                    },
+                                    new {
+                                        id = "free",
+                                        name = "Free shipping",
+                                        description = "Free for orders over 500K",
+                                        price = 0m,
+                                        isFree = true,
+                                        estimatedDays = 7,
+                                        provider = "ViettelPost",
+                                        isDefault = false
+                                    }
+                                },
+                                defaultShippingId = "standard",
+                                freeShippingAvailable = true,
+                                freeShippingThreshold = 500000m,
+                                shippingFrom = "Ho Chi Minh City"
+                            }
                         }),
                         LastSyncedTs = DateTime.UtcNow
                     },
@@ -222,51 +304,134 @@ public class AffiliateInitBusiness(ILogger<AffiliateInitBusiness> logger
                                 "https://example.com/coin-2.jpg"
                             }
                         }),
-                        Attributes = JsonSerializer.Serialize(new[]
+                        Attributes = JsonSerializer.Serialize(new Dictionary<string, object>
                         {
-                            new { name = "Chất liệu", value = "Mạ vàng 24k" },
-                            new { name = "Đường kính", value = "3cm" },
-                            new { name = "Xuất xứ", value = "Việt Nam" }
-                        }),
-                        Labels = JsonSerializer.Serialize(new[] { "popular", "traditional" }),
-                        SellerInfo = JsonSerializer.Serialize(new
-                        {
-                            name = "TaiLocShop",
-                            imageUrl = "https://example.com/tailoc-logo.jpg",
-                            description = "Chuyên phong thủy truyền thống",
-                            labels = new[]
+                            ["vi"] = new[]
                             {
-                                new { name = "Chất lượng", imageUrl = "https://example.com/quality.jpg" }
+                                new { name = "Chất liệu", value = "Mạ vàng 24k", type = "material" },
+                                new { name = "Đường kính", value = "3cm", type = "size" },
+                                new { name = "Xuất xứ", value = "Việt Nam", type = "origin" }
+                            },
+                            ["en"] = new[]
+                            {
+                                new { name = "Material", value = "24k gold plated", type = "material" },
+                                new { name = "Diameter", value = "3cm", type = "size" },
+                                new { name = "Origin", value = "Vietnam", type = "origin" }
                             }
                         }),
-                        ShippingOptions = JsonSerializer.Serialize(new
+                        Labels = JsonSerializer.Serialize(new Dictionary<string, object>
                         {
-                            options = new[]
+                            ["vi"] = new[] { "phổ biến", "truyền thống", "cao cấp" },
+                            ["en"] = new[] { "popular", "traditional", "premium" }
+                        }),
+                        Variants = JsonSerializer.Serialize(new Dictionary<string, object>
+                        {
+                            ["vi"] = new[]
                             {
                                 new {
-                                    id = "express",
-                                    name = "Giao hàng hỏa tốc",
-                                    description = "Giao trong 24h",
-                                    price = 80000m,
-                                    isFree = false,
-                                    estimatedDays = 1,
-                                    provider = "Grab",
-                                    isDefault = true
-                                },
-                                new {
-                                    id = "standard",
-                                    name = "Giao hàng tiêu chuẩn",
-                                    description = "Giao trong 2-3 ngày",
-                                    price = 25000m,
-                                    isFree = false,
-                                    estimatedDays = 2,
-                                    provider = "ViettelPost",
-                                    isDefault = false
+                                    name = "Màu sắc",
+                                    imageUrl = "https://example.com/color-guide.jpg",
+                                    values = new[]
+                                    {
+                                        new { valueText = "Vàng", imageUrl = "https://example.com/gold.jpg" },
+                                        new { valueText = "Bạc", imageUrl = "https://example.com/silver.jpg" }
+                                    }
                                 }
                             },
-                            defaultShippingId = "express",
-                            freeShippingAvailable = false,
-                            shippingFrom = "Hà Nội"
+                            ["en"] = new[]
+                            {
+                                new {
+                                    name = "Color",
+                                    imageUrl = "https://example.com/color-guide.jpg",
+                                    values = new[]
+                                    {
+                                        new { valueText = "Gold", imageUrl = "https://example.com/gold.jpg" },
+                                        new { valueText = "Silver", imageUrl = "https://example.com/silver.jpg" }
+                                    }
+                                }
+                            }
+                        }),
+                        SellerInfo = JsonSerializer.Serialize(new Dictionary<string, object>
+                        {
+                            ["vi"] = new {
+                                name = "TaiLocShop",
+                                imageUrl = "https://example.com/tailoc-logo.jpg",
+                                description = "Chuyên phong thủy truyền thống",
+                                labels = new[]
+                                {
+                                    new { name = "Chất lượng", imageUrl = "https://example.com/quality.jpg" },
+                                    new { name = "Uy tín", imageUrl = "https://example.com/trusted.jpg" }
+                                }
+                            },
+                            ["en"] = new {
+                                name = "TaiLocShop",
+                                imageUrl = "https://example.com/tailoc-logo.jpg",
+                                description = "Specialized in traditional feng shui",
+                                labels = new[]
+                                {
+                                    new { name = "Quality", imageUrl = "https://example.com/quality.jpg" },
+                                    new { name = "Trusted", imageUrl = "https://example.com/trusted.jpg" }
+                                }
+                            }
+                        }),
+                        ShippingOptions = JsonSerializer.Serialize(new Dictionary<string, object>
+                        {
+                            ["vi"] = new {
+                                options = new[]
+                                {
+                                    new {
+                                        id = "express",
+                                        name = "Giao hàng hỏa tốc",
+                                        description = "Giao trong 24h",
+                                        price = 80000m,
+                                        isFree = false,
+                                        estimatedDays = 1,
+                                        provider = "Grab",
+                                        isDefault = true
+                                    },
+                                    new {
+                                        id = "standard",
+                                        name = "Giao hàng tiêu chuẩn",
+                                        description = "Giao trong 2-3 ngày",
+                                        price = 25000m,
+                                        isFree = false,
+                                        estimatedDays = 2,
+                                        provider = "ViettelPost",
+                                        isDefault = false
+                                    }
+                                },
+                                defaultShippingId = "express",
+                                freeShippingAvailable = false,
+                                shippingFrom = "Hà Nội"
+                            },
+                            ["en"] = new {
+                                options = new[]
+                                {
+                                    new {
+                                        id = "express",
+                                        name = "Express delivery",
+                                        description = "Delivery within 24h",
+                                        price = 80000m,
+                                        isFree = false,
+                                        estimatedDays = 1,
+                                        provider = "Grab",
+                                        isDefault = true
+                                    },
+                                    new {
+                                        id = "standard",
+                                        name = "Standard shipping",
+                                        description = "Delivery in 2-3 days",
+                                        price = 25000m,
+                                        isFree = false,
+                                        estimatedDays = 2,
+                                        provider = "ViettelPost",
+                                        isDefault = false
+                                    }
+                                },
+                                defaultShippingId = "express",
+                                freeShippingAvailable = false,
+                                shippingFrom = "Hanoi"
+                            }
                         }),
                         LastSyncedTs = DateTime.UtcNow
                     }

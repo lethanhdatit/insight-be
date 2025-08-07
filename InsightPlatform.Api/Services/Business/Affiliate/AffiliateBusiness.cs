@@ -54,7 +54,7 @@ public class AffiliateBusiness(ILogger<AffiliateBusiness> logger
             {
                 try
                 {
-                    var productAttributes = JsonSerializer.Deserialize<List<ProductAttribute>>(attributeJson.Attributes, JsonSerializerOptions);
+                    var productAttributes = GetLocalizedContent<List<ProductAttribute>>(attributeJson.Attributes, language);
                     if (productAttributes != null)
                         attributes.AddRange(productAttributes);
                 }
@@ -68,7 +68,7 @@ public class AffiliateBusiness(ILogger<AffiliateBusiness> logger
             {
                 try
                 {
-                    var productLabels = JsonSerializer.Deserialize<List<string>>(attributeJson.Labels, JsonSerializerOptions);
+                    var productLabels = GetLocalizedContent<List<string>>(attributeJson.Labels, language);
                     if (productLabels != null)
                         labels.AddRange(productLabels);
                 }
@@ -146,45 +146,38 @@ public class AffiliateBusiness(ILogger<AffiliateBusiness> logger
             }
         }
 
-        // Apply attribute filter
+        // Get initial query without attribute/label filters (will filter in memory)
+        var totalCount = await query.CountAsync();
+        var allProducts = await query.ToListAsync();
+
+        // Apply attribute and label filters in memory
+        var filteredProducts = allProducts.AsEnumerable();
+
         if (request.Attributes?.Any() == true)
         {
-            foreach (var attributeFilter in request.Attributes)
-            {
-                var parts = attributeFilter.Split(':');
-                if (parts.Length == 2)
-                {
-                    var name = parts[0];
-                    var value = parts[1];
-                    query = query.Where(p => p.Attributes.Contains($"\"name\":\"{name}\"") && p.Attributes.Contains($"\"value\":\"{value}\""));
-                }
-            }
+            filteredProducts = filteredProducts.Where(p => ProductMatchesAttributes(p, request.Attributes, language));
         }
 
-        // Apply label filter
         if (request.Labels?.Any() == true)
         {
-            foreach (var label in request.Labels)
-            {
-                query = query.Where(p => p.Labels.Contains($"\"{label}\""));
-            }
+            filteredProducts = filteredProducts.Where(p => ProductMatchesLabels(p, request.Labels, language));
         }
 
         // Apply sorting
-        query = request.SortBy?.ToLower() switch
+        filteredProducts = request.SortBy?.ToLower() switch
         {
-            "price_asc" => query.OrderBy(p => p.DiscountPrice ?? p.Price),
-            "price_desc" => query.OrderByDescending(p => p.DiscountPrice ?? p.Price),
-            "rating_asc" => query.OrderBy(p => p.Rating ?? 0),
-            "rating_desc" => query.OrderByDescending(p => p.Rating ?? 0),
-            _ => query.OrderByDescending(p => p.CreatedTs) // Default: newest first
+            "price_asc" => filteredProducts.OrderBy(p => p.DiscountPrice ?? p.Price),
+            "price_desc" => filteredProducts.OrderByDescending(p => p.DiscountPrice ?? p.Price),
+            "rating_asc" => filteredProducts.OrderBy(p => p.Rating ?? 0),
+            "rating_desc" => filteredProducts.OrderByDescending(p => p.Rating ?? 0),
+            _ => filteredProducts.OrderByDescending(p => p.CreatedTs) // Default: newest first
         };
 
-        var totalCount = await query.CountAsync();
-        var products = await query
+        var filteredCount = filteredProducts.Count();
+        var products = filteredProducts
             .Skip((request.PageNumber - 1) * request.PageSize)
             .Take(request.PageSize)
-            .ToListAsync();
+            .ToList();
 
         // Get user favorites if logged in
         var favoriteProductIds = new HashSet<Guid>();
@@ -196,21 +189,21 @@ public class AffiliateBusiness(ILogger<AffiliateBusiness> logger
                 .ToListAsync()).ToHashSet();
         }
 
-        var productDtos = products.Select(p => MapProductToListDto(p, language, favoriteProductIds.Contains(p.Id))).ToList();
+        var productDtos = products.Select(p => MapProductToListDto(p, language, favoriteProductIds.Contains(p.Id), request.Attributes)).ToList();
 
         var result = new PaginatedBase<AffiliateProductListDto>
         {
             Items = productDtos,
-            TotalRecords = totalCount,
+            TotalRecords = filteredCount,
             PageNumber = request.PageNumber,
             PageSize = request.PageSize,
-            TotalPages = (int)Math.Ceiling((double)totalCount / request.PageSize)
+            TotalPages = (int)Math.Ceiling((double)filteredCount / request.PageSize)
         };
 
         return new BaseResponse<PaginatedBase<AffiliateProductListDto>>(result);
     }
 
-    public async Task<BaseResponse<AffiliateProductDetailDto>> GetProductDetailAsync(Guid productId)
+    public async Task<BaseResponse<AffiliateProductDetailDto>> GetProductDetailAsync(Guid productId, AffiliateProductDetailRequest request = null)
     {
         await using var context = await _contextFactory.CreateDbContextAsync();
         var language = GetCurrentLanguage();
@@ -234,7 +227,7 @@ public class AffiliateBusiness(ILogger<AffiliateBusiness> logger
                 .AnyAsync(f => f.UserId == userId.Value && f.ProductId == productId);
         }
 
-        var productDto = MapProductToDetailDto(product, language, isFavorite);
+        var productDto = MapProductToDetailDto(product, language, isFavorite, request?.Attributes);
 
         // Track view event
         if (userId.HasValue || Current.ClientIP.IsPresent())
@@ -448,11 +441,18 @@ public class AffiliateBusiness(ILogger<AffiliateBusiness> logger
         return dto;
     }
 
-    private AffiliateProductListDto MapProductToListDto(AffiliateProduct product, string language, bool isFavorite)
+    private AffiliateProductListDto MapProductToListDto(AffiliateProduct product, string language, bool isFavorite, List<string> filterAttributes = null)
     {
         var localizedContent = GetLocalizedContent<AffiliateProductLocalizedContent>(product.LocalizedContent, language);
         var images = GetJsonObject<ProductImages>(product.Images);
-        var labels = GetJsonObject<List<string>>(product.Labels) ?? [];
+        var labels = GetLocalizedContent<List<string>>(product.Labels, language) ?? [];
+        var attributes = GetLocalizedContent<List<ProductAttribute>>(product.Attributes, language) ?? [];
+
+        // Process attributes with matching logic if filter is provided
+        if (filterAttributes?.Any() == true)
+        {
+            attributes = ProcessAttributesWithMatching(attributes, filterAttributes);
+        }
 
         return new AffiliateProductListDto
         {
@@ -469,21 +469,28 @@ public class AffiliateBusiness(ILogger<AffiliateBusiness> logger
             TotalSold = product.TotalSold,
             Name = localizedContent?.Name ?? "N/A",
             ThumbnailImage = images?.Thumbnail,
+            Attributes = attributes,
             Labels = labels,
             IsFavorite = isFavorite
         };
     }
 
-    private AffiliateProductDetailDto MapProductToDetailDto(AffiliateProduct product, string language, bool isFavorite)
+    private AffiliateProductDetailDto MapProductToDetailDto(AffiliateProduct product, string language, bool isFavorite, List<string> filterAttributes = null)
     {
         var localizedContent = GetLocalizedContent<AffiliateProductLocalizedContent>(product.LocalizedContent, language);
         var images = GetJsonObject<ProductImages>(product.Images);
-        var attributes = GetJsonObject<List<ProductAttribute>>(product.Attributes) ?? [];
-        var labels = GetJsonObject<List<string>>(product.Labels) ?? [];
-        var variants = GetJsonObject<List<ProductVariant>>(product.Variants) ?? [];
-        var seller = GetJsonObject<ProductSeller>(product.SellerInfo);
-        var shippingOptions = GetJsonObject<ProductShippingOptions>(product.ShippingOptions);
+        var attributes = GetLocalizedContent<List<ProductAttribute>>(product.Attributes, language) ?? [];
+        var labels = GetLocalizedContent<List<string>>(product.Labels, language) ?? [];
+        var variants = GetLocalizedContent<List<ProductVariant>>(product.Variants, language) ?? [];
+        var seller = GetLocalizedContent<ProductSeller>(product.SellerInfo, language);
+        var shippingOptions = GetLocalizedContent<ProductShippingOptions>(product.ShippingOptions, language);
         var categories = product.ProductCategories?.Select(pc => MapCategoryToDto(pc.Category, [], language)).ToList() ?? [];
+
+        // Process attributes with matching logic if filter is provided
+        if (filterAttributes?.Any() == true)
+        {
+            attributes = ProcessAttributesWithMatching(attributes, filterAttributes);
+        }
 
         return new AffiliateProductDetailDto
         {
@@ -595,6 +602,134 @@ public class AffiliateBusiness(ILogger<AffiliateBusiness> logger
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Failed to track event: {Action} for Product: {ProductId}", request.Action, request.ProductId);
+        }
+    }
+
+    private List<ProductAttribute> ProcessAttributesWithMatching(List<ProductAttribute> attributes, List<string> filterAttributes)
+    {
+        if (attributes == null || !attributes.Any())
+            return new List<ProductAttribute>();
+
+        if (filterAttributes == null || !filterAttributes.Any())
+            return attributes;
+
+        // Process each attribute to check for matching
+        var processedAttributes = new List<ProductAttribute>();
+
+        foreach (var attribute in attributes)
+        {
+            var processedAttribute = new ProductAttribute
+            {
+                Name = attribute.Name,
+                Value = attribute.Value,
+                Type = attribute.Type,
+                IsMatched = IsAttributeMatched(attribute, filterAttributes)
+            };
+
+            processedAttributes.Add(processedAttribute);
+        }
+
+        // Sort by IsMatched: matched items first, then by name
+        return processedAttributes
+            .OrderByDescending(a => a.IsMatched)
+            .ThenBy(a => a.Name)
+            .ToList();
+    }
+
+    private bool IsAttributeMatched(ProductAttribute attribute, List<string> filterAttributes)
+    {
+        if (attribute == null || filterAttributes == null || !filterAttributes.Any())
+            return false;
+
+        // Check if any filter attribute matches this product attribute
+        // Filter format: "name:value" or just "value"
+        foreach (var filter in filterAttributes)
+        {
+            if (filter.Contains(':'))
+            {
+                var parts = filter.Split(':', 2);
+                if (parts.Length == 2)
+                {
+                    var filterName = parts[0].Trim();
+                    var filterValue = parts[1].Trim();
+                    
+                    if (string.Equals(attribute.Name, filterName, StringComparison.OrdinalIgnoreCase) &&
+                        string.Equals(attribute.Value, filterValue, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return true;
+                    }
+                }
+            }
+            else
+            {
+                // Just value matching
+                if (string.Equals(attribute.Value, filter.Trim(), StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private bool ProductMatchesAttributes(AffiliateProduct product, List<string> filterAttributes, string language)
+    {
+        if (product.Attributes.IsMissing() || filterAttributes == null || !filterAttributes.Any())
+            return true;
+
+        try
+        {
+            var attributes = GetLocalizedContent<List<ProductAttribute>>(product.Attributes, language);
+            if (attributes == null || !attributes.Any())
+                return false;
+
+            // Check if all filter attributes match
+            foreach (var filter in filterAttributes)
+            {
+                var parts = filter.Split(':');
+                if (parts.Length == 2)
+                {
+                    var filterName = parts[0].Trim();
+                    var filterValue = parts[1].Trim();
+                    
+                    var hasMatch = attributes.Any(attr => 
+                        string.Equals(attr.Name, filterName, StringComparison.OrdinalIgnoreCase) &&
+                        string.Equals(attr.Value, filterValue, StringComparison.OrdinalIgnoreCase));
+                    
+                    if (!hasMatch)
+                        return false;
+                }
+            }
+            
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to parse product attributes for filtering: {ProductId}", product.Id);
+            return false;
+        }
+    }
+
+    private bool ProductMatchesLabels(AffiliateProduct product, List<string> filterLabels, string language)
+    {
+        if (product.Labels.IsMissing() || filterLabels == null || !filterLabels.Any())
+            return true;
+
+        try
+        {
+            var labels = GetLocalizedContent<List<string>>(product.Labels, language);
+            if (labels == null || !labels.Any())
+                return false;
+
+            // Check if any filter label matches
+            return filterLabels.Any(filterLabel => 
+                labels.Any(label => string.Equals(label, filterLabel, StringComparison.OrdinalIgnoreCase)));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to parse product labels for filtering: {ProductId}", product.Id);
+            return false;
         }
     }
 

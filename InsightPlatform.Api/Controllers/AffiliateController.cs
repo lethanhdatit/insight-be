@@ -34,9 +34,9 @@ public class AffiliateController(IWebHostEnvironment env
 
     [AllowAnonymous]
     [HttpGet("products/{productId}")]
-    public async Task<IActionResult> GetProductDetail([FromRoute] Guid productId)
+    public async Task<IActionResult> GetProductDetail([FromRoute] Guid productId, [FromQuery] AffiliateProductDetailRequest request = null)
     {
-        var result = await _affiliateBusiness.GetProductDetailAsync(productId);
+        var result = await _affiliateBusiness.GetProductDetailAsync(productId, request);
         return HandleOk(result);
     }
 
