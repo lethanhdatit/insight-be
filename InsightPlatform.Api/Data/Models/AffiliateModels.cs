@@ -17,6 +17,11 @@ public class AffiliateProductFilterRequest
     public int PageNumber { get; set; } = 1;
 }
 
+public class AffiliateProductDetailRequest
+{
+    public List<string> Attributes { get; set; } // Optional: For matching with user preferences
+}
+
 public class AddFavoriteRequest
 {
     public Guid ProductId { get; set; }
@@ -48,6 +53,7 @@ public class AffiliateProductListDto
     public int TotalSold { get; set; }
     public string Name { get; set; }
     public string ThumbnailImage { get; set; }
+    public List<ProductAttribute> Attributes { get; set; } // Add attributes to list DTO
     public List<string> Labels { get; set; }
     public bool IsFavorite { get; set; }
 }
@@ -117,6 +123,8 @@ public class ProductAttribute
 {
     public string Name { get; set; }
     public string Value { get; set; }
+    public string Type { get; set; }
+    public bool IsMatched { get; set; } = false;
 }
 
 public class ProductVariant
