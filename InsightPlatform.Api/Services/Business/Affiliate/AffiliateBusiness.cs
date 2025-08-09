@@ -1,3 +1,4 @@
+using InsightPlatform.Api.Data.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -6,7 +7,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
-using InsightPlatform.Api.Data.Models;
 
 public class AffiliateBusiness(ILogger<AffiliateBusiness> logger
         , IDbContextFactory<ApplicationDbContext> contextFactory
@@ -84,7 +84,8 @@ public class AffiliateBusiness(ILogger<AffiliateBusiness> logger
         .Select(g => new ProductAttribute
         {
             Name = g.Key,
-            Value = string.Join(", ", g.Select(x => x.Value).Distinct().OrderBy(v => v))
+            Value = [.. g.SelectMany(x => x.Value).Distinct().OrderBy(v => v)],
+            Type = g.FirstOrDefault()?.Type ?? "undefined",
         })
         .OrderBy(a => a.Name)
         .ToList();
@@ -125,6 +126,18 @@ public class AffiliateBusiness(ILogger<AffiliateBusiness> logger
         if (request.CategoryIds?.Any() == true)
         {
             query = query.Where(p => p.ProductCategories.Any(pc => request.CategoryIds.Contains(pc.CategoryId)));
+        }
+
+        if (request.HasDiscount.HasValue)
+        {
+            if (request.HasDiscount.Value)
+            {
+                query = query.Where(p => p.DiscountPrice.HasValue && p.DiscountPrice < p.Price);
+            }
+            else
+            {
+                query = query.Where(p => !p.DiscountPrice.HasValue || p.DiscountPrice >= p.Price);
+            }
         }
 
         if (request.PriceFrom.HasValue)
@@ -433,7 +446,7 @@ public class AffiliateBusiness(ILogger<AffiliateBusiness> logger
             .Select(c => MapCategoryToDto(c, allCategories, language))
             .ToList();
 
-        if (children.Any())
+        if (children.Count != 0)
         {
             dto.Children = children;
         }
@@ -638,7 +651,7 @@ public class AffiliateBusiness(ILogger<AffiliateBusiness> logger
 
     private bool IsAttributeMatched(ProductAttribute attribute, List<string> filterAttributes)
     {
-        if (attribute == null || filterAttributes == null || !filterAttributes.Any())
+        if (attribute == null || attribute.Value == null || !attribute.Value.Any() || filterAttributes == null || !filterAttributes.Any())
             return false;
 
         // Check if any filter attribute matches this product attribute
@@ -654,7 +667,7 @@ public class AffiliateBusiness(ILogger<AffiliateBusiness> logger
                     var filterValue = parts[1].Trim();
                     
                     if (string.Equals(attribute.Name, filterName, StringComparison.OrdinalIgnoreCase) &&
-                        string.Equals(attribute.Value, filterValue, StringComparison.OrdinalIgnoreCase))
+                        attribute.Value.Any(v => string.Equals(v, filterValue, StringComparison.OrdinalIgnoreCase)))
                     {
                         return true;
                     }
@@ -662,8 +675,8 @@ public class AffiliateBusiness(ILogger<AffiliateBusiness> logger
             }
             else
             {
-                // Just value matching
-                if (string.Equals(attribute.Value, filter.Trim(), StringComparison.OrdinalIgnoreCase))
+                // Just value matching - check if any value in the list matches
+                if (attribute.Value.Any(v => string.Equals(v, filter.Trim(), StringComparison.OrdinalIgnoreCase)))
                 {
                     return true;
                 }
@@ -695,7 +708,7 @@ public class AffiliateBusiness(ILogger<AffiliateBusiness> logger
                     
                     var hasMatch = attributes.Any(attr => 
                         string.Equals(attr.Name, filterName, StringComparison.OrdinalIgnoreCase) &&
-                        string.Equals(attr.Value, filterValue, StringComparison.OrdinalIgnoreCase));
+                        attr.Value != null && attr.Value.Any(v => string.Equals(v, filterValue, StringComparison.OrdinalIgnoreCase)));
                     
                     if (!hasMatch)
                         return false;
