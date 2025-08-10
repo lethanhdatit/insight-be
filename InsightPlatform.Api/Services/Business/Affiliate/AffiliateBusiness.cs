@@ -128,6 +128,11 @@ public class AffiliateBusiness(ILogger<AffiliateBusiness> logger
             query = query.Where(p => p.ProductCategories.Any(pc => request.CategoryIds.Contains(pc.CategoryId)));
         }
 
+        if (request.CategoryCodes?.Any() == true)
+        {
+            query = query.Where(p => p.ProductCategories.Any(pc => request.CategoryCodes.Contains(pc.Category.Code)));
+        }
+
         if (request.HasDiscount.HasValue)
         {
             if (request.HasDiscount.Value)
@@ -474,6 +479,7 @@ public class AffiliateBusiness(ILogger<AffiliateBusiness> logger
         var images = GetJsonObject<ProductImages>(product.Images);
         var labels = GetLocalizedContent<List<string>>(product.Labels, language) ?? [];
         var attributes = GetLocalizedContent<List<ProductAttribute>>(product.Attributes, language) ?? [];
+        var category = product.ProductCategories?.FirstOrDefault()?.Category;
 
         // Process attributes with matching logic if filter is provided
         if (filterAttributes?.Any() == true)
@@ -497,6 +503,7 @@ public class AffiliateBusiness(ILogger<AffiliateBusiness> logger
             Name = localizedContent?.Name ?? "N/A",
             ThumbnailImage = images?.Thumbnail,
             Attributes = attributes,
+            Category= category != null ? MapCategoryToDto(category, [], language) : null,
             Labels = labels,
             IsFavorite = isFavorite
         };
@@ -545,6 +552,7 @@ public class AffiliateBusiness(ILogger<AffiliateBusiness> logger
             Seller = seller,
             ShippingOptions = shippingOptions,
             Categories = categories,
+            Category = categories?.FirstOrDefault(),
             IsFavorite = isFavorite
         };
     }

@@ -9,6 +9,7 @@ public class AffiliateProductFilterRequest
     public List<string> Labels { get; set; }
     public string Keywords { get; set; }
     public List<Guid> CategoryIds { get; set; }
+    public List<string> CategoryCodes { get; set; }
     public bool? HasDiscount { get; set; }
     public decimal? PriceFrom { get; set; }
     public decimal? PriceTo { get; set; }
@@ -54,6 +55,7 @@ public class AffiliateProductListDto
     public int TotalSold { get; set; }
     public string Name { get; set; }
     public string ThumbnailImage { get; set; }
+    public AffiliateCategoryDto Category { get; set; }
     public List<ProductAttribute> Attributes { get; set; } // Add attributes to list DTO
     public List<string> Labels { get; set; }
     public bool IsFavorite { get; set; }
@@ -85,6 +87,7 @@ public class AffiliateProductDetailDto
     public ProductSeller Seller { get; set; }
     public ProductShippingOptions ShippingOptions { get; set; }
     public List<AffiliateCategoryDto> Categories { get; set; }
+    public AffiliateCategoryDto Category { get; set; }
     public bool IsFavorite { get; set; }
 }
 
