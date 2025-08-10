@@ -5,7 +5,7 @@ public interface IAffiliateBusiness
     // Product APIs
     Task<BaseResponse<AffiliateFilterOptionsDto>> GetFilterOptionsAsync();
     Task<BaseResponse<PaginatedBase<AffiliateProductListDto>>> GetProductsAsync(AffiliateProductFilterRequest request);
-    Task<BaseResponse<AffiliateProductDetailDto>> GetProductDetailAsync(Guid productId, AffiliateProductDetailRequest request = null);
+    Task<BaseResponse<AffiliateProductDetailDto>> GetProductDetailAsync(string productId, AffiliateProductDetailRequest request = null);
 
     // Favorite APIs
     Task<BaseResponse<bool>> AddToFavoriteAsync(AddFavoriteRequest request);

@@ -1,3 +1,4 @@
+using InsightPlatform.Api.Data.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -6,7 +7,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
-using InsightPlatform.Api.Data.Models;
 
 public class AffiliateBusiness(ILogger<AffiliateBusiness> logger
         , IDbContextFactory<ApplicationDbContext> contextFactory
@@ -84,7 +84,8 @@ public class AffiliateBusiness(ILogger<AffiliateBusiness> logger
         .Select(g => new ProductAttribute
         {
             Name = g.Key,
-            Value = string.Join(", ", g.Select(x => x.Value).Distinct().OrderBy(v => v))
+            Value = [.. g.SelectMany(x => x.Value).Distinct().OrderBy(v => v)],
+            Type = g.FirstOrDefault()?.Type ?? "undefined",
         })
         .OrderBy(a => a.Name)
         .ToList();
@@ -125,6 +126,23 @@ public class AffiliateBusiness(ILogger<AffiliateBusiness> logger
         if (request.CategoryIds?.Any() == true)
         {
             query = query.Where(p => p.ProductCategories.Any(pc => request.CategoryIds.Contains(pc.CategoryId)));
+        }
+
+        if (request.CategoryCodes?.Any() == true)
+        {
+            query = query.Where(p => p.ProductCategories.Any(pc => request.CategoryCodes.Contains(pc.Category.Code)));
+        }
+
+        if (request.HasDiscount.HasValue)
+        {
+            if (request.HasDiscount.Value)
+            {
+                query = query.Where(p => p.DiscountPrice.HasValue && p.DiscountPrice < p.Price);
+            }
+            else
+            {
+                query = query.Where(p => !p.DiscountPrice.HasValue || p.DiscountPrice >= p.Price);
+            }
         }
 
         if (request.PriceFrom.HasValue)
@@ -203,16 +221,30 @@ public class AffiliateBusiness(ILogger<AffiliateBusiness> logger
         return new BaseResponse<PaginatedBase<AffiliateProductListDto>>(result);
     }
 
-    public async Task<BaseResponse<AffiliateProductDetailDto>> GetProductDetailAsync(Guid productId, AffiliateProductDetailRequest request = null)
+    public async Task<BaseResponse<AffiliateProductDetailDto>> GetProductDetailAsync(string productId, AffiliateProductDetailRequest request = null)
     {
         await using var context = await _contextFactory.CreateDbContextAsync();
         var language = GetCurrentLanguage();
         var userId = Current.UserId;
 
-        var product = await context.AffiliateProducts
-            .Include(p => p.ProductCategories)
-            .ThenInclude(pc => pc.Category)
-            .FirstOrDefaultAsync(p => p.Id == productId);
+        AffiliateProduct product = null;
+
+        // Try to parse as Guid first
+        if (Guid.TryParse(productId, out var guidId))
+        {
+            product = await context.AffiliateProducts
+                .Include(p => p.ProductCategories)
+                .ThenInclude(pc => pc.Category)
+                .FirstOrDefaultAsync(p => p.Id == guidId);
+        }
+        // If not a valid Guid, try to parse as long (AutoId)
+        else if (long.TryParse(productId, out var autoId))
+        {
+            product = await context.AffiliateProducts
+                .Include(p => p.ProductCategories)
+                .ThenInclude(pc => pc.Category)
+                .FirstOrDefaultAsync(p => p.AutoId == autoId);
+        }
 
         if (product == null)
         {
@@ -224,7 +256,7 @@ public class AffiliateBusiness(ILogger<AffiliateBusiness> logger
         if (userId.HasValue)
         {
             isFavorite = await context.AffiliateFavorites
-                .AnyAsync(f => f.UserId == userId.Value && f.ProductId == productId);
+                .AnyAsync(f => f.UserId == userId.Value && f.ProductId == product.Id);
         }
 
         var productDto = MapProductToDetailDto(product, language, isFavorite, request?.Attributes);
@@ -234,7 +266,7 @@ public class AffiliateBusiness(ILogger<AffiliateBusiness> logger
         {
             await TrackEventInternalAsync(context, new TrackingEventRequest
             {
-                ProductId = productId,
+                ProductId = product.Id,
                 Action = AffiliateTrackingAction.View,
                 SessionId = Current.AccessTokenId ?? Current.ClientIP
             });
@@ -433,7 +465,7 @@ public class AffiliateBusiness(ILogger<AffiliateBusiness> logger
             .Select(c => MapCategoryToDto(c, allCategories, language))
             .ToList();
 
-        if (children.Any())
+        if (children.Count != 0)
         {
             dto.Children = children;
         }
@@ -447,6 +479,7 @@ public class AffiliateBusiness(ILogger<AffiliateBusiness> logger
         var images = GetJsonObject<ProductImages>(product.Images);
         var labels = GetLocalizedContent<List<string>>(product.Labels, language) ?? [];
         var attributes = GetLocalizedContent<List<ProductAttribute>>(product.Attributes, language) ?? [];
+        var category = product.ProductCategories?.FirstOrDefault()?.Category;
 
         // Process attributes with matching logic if filter is provided
         if (filterAttributes?.Any() == true)
@@ -470,6 +503,7 @@ public class AffiliateBusiness(ILogger<AffiliateBusiness> logger
             Name = localizedContent?.Name ?? "N/A",
             ThumbnailImage = images?.Thumbnail,
             Attributes = attributes,
+            Category= category != null ? MapCategoryToDto(category, [], language) : null,
             Labels = labels,
             IsFavorite = isFavorite
         };
@@ -518,6 +552,7 @@ public class AffiliateBusiness(ILogger<AffiliateBusiness> logger
             Seller = seller,
             ShippingOptions = shippingOptions,
             Categories = categories,
+            Category = categories?.FirstOrDefault(),
             IsFavorite = isFavorite
         };
     }
@@ -638,7 +673,7 @@ public class AffiliateBusiness(ILogger<AffiliateBusiness> logger
 
     private bool IsAttributeMatched(ProductAttribute attribute, List<string> filterAttributes)
     {
-        if (attribute == null || filterAttributes == null || !filterAttributes.Any())
+        if (attribute == null || attribute.Value == null || !attribute.Value.Any() || filterAttributes == null || !filterAttributes.Any())
             return false;
 
         // Check if any filter attribute matches this product attribute
@@ -652,9 +687,9 @@ public class AffiliateBusiness(ILogger<AffiliateBusiness> logger
                 {
                     var filterName = parts[0].Trim();
                     var filterValue = parts[1].Trim();
-                    
+
                     if (string.Equals(attribute.Name, filterName, StringComparison.OrdinalIgnoreCase) &&
-                        string.Equals(attribute.Value, filterValue, StringComparison.OrdinalIgnoreCase))
+                        attribute.Value.Any(v => string.Equals(v, filterValue, StringComparison.OrdinalIgnoreCase)))
                     {
                         return true;
                     }
@@ -662,8 +697,8 @@ public class AffiliateBusiness(ILogger<AffiliateBusiness> logger
             }
             else
             {
-                // Just value matching
-                if (string.Equals(attribute.Value, filter.Trim(), StringComparison.OrdinalIgnoreCase))
+                // Just value matching - check if any value in the list matches
+                if (attribute.Value.Any(v => string.Equals(v, filter.Trim(), StringComparison.OrdinalIgnoreCase)))
                 {
                     return true;
                 }
@@ -692,16 +727,16 @@ public class AffiliateBusiness(ILogger<AffiliateBusiness> logger
                 {
                     var filterName = parts[0].Trim();
                     var filterValue = parts[1].Trim();
-                    
-                    var hasMatch = attributes.Any(attr => 
+
+                    var hasMatch = attributes.Any(attr =>
                         string.Equals(attr.Name, filterName, StringComparison.OrdinalIgnoreCase) &&
-                        string.Equals(attr.Value, filterValue, StringComparison.OrdinalIgnoreCase));
-                    
+                        attr.Value != null && attr.Value.Any(v => string.Equals(v, filterValue, StringComparison.OrdinalIgnoreCase)));
+
                     if (!hasMatch)
                         return false;
                 }
             }
-            
+
             return true;
         }
         catch (Exception ex)
@@ -723,7 +758,7 @@ public class AffiliateBusiness(ILogger<AffiliateBusiness> logger
                 return false;
 
             // Check if any filter label matches
-            return filterLabels.Any(filterLabel => 
+            return filterLabels.Any(filterLabel =>
                 labels.Any(label => string.Equals(label, filterLabel, StringComparison.OrdinalIgnoreCase)));
         }
         catch (Exception ex)

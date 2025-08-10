@@ -34,12 +34,12 @@ namespace InsightPlatform.Api.Data.Models
     }
 
     /// <summary>
-    /// Product attribute (e.g., Color: Red, Size: L)
+    /// Product attribute (e.g., Color: [Red, Blue], Size: [L, XL])
     /// </summary>
     public class ProductAttribute
     {
         public string Name { get; set; }
-        public string Value { get; set; }
+        public List<string> Value { get; set; }
         public string Type { get; set; } // text, color, size, etc.
         public bool IsMatched { get; set; } = false; // For matching with user preferences
     }
@@ -50,7 +50,7 @@ namespace InsightPlatform.Api.Data.Models
     public class ProductAttributeLocalizedContent
     {
         public string Name { get; set; }
-        public string Value { get; set; }
+        public List<string> Value { get; set; }
         public string Type { get; set; }
     }
 
