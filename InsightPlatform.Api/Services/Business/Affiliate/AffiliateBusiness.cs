@@ -396,6 +396,8 @@ public class AffiliateBusiness(ILogger<AffiliateBusiness> logger
 
         var query = context.AffiliateFavorites
             .Include(f => f.Product)
+            .ThenInclude(p => p.ProductCategories)
+            .ThenInclude(pc => pc.Category)
             .Where(f => f.UserId == userId && f.Product.Status == AffiliateProductStatus.Active)
             .OrderByDescending(f => f.CreatedTs);
 
