@@ -52,6 +52,7 @@ public class AffiliateProductListDto
     public decimal? DiscountPercentage { get; set; }
     public int Stock { get; set; }
     public decimal? Rating { get; set; }
+    public long? RatingCount { get; set; }
     public int TotalSold { get; set; }
     public string Name { get; set; }
     public string ThumbnailImage { get; set; }
@@ -75,6 +76,7 @@ public class AffiliateProductDetailDto
     public decimal? DiscountPercentage { get; set; }
     public int Stock { get; set; }
     public decimal? Rating { get; set; }
+    public long? RatingCount { get; set; }
     public int TotalSold { get; set; }
     public string SaleLocation { get; set; }
     public string Promotion { get; set; }

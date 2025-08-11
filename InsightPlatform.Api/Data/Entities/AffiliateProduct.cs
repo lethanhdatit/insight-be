@@ -38,6 +38,7 @@ public class AffiliateProduct : Trackable
     
     // Rating & Sales
     public decimal? Rating { get; set; }
+    public long? RatingCount { get; set; }
     public int TotalSold { get; set; }
     
     // Location & Shipping

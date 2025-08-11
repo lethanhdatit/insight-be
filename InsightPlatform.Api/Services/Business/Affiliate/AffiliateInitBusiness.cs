@@ -199,7 +199,7 @@ public class AffiliateInitBusiness(ILogger<AffiliateInitBusiness> logger
                     price = 299000m, discount = 199000m, provider = AffiliateProvider.Shopee,
                     colors = new[] { "Đỏ", "Xanh", "Tím" }, sizes = new[] { "16cm", "17cm", "18cm" },
                     materials = new[] { "Thạch anh thiên nhiên" }, labels = new[] { "hot", "bestseller", "mới" },
-                    categoryCode = "vong-tay", stock = 50, rating = 4.5m, sold = 234
+                    categoryCode = "vong-tay", stock = 50, rating = 4.5m, ratingCount = 1500, sold = 234
                 },
                 // Tiền xu - không discount
                 new { 
@@ -208,7 +208,7 @@ public class AffiliateInitBusiness(ILogger<AffiliateInitBusiness> logger
                     price = 150000m, discount = 0m, provider = AffiliateProvider.Lazada,
                     colors = new[] { "Vàng", "Bạc" }, sizes = new[] { "3cm", "3.5cm", "4cm" },
                     materials = new[] { "Mạ vàng 24k", "Mạ bạc" }, labels = new[] { "phổ biến", "truyền thống" },
-                    categoryCode = "dong-tien", stock = 100, rating = 4.2m, sold = 567
+                    categoryCode = "dong-tien", stock = 100, rating = 4.2m, ratingCount = 150, sold = 567
                 },
                 // Tượng Phật - có discount
                 new { 
@@ -217,7 +217,7 @@ public class AffiliateInitBusiness(ILogger<AffiliateInitBusiness> logger
                     price = 850000m, discount = 650000m, provider = AffiliateProvider.Tiki,
                     colors = new[] { "Trắng", "Xanh lá" }, sizes = new[] { "15cm", "20cm", "25cm" },
                     materials = new[] { "Đá cẩm thạch", "Gỗ mun" }, labels = new[] { "cao cấp", "handmade" },
-                    categoryCode = "tuong-phat", stock = 25, rating = 4.8m, sold = 89
+                    categoryCode = "tuong-phat", stock = 25, rating = 4.8m, ratingCount = 750, sold = 89
                 },
                 // Cây tài lộc - không discount
                 new { 
@@ -226,7 +226,7 @@ public class AffiliateInitBusiness(ILogger<AffiliateInitBusiness> logger
                     price = 320000m, discount = 0m, provider = AffiliateProvider.Shopee,
                     colors = new[] { "Xanh lá", "Vàng kim" }, sizes = new[] { "12cm", "15cm" },
                     materials = new[] { "Thạch anh xanh", "Đồng thau" }, labels = new[] { "bán chạy", "văn phòng" },
-                    categoryCode = "cay-tai-loc", stock = 80, rating = 4.3m, sold = 156
+                    categoryCode = "cay-tai-loc", stock = 80, rating = 4.3m, ratingCount = 35000, sold = 156
                 },
                 // Dây chuyền - có discount lớn
                 new { 
@@ -235,7 +235,7 @@ public class AffiliateInitBusiness(ILogger<AffiliateInitBusiness> logger
                     price = 2500000m, discount = 1800000m, provider = AffiliateProvider.Lazada,
                     colors = new[] { "Vàng" }, sizes = new[] { "40cm", "45cm", "50cm" },
                     materials = new[] { "Vàng 18k", "Bạc 925" }, labels = new[] { "luxury", "limited" },
-                    categoryCode = "day-chuyen", stock = 5, rating = 4.9m, sold = 12
+                    categoryCode = "day-chuyen", stock = 5, rating = 4.9m, ratingCount = 9810147, sold = 12
                 },
                 // Nhẫn - có discount nhỏ
                 new { 
@@ -244,7 +244,7 @@ public class AffiliateInitBusiness(ILogger<AffiliateInitBusiness> logger
                     price = 1200000m, discount = 1100000m, provider = AffiliateProvider.Tiki,
                     colors = new[] { "Đỏ ruby", "Xanh sapphire" }, sizes = new[] { "Size 6", "Size 7", "Size 8", "Size 9" },
                     materials = new[] { "Bạc 925", "Ruby thiên nhiên" }, labels = new[] { "precious", "authentic" },
-                    categoryCode = "nhan", stock = 15, rating = 4.7m, sold = 34
+                    categoryCode = "nhan", stock = 15, rating = 4.7m, ratingCount = 20, sold = 34
                 },
                 // Tranh phong thủy - không discount
                 new { 
@@ -253,7 +253,7 @@ public class AffiliateInitBusiness(ILogger<AffiliateInitBusiness> logger
                     price = 450000m, discount = 0m, provider = AffiliateProvider.Shopee,
                     colors = new[] { "Đa màu" }, sizes = new[] { "40x60cm", "60x90cm", "80x120cm" },
                     materials = new[] { "Canvas", "Khung gỗ" }, labels = new[] { "decor", "feng-shui" },
-                    categoryCode = "tranh-phong-thuy", stock = 60, rating = 4.4m, sold = 203
+                    categoryCode = "tranh-phong-thuy", stock = 60, rating = 4.4m, ratingCount = 1, sold = 203
                 },
                 // Gương bát quái - có discount
                 new { 
@@ -262,7 +262,7 @@ public class AffiliateInitBusiness(ILogger<AffiliateInitBusiness> logger
                     price = 180000m, discount = 150000m, provider = AffiliateProvider.Lazada,
                     colors = new[] { "Đồng", "Bạc" }, sizes = new[] { "8cm", "10cm", "12cm" },
                     materials = new[] { "Đồng thau", "Gương thật" }, labels = new[] { "protection", "traditional" },
-                    categoryCode = "guong-bat-quai", stock = 40, rating = 4.6m, sold = 128
+                    categoryCode = "guong-bat-quai", stock = 40, rating = 4.6m, ratingCount = 2, sold = 128
                 }
             };
 
@@ -284,6 +284,7 @@ public class AffiliateInitBusiness(ILogger<AffiliateInitBusiness> logger
                 // Vary stock and ratings
                 var stock = Math.Max(1, template.stock + random.Next(-20, 21));
                 var rating = Math.Round(template.rating + (decimal)(random.NextDouble() - 0.5) * 0.6m, 1);
+                var ratingCount = template.ratingCount;
                 var totalSold = template.sold + random.Next(-50, 101);
                 
                 // Random provider for variation
@@ -301,6 +302,7 @@ public class AffiliateInitBusiness(ILogger<AffiliateInitBusiness> logger
                     DiscountPercentage = discountPrice.HasValue ? Math.Round((price - discountPrice.Value) / price * 100, 2) : null,
                     Stock = stock,
                     Rating = rating,
+                    RatingCount = ratingCount,
                     TotalSold = totalSold,
                     SaleLocation = random.Next(2) == 0 ? "TP.HCM" : "Hà Nội",
                     LocalizedContent = JsonSerializer.Serialize(new Dictionary<string, object>
